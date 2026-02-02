@@ -58,10 +58,10 @@ function App() {
 
     const LoginRequest = async () => {
       try {
-        console.log("body", body);
+        // console.log("body", body);
 
         const resp = await POST(API.AUTH.LOGIN, body);
-        console.log("resp", resp);
+        // console.log("resp", resp);
 
         // NOTE: interceptor ki wajah se resp already data hota hai
         if (resp.token) {
@@ -118,6 +118,7 @@ function App() {
           {snackmsg}
         </Alert>
       </Snackbar>
+
       <Snackbar
         open={snackerropen}
         autoHideDuration={3000}
@@ -127,57 +128,107 @@ function App() {
           {snackErrMsg}
         </Alert>
       </Snackbar>
+
       <Grid
         container
-        direction="row"
-        justifyContent="space-between"
+        direction="column"
         alignItems="center"
-        className="login-bg "
+        className="login-bg"
+        style={{
+          minHeight: "100vh",
+          background: "linear-gradient(to bottom, #001f3f, #003366)",
+        }}
       >
+        {/* Header Section */}
         <Grid
           container
           alignItems="center"
           justifyContent="space-between"
-          className="widthLR-90"
+          style={{
+            width: "90%",
+            paddingTop: "20px",
+          }}
         >
           <Grid item>
-            <img src={LeftLogo} alt="LeftLogo" className="nav-leftlogo" />
+            <img src={LeftLogo} alt="LeftLogo" style={{ height: "70px" }} />
           </Grid>
+
           <Grid item>
-            <Typography align="center" className="white-typo mt-20 fs-50">
+            <Typography
+              align="center"
+              style={{
+                color: "white",
+                fontSize: "40px",
+                fontWeight: 700,
+                letterSpacing: "1px",
+              }}
+            >
               {inputValues.word1}
             </Typography>
-            <Typography align="center" className="white-typo  fs-30">
+
+            <Typography
+              align="center"
+              style={{
+                color: "#d9d9d9",
+                fontSize: "22px",
+                fontWeight: 500,
+              }}
+            >
               Online Resistance Monitoring System
             </Typography>
           </Grid>
-          <Grid item className="nav-rightlogo">
-            <img src={LeftLogo} alt="RightLogo" className="nav-leftlogo" />
+
+          <Grid item>
+            <img src={LeftLogo} alt="RightLogo" style={{ height: "70px" }} />
           </Grid>
         </Grid>
+
+        {/* Login Card */}
         <Grid
           container
-          direction="row"
           justifyContent="center"
           alignItems="center"
+          style={{ marginTop: "60px" }}
         >
           <form onSubmit={handleSubmit(SignSubmit)}>
-            <Grid item className="login-box">
-              <Typography className="white-typo fs-24 fw-700">Login</Typography>
+            <Grid
+              item
+              style={{
+                background: "white",
+                padding: "45px",
+                width: "420px",
+                borderRadius: "6px",
+                boxShadow: "0 10px 30px rgba(0,0,0,0.4)",
+                borderTop: "6px solid #ff9933", // tricolor hint
+              }}
+            >
+              <Typography
+                align="center"
+                style={{
+                  fontSize: "24px",
+                  fontWeight: 700,
+                  color: "#003366",
+                  marginBottom: "25px",
+                }}
+              >
+                LOGIN
+              </Typography>
 
-              <Typography className="white-typo fs-20 fw-700 mt-24">
+              {/* UID */}
+              <Typography style={{ fontWeight: 600, color: "#333" }}>
                 Enter UID
               </Typography>
 
               <Input
-                id="uid"
-                className={
-                  errors?.Uid?.message
-                    ? "input-style-trans-warn mt-8"
-                    : "input-style-trans mt-8"
-                }
+                fullWidth
                 disableUnderline
                 value={uid}
+                style={{
+                  border: "1px solid #ccc",
+                  borderRadius: "4px",
+                  padding: "10px",
+                  marginTop: "8px",
+                }}
                 {...register("Uid", {
                   required: "Uid is required",
                   onChange: (e) => setUid(e.target.value),
@@ -185,25 +236,34 @@ function App() {
               />
 
               {errors?.Uid && (
-                <Typography className="red-typo mt-5px" role="alert">
+                <Typography style={{ color: "red", fontSize: "13px" }}>
                   {errors?.Uid?.message}
                 </Typography>
               )}
 
-              <Typography className="white-typo fs-20 fw-700 mt-16">
+              {/* Password */}
+              <Typography
+                style={{
+                  fontWeight: 600,
+                  color: "#333",
+                  marginTop: "20px",
+                }}
+              >
                 Enter Password
               </Typography>
 
               <Grid container style={{ position: "relative" }}>
                 <Input
-                  className={
-                    errors?.Password?.message
-                      ? "input-style-trans-warn mt-8"
-                      : "input-style-trans mt-8"
-                  }
+                  fullWidth
                   disableUnderline
                   value={password}
                   type={show ? "text" : "password"}
+                  style={{
+                    border: "1px solid #ccc",
+                    borderRadius: "4px",
+                    padding: "10px",
+                    marginTop: "8px",
+                  }}
                   {...register("Password", {
                     required: "Password is required.",
                     onChange: (e) => setPassword(e.target.value),
@@ -212,16 +272,14 @@ function App() {
 
                 <Grid
                   style={{
-                    right: "10px",
-                    top: "5px",
                     position: "absolute",
+                    right: "10px",
+                    top: "18px",
                   }}
                 >
                   <Typography
-                    align="right"
-                    className="fs-24 white-typo mt-8"
                     onClick={() => setShow(!show)}
-                    style={{ cursor: "pointer" }}
+                    style={{ cursor: "pointer", color: "#003366" }}
                   >
                     {show ? <AiOutlineEye /> : <AiOutlineEyeInvisible />}
                   </Typography>
@@ -229,30 +287,40 @@ function App() {
               </Grid>
 
               {errors?.Password && (
-                <Typography className="red-typo mt-5px" role="alert">
+                <Typography style={{ color: "red", fontSize: "13px" }}>
                   {errors?.Password?.message}
                 </Typography>
               )}
 
-              {/* 🔥 FORGOT PASSWORD LINK HERE */}
-              <Typography align="right" className="mt-8">
+              {/* Forgot Password */}
+              <Typography align="right" style={{ marginTop: "12px" }}>
                 <Link
                   to="/forgot-password"
                   style={{
-                    color: "white",
+                    color: "#003366",
+                    fontSize: "14px",
                     textDecoration: "none",
-                    cursor: "pointer",
+                    fontWeight: 500,
                   }}
                 >
                   Forgot Password?
                 </Link>
               </Typography>
 
+              {/* Login Button */}
               <Button
-                className="blue-bg-button fs-20 fw-700 width100 hgt-48 mt-32"
                 type="submit"
+                fullWidth
+                variant="contained"
+                style={{
+                  marginTop: "30px",
+                  backgroundColor: "#003366",
+                  padding: "12px",
+                  fontWeight: 700,
+                  letterSpacing: "1px",
+                }}
               >
-                Login
+                LOGIN
               </Button>
             </Grid>
           </form>

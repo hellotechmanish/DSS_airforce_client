@@ -17,6 +17,7 @@ import Temperature from "./views/pages/TemperatureMonitoring/TemperatureTable";
 import SitesProfile from "./views/pages/Managment/SitesMgt/SitesProfile/sites-profile";
 import TechnicianProfile from "./views/pages/Managment/Usermgt/UserTabs/TechProfile/TechnicianProfile";
 import UserProfile from "./views/pages/Managment/Usermgt/UserTabs/UserProfile/UserProfile";
+import ForgotPassword from "./views/forgetpass/ForgotPassword";
 // Sidebar Icons Import
 const RootErrorBoundary = () => {
   let error = useRouteError();
@@ -36,6 +37,7 @@ export const routes = [
     element: <AuthLayout />,
     children: [
       { path: "/signIn", element: <SignIn /> },
+      { path: "/forgot-password", element: <ForgotPassword /> },
       { path: "*", element: <Unauthorized /> },
       {
         path: "",
