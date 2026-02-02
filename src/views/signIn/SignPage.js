@@ -12,6 +12,7 @@ import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
 import { useForm } from "react-hook-form";
 import { POST } from "../../lib/request.js";
 import { API } from "../../lib/endpoint.js";
+import { Link } from "react-router-dom";
 
 const Alert = React.forwardRef(function Alert(props, ref) {
   return <MuiAlert elevation={6} ref={ref} variant="filled" {...props} />;
@@ -60,6 +61,7 @@ function App() {
         console.log("body", body);
 
         const resp = await POST(API.AUTH.LOGIN, body);
+        console.log("resp", resp);
 
         // NOTE: interceptor ki wajah se resp already data hota hai
         if (resp.token) {
@@ -162,86 +164,96 @@ function App() {
           <form onSubmit={handleSubmit(SignSubmit)}>
             <Grid item className="login-box">
               <Typography className="white-typo fs-24 fw-700">Login</Typography>
-              <Typography className="white-typo  fs-20  fw-700 mt-24">
+
+              <Typography className="white-typo fs-20 fw-700 mt-24">
                 Enter UID
               </Typography>
+
               <Input
                 id="uid"
                 className={
                   errors?.Uid?.message
-                    ? "  input-style-trans-warn   mt-8"
-                    : " input-style-trans  mt-8"
+                    ? "input-style-trans-warn mt-8"
+                    : "input-style-trans mt-8"
                 }
                 disableUnderline
                 value={uid}
-                onChange={(e) => {
-                  setUid(e.target.value);
-                }}
                 {...register("Uid", {
-                  required: "Uid  is required",
-                  onChange: (e) => {
-                    setUid(e.target.value);
-                  },
+                  required: "Uid is required",
+                  onChange: (e) => setUid(e.target.value),
                 })}
               />
+
               {errors?.Uid && (
                 <Typography className="red-typo mt-5px" role="alert">
                   {errors?.Uid?.message}
                 </Typography>
               )}
-              <Typography className="white-typo  fs-20 fw-700 mt-16">
+
+              <Typography className="white-typo fs-20 fw-700 mt-16">
                 Enter Password
               </Typography>
+
               <Grid container style={{ position: "relative" }}>
                 <Input
                   className={
                     errors?.Password?.message
-                      ? "  input-style-trans-warn   mt-8"
-                      : " input-style-trans  mt-8"
+                      ? "input-style-trans-warn mt-8"
+                      : "input-style-trans mt-8"
                   }
                   disableUnderline
                   value={password}
                   type={show ? "text" : "password"}
                   {...register("Password", {
-                    required: "password is required.",
-                    onChange: (e) => {
-                      setPassword(e.target.value);
-                    },
+                    required: "Password is required.",
+                    onChange: (e) => setPassword(e.target.value),
                   })}
                 />
+
                 <Grid
-                  style={{ right: "10px", top: "5px", position: " absolute" }}
+                  style={{
+                    right: "10px",
+                    top: "5px",
+                    position: "absolute",
+                  }}
                 >
                   <Typography
                     align="right"
                     className="fs-24 white-typo mt-8"
                     onClick={() => setShow(!show)}
+                    style={{ cursor: "pointer" }}
                   >
                     {show ? <AiOutlineEye /> : <AiOutlineEyeInvisible />}
-                  </Typography>{" "}
-                </Grid>
-                {errors?.Password && (
-                  <Typography className="red-typo mt-5px" role="alert">
-                    {errors?.Password?.message}
                   </Typography>
-                )}{" "}
+                </Grid>
               </Grid>
-              {/* <Typography
-              className="width100 white-typo mt-16 "
-              align="right"
-              onClick={() => setShow(!show)}
-            >
-              Show password
-            </Typography> */}
+
+              {errors?.Password && (
+                <Typography className="red-typo mt-5px" role="alert">
+                  {errors?.Password?.message}
+                </Typography>
+              )}
+
+              {/* 🔥 FORGOT PASSWORD LINK HERE */}
+              <Typography align="right" className="mt-8">
+                <Link
+                  to="/forgot-password"
+                  style={{
+                    color: "white",
+                    textDecoration: "none",
+                    cursor: "pointer",
+                  }}
+                >
+                  Forgot Password?
+                </Link>
+              </Typography>
+
               <Button
-                className="blue-bg-button  fs-20   fw-700 width100 hgt-48 mt-32"
+                className="blue-bg-button fs-20 fw-700 width100 hgt-48 mt-32"
                 type="submit"
               >
                 Login
               </Button>
-              <Typography align="center" className="mt-32">
-                {/* <img src={DssLogo} alt="DssLogo" /> */}
-              </Typography>
             </Grid>
           </form>
         </Grid>
