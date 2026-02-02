@@ -1,0 +1,27 @@
+[{
+  "_id": {
+    "$oid": "65eac41a236536fad98ef74c"
+  },
+  "password": "a29c57c6894dee6e8251510d58c07078ee3f49bf",
+  "fullName": "admin",
+  "uid": "123",
+  "role": 0,
+  "siteId": [],
+  "deviceId": [],
+  "phaseNumber": [],
+  "resistanceNumber": [],
+  "spdNumber": [],
+  "gnNumber": [],
+  "createdAt": {
+    "$date": {
+      "$numberLong": "1668762680430"
+    }
+  },
+  "updatedAt": {
+    "$date": {
+      "$numberLong": "1705469708159"
+    }
+  },
+  "__v": 1,
+  "deviceSensors": []
+}]
