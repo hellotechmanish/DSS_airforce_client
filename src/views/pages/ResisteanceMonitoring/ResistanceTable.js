@@ -13,7 +13,10 @@ import {
 } from "@mui/material";
 import { FETCH_URL } from "../../../fetchIp";
 import NodataFound from "../../../assets/img/nodatafound.png";
-import { Link } from "react-router-dom";
+import { GET } from "../../../lib/request";
+import { API } from "../../../lib/endpoint";
+
+// import { Link } from "react-router-dom";
 
 function createData(name, calories, fat, carbs, protein) {
   return { name, calories, fat, carbs, protein };
@@ -29,20 +32,29 @@ const rows = [
 
 export default function BasicTable() {
   const [resistance, setResistance] = useState(null);
+  // const getAllSiteResistance = async () => {
+  //   let token = JSON.parse(localStorage.getItem("userData")).token;
+  //   const response = await fetch(`${FETCH_URL}/api/site/getAllSiteResistance`, {
+  //     method: "GET",
+  //     headers: {
+  //       Accept: "application/json",
+  //       "Content-type": "application/json",
+  //       Authorization: `Bearer ${token}`,
+  //     },
+  //   });
+  //   let res = await response.json();
+  //   if (response.ok) {
+  //     setResistance(res.msg);
+  //   } else {
+  //   }
+  // };
+
   const getAllSiteResistance = async () => {
-    let token = JSON.parse(localStorage.getItem("userData")).token;
-    const response = await fetch(`${FETCH_URL}/api/site/getAllSiteResistance`, {
-      method: "GET",
-      headers: {
-        Accept: "application/json",
-        "Content-type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-    });
-    let res = await response.json();
-    if (response.ok) {
+    try {
+      const res = await GET(API.SITE.ALL_RESISTANCE);
       setResistance(res.msg);
-    } else {
+    } catch (error) {
+      console.error("Error fetching site resistance:", error);
     }
   };
 
