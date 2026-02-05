@@ -1,6 +1,8 @@
 import api from "./api";
-
-export const GET = (url, params = {}) => api.get(url, { params });
+export const GET = async (url, params = {}) => {
+  const res = await api.get(url, { params });
+  return res;
+};
 
 export const POST = (url, data = {}) => api.post(url, data);
 

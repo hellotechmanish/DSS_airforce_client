@@ -50,57 +50,46 @@ function App() {
     setSnackerropen(false);
     setSnackErrMsg("");
   };
-  const SignSubmit = (e) => {
+
+  const SignSubmit = async () => {
     const body = {
       uid: uid,
       password: password,
     };
 
-    const LoginRequest = async () => {
-      try {
-        // console.log("body", body);
+    try {
+      console.log("Request body =>", body);
 
-        const resp = await POST(API.AUTH.LOGIN, body);
-        // console.log("resp", resp);
+      const resp = await POST(API.AUTH.LOGIN, body);
 
-        // NOTE: interceptor ki wajah se resp already data hota hai
-        if (resp.token) {
-          localStorage.setItem(
-            "userData",
-            JSON.stringify({
-              user: resp.user,
-              token: resp.token,
-              refreshToken: resp.refreshToken,
-            }),
-          );
+      console.log("Full response =>", resp);
 
-          localStorage.setItem("access_token", resp.token);
+      const token = resp?.token;
+      // const user = resp?.user;
 
-          window.dispatchEvent(new Event("storage"));
-
-          setSnackOpen(true);
-          setSnackMsg(resp.msg || "Login successful");
-
-          navigate("/resistence-monitoring");
-          window.location.reload();
-        }
-      } catch (err) {
-        setSnackerropen(true);
-
-        if (err?.msg) {
-          setSnackErrMsg(err.msg);
-        } else if (err.message === "Network Error") {
-          setSnackErrMsg("Network Error. Please try after some time");
-        } else {
-          setSnackErrMsg("Something went wrong");
-        }
-
-        console.error("error from Login ==> ", err);
+      if (!token) {
+        console.log("Token missing in response");
+        return;
       }
-    };
 
-    LoginRequest();
+      localStorage.setItem(
+        "userData",
+        JSON.stringify({
+          user: resp.user,
+          token: resp.token,
+        }),
+      );
+
+      localStorage.setItem("token", token);
+
+      console.log("Saved token =>", localStorage.getItem("token"));
+
+      navigate("/dashboard");
+    } catch (err) {
+      console.error("Login error =>", err);
+    }
   };
+
   // code for title change start here
   const loadSavedData = () => {
     const savedData = localStorage.getItem("inputValues");

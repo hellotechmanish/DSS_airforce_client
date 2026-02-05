@@ -28,6 +28,9 @@ import {
 } from "chart.js";
 import { AuthContext } from "../../../../context/AuthContext";
 import { FETCH_URL } from "../../../../fetchIp";
+import { POST } from "../../../../lib/request";
+import { API } from "../../../../lib/endpoint";
+
 let interval;
 ChartJS.register(
   CategoryScale,
@@ -36,7 +39,7 @@ ChartJS.register(
   LineElement,
   Title,
   Tooltip,
-  Legend
+  Legend,
 );
 
 export const options = {
@@ -55,19 +58,18 @@ const labels = ["January", "February", "March", "April", "May", "June", "July"];
 const getTempValue = (row) =>
   Number(
     row?.msg?.TempValues?.DATASTREAMS?.[0]?.value ??
-    row?.msg?.DATASTREAMS?.[0]?.value ??
-    row?.temp ??
-    0
+      row?.msg?.DATASTREAMS?.[0]?.value ??
+      row?.temp ??
+      0,
   );
 
 const getHumValue = (row) =>
   Number(
     row?.msg?.HumValues?.DATASTREAMS?.[0]?.value ??
-    row?.msg?.DATASTREAMS?.[0]?.value ??
-    row?.humidity ??
-    0
+      row?.msg?.DATASTREAMS?.[0]?.value ??
+      row?.humidity ??
+      0,
   );
-
 
 export default function Graph({
   device,
@@ -80,19 +82,19 @@ export default function Graph({
   const getTempValue = (row) =>
     Number(
       row?.msg?.TempValues?.DATASTREAMS?.[0]?.value ??
-      row?.msg?.DATASTREAMS?.[0]?.value ??
-      row?.temp ??
-      0
+        row?.msg?.DATASTREAMS?.[0]?.value ??
+        row?.temp ??
+        0,
     );
-  
+
   const getHumValue = (row) =>
     Number(
       row?.msg?.HumValues?.DATASTREAMS?.[0]?.value ??
-      row?.msg?.DATASTREAMS?.[0]?.value ??
-      row?.humidity ??
-      0
+        row?.msg?.DATASTREAMS?.[0]?.value ??
+        row?.humidity ??
+        0,
     );
-  
+
   const auth = React.useContext(AuthContext);
   const currentDate = dayjs().toDate();
 
@@ -107,7 +109,7 @@ export default function Graph({
   //   setSensor(newValue);
   // };
   const [startDate, setStartDate] = useState(
-    moment(new Date()).format("YYYY-MM-DD")
+    moment(new Date()).format("YYYY-MM-DD"),
   );
 
   const handleData = (data, datatype) => {
@@ -185,7 +187,7 @@ export default function Graph({
             // //("get data inside dynamic data RES ==>");
             obj["label"] = `R${i + 1}`;
             obj["data"] = graphData?.map(
-              (item) => item.msg.DATASTREAMS[i]?.value
+              (item) => item.msg.DATASTREAMS[i]?.value,
             );
             obj["borderColor"] = borderColorArray[i];
             obj["backgroundColor"] = backgroundColorArray[i];
@@ -198,7 +200,7 @@ export default function Graph({
             // //("get data inside dynamic data RES ==>");
             obj["label"] = `R${i + 1}`;
             obj["data"] = graphData?.map(
-              (item) => item.msg.DATASTREAMS[i]?.value
+              (item) => item.msg.DATASTREAMS[i]?.value,
             );
             obj["borderColor"] = borderColorArray[i];
             obj["backgroundColor"] = backgroundColorArray[i];
@@ -218,7 +220,7 @@ export default function Graph({
             // //("get data inside dynamic data SPD ==>");
             obj["label"] = `SPD${i + 1}`;
             obj["data"] = graphData?.map(
-              (item) => item.msg.DATASTREAMS[i]?.value
+              (item) => item.msg.DATASTREAMS[i]?.value,
             );
             obj["borderColor"] = borderColorArray[i];
             obj["backgroundColor"] = backgroundColorArray[i];
@@ -230,7 +232,7 @@ export default function Graph({
             // //("get data inside dynamic data SPD ==>");
             obj["label"] = `SPD${i + 1}`;
             obj["data"] = graphData?.map(
-              (item) => item.msg.DATASTREAMS[i]?.value
+              (item) => item.msg.DATASTREAMS[i]?.value,
             );
             obj["borderColor"] = borderColorArray[i];
             obj["backgroundColor"] = backgroundColorArray[i];
@@ -248,7 +250,7 @@ export default function Graph({
             // //("get data inside dynamic data NER ==>");
             obj["label"] = `GN${i + 1}`;
             obj["data"] = graphData?.map(
-              (item) => item.msg.DATASTREAMS[i]?.value
+              (item) => item.msg.DATASTREAMS[i]?.value,
             );
             obj["borderColor"] = borderColorArray[i];
             obj["backgroundColor"] = backgroundColorArray[i];
@@ -260,7 +262,7 @@ export default function Graph({
             // //("get data inside dynamic data NER ==>");
             obj["label"] = `GN${i + 1}`;
             obj["data"] = graphData?.map(
-              (item) => item.msg.DATASTREAMS[i]?.value
+              (item) => item.msg.DATASTREAMS[i]?.value,
             );
             obj["borderColor"] = borderColorArray[i];
             obj["backgroundColor"] = backgroundColorArray[i];
@@ -335,34 +337,34 @@ export default function Graph({
   }, [graphData]);
   React.useEffect(() => {
     let user = auth.user.deviceSensors.find(
-      (item) => item.deviceId === device._id
+      (item) => item.deviceId === device._id,
     );
     setUserDevice(user);
   }, [auth]);
 
-  // function get Graph data
-  async function getData() {
-    // //("asyn function getting Called...", sensor, startDate);
+  async function fetchdevidata() {
     try {
-      let resp = await axios.post(`${FETCH_URL}/api/device/latestData`, {
+      const resp = await POST(API.DEVICE.LATEST_DATA, {
         deviceId: device._id,
         sensorName: sensor,
         deviceNumber: `${phasevalue - 1}`,
         startDate: startDate,
         endDate: startDate,
       });
-      
-      console.log("H resp from graph data ==>", resp.data.msg);
-      setLabels([...new Set(resp.data.msg.map((item) => item.time))]);
 
-      setGraphData(resp.data.msg);
+      console.log("Graph API resp =>", resp);
+
+      const data = resp?.msg || [];
+
+      setLabels([...new Set(data.map((item) => item.time))]);
+      setGraphData(data);
     } catch (error) {
-      // //("error from getData () ", error);
+      console.error("Error fetching graph data:", error);
     }
   }
 
   React.useEffect(() => {
-    getData();
+    fetchdevidata();
   }, [sensor, startDate, device]);
 
   // let interval = setInterval(() => {
@@ -373,7 +375,7 @@ export default function Graph({
   React.useEffect(() => {
     intervalId.current = setInterval(() => {
       // console.log("Hit Graph Data render");
-      getData();
+      fetchdevidata();
     }, 11000);
     return () => {
       clearInterval(intervalId.current);
@@ -442,15 +444,12 @@ export default function Graph({
                   }}
                 >
                   {getTempValue({ msg: device }).toFixed(2)} °C
-
-
-                  
                 </span>
               </Typography>
               <Typography className="white-typo mt-8 ">
                 Humidity :{" "}
                 <span className="white-typo">
-                {getHumValue({ msg: device }).toFixed(2)} %
+                  {getHumValue({ msg: device }).toFixed(2)} %
                 </span>
               </Typography>
               <DewnloadReport

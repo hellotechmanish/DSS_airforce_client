@@ -12,6 +12,22 @@ export const API = {
   },
 
   SITE: {
+    COUNT: "/site/getnumberOfSite",
     ALL_RESISTANCE: "/site/getAllSiteResistance",
+    CREATE: "/site/createSite",
+  },
+  DEVICE: {
+    CREATE: "/device/createDevice",
+    CHECK_UID: "/device/checkDeviceUid",
+    LIST_BY_SITE: (siteId) => `/device/getdeviceListbysiteId/${siteId}`,
+    LATEST_DATA: "/device/latestData", // ✅ ADD THIS
+  },
+  ALARM: {
+    CREATE: "/device/createDevice",
+    CHECK_UID: "/device/checkDeviceUid",
+    LIST_BY_SITE: (siteId) => `/device/getdeviceListbysiteId/${siteId}`,
+    LATEST_DATA: "/device/latestData",
+    REBOOT_STATUS: "/device/reboot",
+    NOTIFICATION_COUNT: "/alarm/getNotificationCount",
   },
 };

@@ -10,6 +10,8 @@ import { Container } from "@mui/system";
 import NodataFound from "../../assets/img/nodatafound.png";
 import AddDevice from "./HomePageTab/AddDevice/AddDevice";
 import AddSiteDialog from "./Managment/SitesMgt/AddSite/SitesAddDialog";
+import { GET } from "../../lib/request";
+import { API } from "../../lib/endpoint";
 
 function TabPanel(props) {
   const { children, value, index, ...other } = props;
@@ -47,54 +49,43 @@ function App() {
   const [deviceID, setDevice] = useState([]);
 
   const getnumberOfSite = async () => {
-    setLoading(true);
-    let token = JSON.parse(localStorage.getItem("userData")).token;
-    const response = await fetch(`${FETCH_URL}/api/site/getnumberOfSite`, {
-      method: "GET",
-      headers: {
-        Accept: "application/json",
-        "Content-type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-    });
-    let res = await response.json();
+    try {
+      setLoading(true);
 
-    if (response.ok) {
-      setSites(res.msg);
-      setSetID(res.msg[0]._id);
-      setSiteZero(res.msg[0]);
+      const resp = await GET(API.SITE.COUNT);
+
+      if (Array.isArray(resp?.msg)) {
+        setSites(resp.msg);
+        setSetID(resp.msg[0]?._id);
+        setSiteZero(resp.msg[0]);
+      }
+    } catch (err) {
+      console.error("Site Count Error =>", err);
+    } finally {
       setLoading(false);
-    } else {
-      // // console.log("Error in get number Of Site ==> ", res);
     }
   };
 
   const getdeviceListbysite = async (sitesID) => {
-    setLoading(true);
-    let token = JSON.parse(localStorage.getItem("userData")).token;
+    if (!sitesID) return;
+
     try {
-      const response = await fetch(
-        `${FETCH_URL}/api/device/getdeviceListbysiteId/${sitesID}`,
-        {
-          method: "GET",
-          headers: {
-            Accept: "application/json",
-            "Content-type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-      let res = await response.json();
-      if (response.ok) {
-        setDevice(res.msg);
-        setLoading(false);
-      } else {
-        // // console.log("Error in get device List by site Id ==> ", res);
+      setLoading(true);
+
+      const resp = await GET(API.DEVICE.LIST_BY_SITE(sitesID));
+
+      console.log("Device List =>", resp);
+
+      if (Array.isArray(resp?.msg)) {
+        setDevice(resp.msg);
       }
     } catch (err) {
-      console.log("Error in get device List by site Id ==> ", err);
+      console.error("Device List Error =>", err);
+    } finally {
+      setLoading(false);
     }
   };
+
   useEffect(() => {
     getnumberOfSite();
   }, []);

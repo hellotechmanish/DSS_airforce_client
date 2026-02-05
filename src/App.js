@@ -1,55 +1,111 @@
-// Import Server Component
-import React, { useState, useEffect } from "react";
-import { Suspense, memo } from "react";
-import { Outlet, useLocation, useNavigate } from "react-router-dom";
+// // Import Server Component
+// import React, { useState, useEffect } from "react";
+// import { Suspense, memo } from "react";
+// import { Outlet, useLocation, useNavigate } from "react-router-dom";
 
-// Import Custom Component Attribute
+// // Import Custom Component Attribute
+// import "./App.css";
+// import { AdminContext } from "./context/AdminContext";
+// import { AuthContext } from "./context/AuthContext";
+// import LoaderDialog from "./views/component/loader";
+
+// function App() {
+//   const navigate = useNavigate();
+//   const location = useLocation();
+
+//   const [token, setToken] = useState(null);
+//   const [role, setRole] = useState(null);
+//   const [user, setUser] = useState(null);
+
+//   useEffect(() => {
+//     const checkUserData = () => {
+//       const storedData = JSON.parse(localStorage.getItem("userData") || "{}");
+//       const savedToken = localStorage.getItem("token");
+
+//       if (storedData?.user && savedToken) {
+//         setToken(savedToken);
+//         setUser(storedData.user);
+//         setRole(storedData.user.role);
+//       } else {
+//         setToken(null);
+//         setUser(null);
+//         setRole(null);
+//       }
+//     };
+
+//     checkUserData();
+//     window.addEventListener("storage", checkUserData);
+
+//     return () => {
+//       window.removeEventListener("storage", checkUserData);
+//     };
+//   }, []);
+
+//   useEffect(() => {
+//     const storedData = JSON.parse(localStorage.getItem("userData") || "{}");
+//     const savedToken = localStorage.getItem("token");
+
+//     // 🔴 Not logged in
+//     if (!storedData?.user || !savedToken) {
+//       if (location.pathname !== "/signIn") {
+//         navigate("/signIn");
+//       }
+//     }
+
+//     // 🟢 Logged in → block signIn
+//     if (storedData?.user && savedToken) {
+//       if (location.pathname === "/signIn") {
+//         navigate("/resistence-monitoring");
+//       }
+//     }
+//   }, [location, navigate]);
+
+//   return (
+//     <Suspense fallback={<LoaderDialog loading={true} />}>
+//       {/* <AuthContext.Provider value={{ token, setToken, user, role }}> */}
+//       {/* <AdminContext.Provider value={{}}> */}
+//       <Outlet />
+//       {/* </AdminContext.Provider> */}
+//       {/* </AuthContext.Provider> */}
+//     </Suspense>
+//   );
+// }
+
+// export default memo(App);
+
+import React, { useState, useEffect, Suspense, memo } from "react";
+import { Outlet } from "react-router-dom";
 import "./App.css";
-import { AdminContext } from "./context/AdminContext";
-import { AuthContext } from "./context/AuthContext";
 import LoaderDialog from "./views/component/loader";
+import { AuthContext } from "./context/AuthContext";
+import { AdminContext } from "./context/AdminContext";
 
 function App() {
-  const navigate = useNavigate();
-  const location = useLocation();
-
-  const [token, setToken] = React.useState(null);
+  const [token, setToken] = useState(null);
   const [role, setRole] = useState(null);
   const [user, setUser] = useState(null);
-  const storeData = JSON.parse(localStorage.getItem("userData"));
 
   useEffect(() => {
-    function checkUserData() {
-      const access_token = localStorage.getItem("access_token");
+    const storedData = JSON.parse(localStorage.getItem("userData") || "{}");
+    const savedToken = localStorage.getItem("token");
 
-      if (storeData) {
-        setToken(access_token);
-        setUser(storeData.user);
-        setRole(storeData.user.userRole);
-      }
+    if (storedData?.user && savedToken) {
+      setToken(savedToken);
+      setUser(storedData.user);
+      setRole(storedData.user.role);
+    } else {
+      setToken(null);
+      setUser(null);
+      setRole(null);
     }
-    checkUserData();
-    window.addEventListener("storage", checkUserData);
-    return () => {
-      window.removeEventListener("storage", checkUserData);
-    };
-  }, [token]);
-
-  useEffect(() => {
-    if (!storeData) {
-      navigate("/signIn");
-    }
-    if (location.pathname === "/") {
-      navigate("/signIn");
-    }
-  }, [navigate]);
+  }, []);
 
   return (
     <Suspense fallback={<LoaderDialog loading={true} />}>
       <AuthContext.Provider value={{ token, setToken, user, role }}>
-        <AdminContext.Provider>
-          <Outlet />
-        </AdminContext.Provider>
+        {/* <AdminContext.Provider value={{}}> */}
+        <Outlet />
+        {/* </AdminContext.Provider> */}
       </AuthContext.Provider>
     </Suspense>
   );

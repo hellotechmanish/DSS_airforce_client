@@ -36,11 +36,9 @@ import routes from "../../routes/AdminRoutes";
 import ShutDonwDialog from "./ShutDonwDialog";
 import axiosInstance from "../../api/axiosInstance";
 import { AuthContext } from "../../context/AuthContext";
+import { GET } from "../../lib/request";
+import { API } from "../../lib/endpoint";
 //code for change title start here
-
-
-
-//end here
 
 const StyledToolbar = styled(Box)(({ theme }) => ({
   backgroundImage: `url(${NavbarBgs})`,
@@ -52,7 +50,6 @@ const StyledToolbar = styled(Box)(({ theme }) => ({
 }));
 
 export default function ProminentAppBar() {
- 
   // ============= userRole ============== //
   const auth = React.useContext(AuthContext);
   const { token, setToken, user, setUser } = useContext(AuthContext);
@@ -76,22 +73,17 @@ export default function ProminentAppBar() {
   const [reboot, setReboot] = useState(null);
 
   const getRebootStatus = async () => {
-    const response = await fetch(`${FETCH_URL}/api/device/reboot`, {
-      method: "GET",
-      headers: {
-        Accept: "application/json",
-        "Content-type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-    });
-    let res = await response.json();
-    if (response.ok) {
-      // // console.log(" getRebootStatus resp ===> ", res.msg);
-      setReboot(res.msg);
-    } else {
-      // // console.log("Error in getRebootStatus ==> ", res);
+    try {
+      const resp = await GET(API.DEVICE.REBOOT_STATUS);
+
+      console.log("Reboot Status =>", resp);
+
+      setReboot(resp?.msg || resp);
+    } catch (error) {
+      console.error("Error fetching reboot status:", error);
     }
   };
+
   const [shutdown, setShutDown] = useState(null);
   const getShutdownStatus = async () => {
     const response = await fetch(`${FETCH_URL}/api/device/shutdown`, {
@@ -162,17 +154,12 @@ export default function ProminentAppBar() {
         {routes?.map((route, index) => {
           if (route.invisible === false) {
             return (
-              <>
+              <React.Fragment key={route.link || index}>
                 {auth.user.role === 2 && route.name !== "User Management" ? (
-                  <ListItem
-                    key={route}
-                    disablePadding
-                    component={Link}
-                    to={route.link}
-                  >
+                  <ListItem disablePadding component={Link} to={route.link}>
                     <ListItemButton>
                       <ListItemIcon className="sidebar-icon">
-                        <img src={route.icon} />
+                        <img alt="icon" src={route.icon} />
                       </ListItemIcon>
                       <ListItemText className="sidebar-text">
                         {route.name}
@@ -180,16 +167,12 @@ export default function ProminentAppBar() {
                     </ListItemButton>
                   </ListItem>
                 ) : null}
+
                 {auth.user.role === 0 || auth.user.role === 1 ? (
-                  <ListItem
-                    key={route}
-                    disablePadding
-                    component={Link}
-                    to={route.link}
-                  >
+                  <ListItem disablePadding component={Link} to={route.link}>
                     <ListItemButton className="p-7">
                       <ListItemIcon className="sidebar-icon">
-                        <img src={route.icon} />{" "}
+                        <img alt="icon" src={route.icon} />
                       </ListItemIcon>
                       <ListItemText className="sidebar-text">
                         {route.name}
@@ -197,7 +180,7 @@ export default function ProminentAppBar() {
                     </ListItemButton>
                   </ListItem>
                 ) : null}
-              </>
+              </React.Fragment>
             );
           }
         })}{" "}
@@ -238,17 +221,17 @@ export default function ProminentAppBar() {
 
   const getNotificationCount = async () => {
     try {
-      const response = await axiosInstance.get(
-        "/api/alarm/getNotificationCount"
-      );
+      const resp = await GET(API.ALARM.GET_NOTIFICATION_COUNT);
 
-      if (response && response.data) {
-        setNotificationCount(response.data?.count);
-      }
+      console.log("Notification Count =>", resp);
+
+      setNotificationCount(resp?.count || 0);
     } catch (error) {
-      console.error("Error fetching global alarm status:", error);
+      console.error("Error fetching notification count:", error);
+      setNotificationCount(0);
     }
   };
+
   useEffect(() => {
     getGlobalAlarmStatus();
     getNotificationCount();
@@ -258,31 +241,32 @@ export default function ProminentAppBar() {
     }, 10000);
     return () => clearInterval(intervalId);
   }, []);
-//code for change title 
-const loadSavedData = () => {
-  const savedData = localStorage.getItem('inputValues');
-  return savedData ? JSON.parse(savedData) : { word1: 'Indian Airforce', word2: '', word3: '' };
-};
-const [showPopup, setShowPopup] = useState(false);
-const [inputValues, setInputValues] = useState(loadSavedData());
 
+  //code for change title
+  const loadSavedData = () => {
+    const savedData = localStorage.getItem("inputValues");
+    return savedData
+      ? JSON.parse(savedData)
+      : { word1: "Indian Airforce", word2: "", word3: "" };
+  };
+  const [showPopup, setShowPopup] = useState(false);
+  const [inputValues, setInputValues] = useState(loadSavedData());
 
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    const newInputValues = { ...inputValues, [name]: value };
+    setInputValues(newInputValues);
 
-const handleInputChange = (e) => {
-  const { name, value } = e.target;
-  const newInputValues = { ...inputValues, [name]: value };
-  setInputValues(newInputValues);
+    localStorage.setItem("inputValues", JSON.stringify(newInputValues));
+  };
+  const handleOpenPopup = () => {
+    setShowPopup(true);
+  };
 
-  localStorage.setItem('inputValues', JSON.stringify(newInputValues));
-};
-const handleOpenPopup = () => {
-  setShowPopup(true);
-};
-
-const handleClosePopup = () => {
-  setShowPopup(false);}
+  const handleClosePopup = () => {
+    setShowPopup(false);
+  };
   return (
-    
     <>
       <StyledToolbar>
         <Container maxWidth="xl">
@@ -299,7 +283,7 @@ const handleClosePopup = () => {
             </Grid>
             <Grid item>
               <Typography align="center" className="white-typo mt-20 fs-50">
-              {inputValues.word1}
+                {inputValues.word1}
               </Typography>
               <Typography align="center" className="blue-typo  fs-30">
                 Online Resistance Monitoring System
@@ -354,12 +338,12 @@ const handleClosePopup = () => {
                     </>
                   )}
                 </Grid>
-                <Button onClick={handleOpenPopup} >Change Title </Button>
+                <Button onClick={handleOpenPopup}>Change Title </Button>
                 {/* Sidebar */}
                 <Button onClick={toggleDrawer(anchor, true)}>
                   <FiMenu className="hamburger-menu" />
                 </Button>
-                
+
                 <SwipeableDrawer
                   sx={{
                     flexShrink: 0,
@@ -408,11 +392,11 @@ const handleClosePopup = () => {
           </Grid>
         </Container>
       </StyledToolbar>
-{/*showpop up code for change title */}
-    {showPopup && (
+      {/*showpop up code for change title */}
+      {showPopup && (
         <div style={popupStyles}>
           <h5>Change Title</h5>
-            <div>
+          <div>
             <input
               type="text"
               name="word1"
@@ -425,26 +409,25 @@ const handleClosePopup = () => {
         </div>
       )}
 
-    {/* Display entered values */}
-    {/* <div>
+      {/* Display entered values */}
+      {/* <div>
       <h3>Entered Words:</h3>
       <p>Word 1: {inputValues.word1}</p>
       <p>Word 2: {inputValues.word2}</p>
       <p>Word 3: {inputValues.word3}</p>
-    </div>
-   */}
-{/*code end for the change title */}
-
+     </div>
+     */}
+      {/*code end for the change title */}
     </>
   );
 }
 const popupStyles = {
-  position: 'fixed',
-  top: '50%',
-  left: '50%',
-  transform: 'translate(-50%, -50%)',
-  padding: '20px',
-  backgroundColor: 'white',
-  border: '1px solid #ccc',
-  boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)',
+  position: "fixed",
+  top: "50%",
+  left: "50%",
+  transform: "translate(-50%, -50%)",
+  padding: "20px",
+  backgroundColor: "white",
+  border: "1px solid #ccc",
+  boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)",
 };
