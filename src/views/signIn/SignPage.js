@@ -3,16 +3,15 @@ import React, { useState } from "react";
 import { Typography, Grid, Input, Button, Snackbar } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import MuiAlert from "@mui/material/Alert";
-// import DssLogo from "../../assets/img/login-logo.png";
-import axios from "axios";
-import { FETCH_URL } from "../../fetchIp";
 import LeftLogo from "../../assets/img/Left-logo.png";
-// import RightLogo from "../../assets/img/Right-logo.png";
 import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
 import { useForm } from "react-hook-form";
 import { POST } from "../../lib/request.js";
 import { API } from "../../lib/endpoint.js";
 import { Link } from "react-router-dom";
+// import { useAuth } from "../../context/useAuth.js";
+import { useAuth } from "../../context/AuthContext.js";
+import { toast } from "react-hot-toast";
 
 const Alert = React.forwardRef(function Alert(props, ref) {
   return <MuiAlert elevation={6} ref={ref} variant="filled" {...props} />;
@@ -34,6 +33,9 @@ function App() {
   const [snackErrMsg, setSnackErrMsg] = useState();
   const [snackerropen, setSnackerropen] = useState(false);
   const [show, setShow] = React.useState(false);
+  const { login } = useAuth();
+
+  console.log(">>login", login);
 
   const SnanbarClose = (event, reason) => {
     if (reason === "clickaway") {
@@ -61,32 +63,26 @@ function App() {
       console.log("Request body =>", body);
 
       const resp = await POST(API.AUTH.LOGIN, body);
+      if (resp.token) {
+        localStorage.setItem("token", resp.token);
 
-      console.log("Full response =>", resp);
-
-      const token = resp?.token;
-      // const user = resp?.user;
-
-      if (!token) {
-        console.log("Token missing in response");
-        return;
+        localStorage.setItem(
+          "userData",
+          JSON.stringify({
+            user: resp.user,
+            token: resp.token,
+          }),
+        );
       }
-
-      localStorage.setItem(
-        "userData",
-        JSON.stringify({
-          user: resp.user,
-          token: resp.token,
-        }),
-      );
-
-      localStorage.setItem("token", token);
-
-      console.log("Saved token =>", localStorage.getItem("token"));
+      // login(resp.user, resp.token);
+      console.log("Full response =>", resp);
+      toast.success("Login successfully");
 
       navigate("/dashboard");
+      window.location.reload();
     } catch (err) {
       console.error("Login error =>", err);
+      toast.error(err?.response?.data?.message || "Login failed");
     }
   };
 

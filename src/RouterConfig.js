@@ -59,7 +59,8 @@ export const routes = [
         children: [
           {
             path: "/",
-            element: <Navigate to="/dashboard" replace />,
+            // element: <Navigate to="/dashboard" replace />,
+            element: <HomePage />,
           },
           {
             path: "/dashboard",
@@ -100,6 +101,10 @@ export const routes = [
           {
             path: "/user-profile",
             element: <UserProfile />,
+          },
+          {
+            path: "*",
+            element: <Unauthorized />,
           },
         ],
       },

@@ -25,14 +25,17 @@
     "file-saver": "^2.0.5",
     "html-to-image": "^1.11.11",
     "html2canvas": "^1.4.1",
+    "install": "^0.13.0",
     "match-sorter": "^6.3.1",
     "moment": "^2.29.4",
+    "npm": "^11.9.0",
     "papaparse": "^5.4.1",
     "react": "^18.2.0",
     "react-chartjs-2": "^5.0.1",
     "react-checkmark": "^1.4.0",
     "react-dom": "^18.2.0",
     "react-hook-form": "^7.39.5",
+    "react-hot-toast": "^2.6.0",
     "react-icons": "^4.6.0",
     "react-redux": "^8.0.5",
     "react-router-dom": "^6.21.3",
@@ -40,7 +43,8 @@
     "react-sound": "^1.2.0",
     "react-table": "^7.8.0",
     "recharts": "^2.10.4",
-    "web-vitals": "^2.1.4"
+    "web-vitals": "^2.1.4",
+    "zustand": "^5.0.11"
   },
   "scripts": {
     "start": "react-scripts start",

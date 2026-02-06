@@ -79,6 +79,7 @@ import "./App.css";
 import LoaderDialog from "./views/component/loader";
 import { AuthContext } from "./context/AuthContext";
 import { AdminContext } from "./context/AdminContext";
+import { Toaster } from "react-hot-toast";
 
 function App() {
   const [token, setToken] = useState(null);
@@ -104,6 +105,7 @@ function App() {
     <Suspense fallback={<LoaderDialog loading={true} />}>
       <AuthContext.Provider value={{ token, setToken, user, role }}>
         {/* <AdminContext.Provider value={{}}> */}
+        <Toaster position="bottom-right" />
         <Outlet />
         {/* </AdminContext.Provider> */}
       </AuthContext.Provider>

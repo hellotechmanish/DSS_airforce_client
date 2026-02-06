@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   Grid,
   Breadcrumbs,
@@ -94,8 +94,6 @@ export default function UserManagment() {
   const PasswordHide = () => {
     setShow(!show);
   };
-  const [passwordValue, setPasswordValue] = useState(null);
-  const [confirmPasswordValue, setConfirmPasswordValue] = useState(null);
   const [passwordError, setPasswordErr] = useState("");
   const [confirmPasswordError, setConfirmPasswordError] = useState("");
   const [passwordInput, setPasswordInput] = useState({
@@ -255,9 +253,9 @@ export default function UserManagment() {
                   className=" input-style-1c mt-12 width100"
                   disableUnderline
                   disabled={inputState}
-                  value={passwordValue}
-                  type={show ? passwordValue : "password"}
-                  defaultValue={inputState === false ? null : "********"}
+                  value={passwordInput.password}
+                  type={show ? "text" : "password"}
+                  placeholder={inputState === false ? "" : "********"}
                   onChange={handlePasswordChange}
                   onKeyUp={handleValidation}
                   name="password"
@@ -274,9 +272,8 @@ export default function UserManagment() {
                       className=" input-style-1c mt-12 width100"
                       disableUnderline
                       disabled={inputState}
-                      value={confirmPasswordValue}
-                      type={show ? confirmPasswordValue : "password"}
-                      // defaultValue="********"
+                      value={passwordInput.confirmPassword}
+                      type={show ? "text" : "password"}
                       onChange={handlePasswordChange}
                       onKeyUp={handleValidation}
                       name="confirmPassword"

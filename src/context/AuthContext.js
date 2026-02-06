@@ -13,7 +13,15 @@
 
 import React, { createContext, useContext, useState } from "react";
 
-export const AuthContext = createContext(null);
+// export const AuthContext = createContext(null);
+
+export const AuthContext = createContext({
+  isLoggedIn: false,
+  user: null,
+  token: null,
+  login: () => {},
+  logout: () => {},
+});
 
 export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(() =>
