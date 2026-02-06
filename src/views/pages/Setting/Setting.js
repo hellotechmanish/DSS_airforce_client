@@ -127,6 +127,7 @@ export default function UserManagment() {
       const specialCharPassword = specialCharRegExp.test(passwordInputValue);
       const minLengthPassword = minLengthRegExp.test(passwordInputValue);
       let errMsg = "";
+      
       if (passwordLength === 0) {
         errMsg = "Password can not  empty";
       } else if (!uppercasePassword) {
