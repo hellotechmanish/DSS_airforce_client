@@ -7,7 +7,6 @@ import {
   Container,
   Tabs,
   Tab,
-  Button,
   Box,
 } from "@mui/material";
 import { Link, useLocation } from "react-router-dom";
@@ -16,8 +15,9 @@ import CraeteTechnician from "./AddTechnician/AddTechnician";
 import CreateUser from "./AddUser/UserAdd";
 import TechnicianTab from "../Usermgt/UserTabs/TechnicianTab";
 import UserTab from "../Usermgt/UserTabs/UsersTab";
-import { FETCH_URL } from "../../../../fetchIp";
 import { AuthContext } from "../../../../context/AuthContext";
+import { API } from "../../../../lib/endpoint";
+import { GET } from "../../../../lib/request";
 
 function TabPanel(props) {
   const { children, value, index, ...other } = props;
@@ -41,7 +41,7 @@ TabPanel.propTypes = {
   value: PropTypes.number.isRequired,
 };
 export default function UserManagment() {
-  const { state } = useLocation();
+  // const { state } = useLocation();
   const auth = React.useContext(AuthContext);
   const [value, setValue] = React.useState(auth.user.role);
 
@@ -50,55 +50,30 @@ export default function UserManagment() {
   };
   // console.log("Check Value", value + 2);
   const [technician, setTechnician] = useState(null);
-  const [data, setData] = useState(null);
   useEffect(() => {
     getnumberOftechnician();
   }, []);
+
   const getnumberOftechnician = async () => {
-    let token = JSON.parse(localStorage.getItem("userData")).token;
-    const response = await fetch(
-      `${FETCH_URL}/api/user/userList/${value + 1}`,
-      {
-        method: "GET",
-        headers: {
-          Accept: "application/json",
-          "Content-type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
-    let res = await response.json();
-    if (response.ok) {
-      // console.log("  get number Of technician List resp ===> ", res.msg);
+    try {
+      const res = await GET(API.USERS.LIST_BY_ROLE(value + 1));
       setTechnician(res.msg);
-    } else {
-      // console.log("Error in get technician List ==> ", res);
+    } catch (err) {
+      console.log("Error fetching technician list", err);
     }
   };
 
   const [user, setUser] = useState(null);
 
   const getnumberOfUser = async () => {
-    let token = JSON.parse(localStorage.getItem("userData")).token;
-    const response = await fetch(
-      `${FETCH_URL}/api/user/userList/${value + 1}`,
-      {
-        method: "GET",
-        headers: {
-          Accept: "application/json",
-          "Content-type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
-    let res = await response.json();
-    if (response.ok) {
-      // console.log(" get getnumber Of User List resp ===> ", res.msg);
+    try {
+      const res = await GET(API.USERS.LIST_BY_ROLE(value + 1));
       setUser(res.msg);
-    } else {
-      // console.log("Error in get get number OfUser List ==> ", res);
+    } catch (err) {
+      console.log("Error fetching user list", err);
     }
   };
+
   useEffect(() => {
     getnumberOfUser();
   }, []);

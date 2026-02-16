@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { styled } from "@mui/material/styles";
 import Radio from "@mui/material/Radio";
 import RadioGroup from "@mui/material/RadioGroup";
@@ -13,8 +13,6 @@ import {
 } from "@mui/material";
 //React Icons
 
-import SearchIcon from "@mui/icons-material/Search";
-import { FETCH_URL } from "../../../../../../fetchIp";
 
 const Search = styled("div")(({ theme }) => ({
   position: "relative",
@@ -74,7 +72,7 @@ export default function Device(props) {
   // // console.log("Check Orignal Data", sitesData);
   //=================================================//
 
-  const [sites, setSites] = useState(null);
+  // const [sites, setSites] = useState(null);
 
   const [value, setValue] = React.useState(0);
   const TabChange = (event, newValue) => {

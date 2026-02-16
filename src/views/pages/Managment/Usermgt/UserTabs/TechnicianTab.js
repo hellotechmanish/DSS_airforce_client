@@ -1,12 +1,10 @@
-import React, { useState, useEffect } from "react";
-import { Typography, Breadcrumbs, Grid, Container } from "@mui/material";
+import { Typography, Grid } from "@mui/material";
 import Table from "@mui/material/Table";
 import TableBody from "@mui/material/TableBody";
 import TableCell from "@mui/material/TableCell";
 import TableContainer from "@mui/material/TableContainer";
 import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
-import Paper from "@mui/material/Paper";
 import dayjs from "dayjs";
 
 import { Link } from "react-router-dom";
@@ -126,7 +124,7 @@ export default function Sites({ technician, getnumberOftechnician }) {
           <Grid container>
             <Grid item className="mt-32 width100">
               <Typography align="center">
-                <img src={NodataFound} />{" "}
+                <img alt="NodaFound" src={NodataFound} />{" "}
               </Typography>
             </Grid>
             <Typography className="heading-black width100 mt-42" align="center">

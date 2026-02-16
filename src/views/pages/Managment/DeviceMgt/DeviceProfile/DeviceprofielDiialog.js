@@ -1,16 +1,13 @@
 import React, { useState, useEffect } from "react";
 import {
   Grid,
-  Backdrop,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
   Button,
-  Box,
   IconButton,
   Typography,
-  Tooltip,
   Snackbar,
   Input,
   TextField,
@@ -23,7 +20,6 @@ import DeleteDevice from "../ActionButton/DeleteDevice";
 import { styled } from "@mui/material/styles";
 import CloseIcon from "@mui/icons-material/Close";
 //React Icons
-import { RiDeleteBin6Line } from "react-icons/ri";
 import { AuthContext } from "../../../../../context/AuthContext";
 import axiosInstance from "../../../../../api/axiosInstance";
 
@@ -136,7 +132,7 @@ export default function MaxWidthDialog({
   const getSingleDeviceData = async () => {
     try {
       const response = await axiosInstance.get(
-        `/api/device/getDeviceDataById/${deviceID2}`
+        `/api/device/getDeviceDataById/${deviceID2}`,
       );
       setSingleDeviceData(response.data.msg);
     } catch (error) {

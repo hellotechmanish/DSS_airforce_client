@@ -93,11 +93,12 @@ function App() {
       ? JSON.parse(savedData)
       : { word1: "Indian Airforce", word2: "", word3: "" };
   };
-  const [inputValues, setInputValues] = useState(loadSavedData());
+  const [inputValues] = useState(loadSavedData());
   // code for title change end here
 
   return (
     <>
+      {/* ================= Snackbar ================= */}
       <Snackbar open={snackopen} autoHideDuration={6000} onClose={SnanbarClose}>
         <Alert onClose={SnanbarClose} severity={"success"}>
           {snackmsg}
@@ -114,101 +115,145 @@ function App() {
         </Alert>
       </Snackbar>
 
+      {/* ================= Main Container ================= */}
       <Grid
         container
         direction="column"
         alignItems="center"
-        className="login-bg"
-        style={{
+        sx={{
           minHeight: "100vh",
           background: "linear-gradient(to bottom, #001f3f, #003366)",
+          px: { xs: 2, sm: 3, md: 4 },
+          pb: 4,
         }}
       >
-        {/* Header Section */}
+        {/* ================= Header Section ================= */}
         <Grid
           container
           alignItems="center"
           justifyContent="space-between"
-          style={{
-            width: "90%",
-            paddingTop: "20px",
+          sx={{
+            width: "100%",
+            maxWidth: "1200px",
+            pt: { xs: 2, sm: 3, md: 4 },
           }}
         >
-          <Grid item>
-            <img src={LeftLogo} alt="LeftLogo" style={{ height: "70px" }} />
+          {/* Left Logo */}
+          <Grid item xs={3} sm={2}>
+            <img
+              src={LeftLogo}
+              alt="LeftLogo"
+              style={{
+                height: "auto",
+                width: "100%",
+                maxHeight: "100px",
+                objectFit: "contain",
+              }}
+            />
           </Grid>
 
-          <Grid item>
+          {/* Title */}
+          <Grid item xs={6} sm={8} textAlign="center">
             <Typography
-              align="center"
-              style={{
+              sx={{
                 color: "white",
-                fontSize: "40px",
                 fontWeight: 700,
                 letterSpacing: "1px",
+                fontSize: {
+                  xs: "20px",
+                  sm: "26px",
+                  md: "34px",
+                  lg: "40px",
+                },
               }}
             >
               {inputValues.word1}
             </Typography>
 
             <Typography
-              align="center"
-              style={{
+              sx={{
                 color: "#d9d9d9",
-                fontSize: "22px",
                 fontWeight: 500,
+                fontSize: {
+                  xs: "12px",
+                  sm: "15px",
+                  md: "18px",
+                  lg: "22px",
+                },
               }}
             >
               Online Resistance Monitoring System
             </Typography>
           </Grid>
 
-          <Grid item>
-            <img src={LeftLogo} alt="RightLogo" style={{ height: "70px" }} />
+          {/* Right Logo */}
+          <Grid item xs={3} sm={2} textAlign="right">
+            <img
+              src={LeftLogo}
+              alt="RightLogo"
+              style={{
+                height: "auto",
+                width: "100%",
+                maxHeight: "100px",
+                objectFit: "contain",
+              }}
+            />
           </Grid>
         </Grid>
 
-        {/* Login Card */}
+        {/* ================= Login Card ================= */}
         <Grid
           container
           justifyContent="center"
           alignItems="center"
-          style={{ marginTop: "60px" }}
+          sx={{
+            mt: { xs: 4, sm: 6, md: 8 },
+            width: "100%",
+          }}
         >
-          <form onSubmit={handleSubmit(SignSubmit)}>
+          <form
+            onSubmit={handleSubmit(SignSubmit)}
+            style={{
+              width: "100%",
+              maxWidth: "420px",
+            }}
+          >
             <Grid
               item
-              style={{
+              sx={{
                 background: "white",
-                padding: "45px",
-                width: "420px",
-                borderRadius: "6px",
+                p: { xs: 3, sm: 4, md: 5 },
+                width: "100%",
+                borderRadius: "8px",
                 boxShadow: "0 10px 30px rgba(0,0,0,0.4)",
-                borderTop: "6px solid #ff9933", // tricolor hint
+                borderTop: "6px solid #ff9933",
               }}
             >
+              {/* Login Title */}
               <Typography
                 align="center"
-                style={{
-                  fontSize: "24px",
+                sx={{
                   fontWeight: 700,
                   color: "#003366",
-                  marginBottom: "25px",
+                  mb: 3,
+                  fontSize: {
+                    xs: "20px",
+                    sm: "22px",
+                    md: "24px",
+                  },
                 }}
               >
                 LOGIN
               </Typography>
 
               {/* UID */}
-              <Typography style={{ fontWeight: 600, color: "#333" }}>
-                Enter UID
-              </Typography>
+              <Typography sx={{ fontWeight: 600 }}>Enter UID</Typography>
 
               <Input
                 fullWidth
                 disableUnderline
                 value={uid}
-                style={{
+                sx={{
                   border: "1px solid #ccc",
                   borderRadius: "4px",
                   padding: "10px",
@@ -221,29 +266,28 @@ function App() {
               />
 
               {errors?.Uid && (
-                <Typography style={{ color: "red", fontSize: "13px" }}>
+                <Typography sx={{ color: "red", fontSize: "13px" }}>
                   {errors?.Uid?.message}
                 </Typography>
               )}
 
               {/* Password */}
               <Typography
-                style={{
+                sx={{
                   fontWeight: 600,
-                  color: "#333",
                   marginTop: "20px",
                 }}
               >
                 Enter Password
               </Typography>
 
-              <Grid container style={{ position: "relative" }}>
+              <Grid container sx={{ position: "relative" }}>
                 <Input
                   fullWidth
                   disableUnderline
                   value={password}
                   type={show ? "text" : "password"}
-                  style={{
+                  sx={{
                     border: "1px solid #ccc",
                     borderRadius: "4px",
                     padding: "10px",
@@ -256,29 +300,27 @@ function App() {
                 />
 
                 <Grid
-                  style={{
+                  sx={{
                     position: "absolute",
                     right: "10px",
                     top: "18px",
+                    cursor: "pointer",
+                    color: "#003366",
                   }}
+                  onClick={() => setShow(!show)}
                 >
-                  <Typography
-                    onClick={() => setShow(!show)}
-                    style={{ cursor: "pointer", color: "#003366" }}
-                  >
-                    {show ? <AiOutlineEye /> : <AiOutlineEyeInvisible />}
-                  </Typography>
+                  {show ? <AiOutlineEye /> : <AiOutlineEyeInvisible />}
                 </Grid>
               </Grid>
 
               {errors?.Password && (
-                <Typography style={{ color: "red", fontSize: "13px" }}>
+                <Typography sx={{ color: "red", fontSize: "13px" }}>
                   {errors?.Password?.message}
                 </Typography>
               )}
 
               {/* Forgot Password */}
-              <Typography align="right" style={{ marginTop: "12px" }}>
+              <Typography align="right" sx={{ mt: 1 }}>
                 <Link
                   to="/forgot-password"
                   style={{
@@ -297,12 +339,14 @@ function App() {
                 type="submit"
                 fullWidth
                 variant="contained"
-                style={{
-                  marginTop: "30px",
+                sx={{
+                  mt: 3,
                   backgroundColor: "#003366",
-                  padding: "12px",
+                  py: 1.5,
                   fontWeight: 700,
-                  letterSpacing: "1px",
+                  "&:hover": {
+                    backgroundColor: "#002244",
+                  },
                 }}
               >
                 LOGIN

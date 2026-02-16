@@ -9,7 +9,7 @@ import {
   DialogActions,
   Snackbar,
 } from "@mui/material";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 //core components that
 import MuiAlert from "@mui/material/Alert";
 
@@ -17,7 +17,8 @@ import PersonalInfo from "./StepCompo/PersonalInfo";
 import AssignSite from "./StepCompo/AssignSite";
 import AssignDevice from "./StepCompo/AssignDevice";
 import AssignSensors from "./StepCompo/AssignSensors";
-import { FETCH_URL } from "../../../../../fetchIp";
+import { GET, POST } from "../../../../../lib/request";
+import { API } from "../../../../../lib/endpoint";
 
 const steps = [
   "Personal Info",
@@ -286,7 +287,7 @@ export default function Clusterhead({ open, setOpen, getnumberOfUser }) {
     } else {
       if (activeStep == 3) {
         // console.log("Active Step is 4");
-        CraeteUser();
+        CreateUser();
         // setActiveStep((prevActiveStep) => prevActiveStep + 1)
       }
     }
@@ -403,6 +404,8 @@ export default function Clusterhead({ open, setOpen, getnumberOfUser }) {
             storePhaseValue={storePhaseValue}
           />
         );
+      default:
+        return null;
     }
   }
   useEffect(() => {
@@ -410,88 +413,56 @@ export default function Clusterhead({ open, setOpen, getnumberOfUser }) {
   }, [originalData]);
 
   const getdeviceListbysite = async () => {
-    let token = JSON.parse(localStorage.getItem("userData")).token;
-    const response = await fetch(
-      `${FETCH_URL}/api/device/getdeviceListbysiteId/${originalData}`,
-      {
-        method: "GET",
-        headers: {
-          Accept: "application/json",
-          "Content-type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
-    let res = await response.json();
-    if (response.ok) {
-      // // console.log(" get device List by site Id resp ===> ", res.msg);
+    try {
+      const res = await GET(API.DEVICE.LIST_BY_SITE(originalData));
       setDevice(res.msg);
-    } else {
-      // console.log("Error in get device List by site Id ==> ", res);
+    } catch (err) {
+      console.log("Error fetching device list by site", err);
     }
   };
+
   const [sites, setSites] = useState(null);
 
   const getnumberOfSite = async () => {
-    let token = JSON.parse(localStorage.getItem("userData")).token;
-    const response = await fetch(`${FETCH_URL}/api/site/getnumberOfSite`, {
-      method: "GET",
-      headers: {
-        Accept: "application/json",
-        "Content-type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-    });
-    let res = await response.json();
-    if (response.ok) {
-      console.log(" get site List resp ===> ", res.msg);
+    try {
+      const res = await GET(API.SITE.COUNT);
+      console.log("get site list resp ===>", res.msg);
       setSites(res.msg);
-    } else {
-      // console.log("Error in get site List ==> ", res);
+    } catch (err) {
+      console.log("Error fetching site list", err);
     }
   };
+
   useEffect(() => {
     getnumberOfSite();
   }, []);
 
-  const CraeteUser = async () => {
-    let token = JSON.parse(localStorage.getItem("userData")).token;
+  const CreateUser = async () => {
     try {
-      const response = await fetch(`${FETCH_URL}/api/user/addUser`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          password: newPassword,
-          fullName: fullName,
-          uid: uid,
-          type: "user",
-          siteId: originalData,
-          deviceId: originalDeviceData,
-          resistanceNumber: resValue,
-          spdNumber: spdNumber,
-          gnNumber: gnNumber,
-          phaseNumber: phaseNumber,
-        }),
+      const res = await POST(API.USERS.CREATE, {
+        password: newPassword,
+        fullName: fullName,
+        uid: uid,
+        type: "user",
+        siteId: originalData,
+        deviceId: originalDeviceData,
+        resistanceNumber: resValue,
+        spdNumber: spdNumber,
+        gnNumber: gnNumber,
+        phaseNumber: phaseNumber,
       });
-      const res = await response.json();
-      if (response.ok) {
-        setSnackOpen(true);
-        setSnackMsg(res.msg);
-        setOpen(false);
-        getnumberOfUser();
-      } else {
-        // console.log("Else block ====>");
-        setSnackerropen(true);
-        setSnackErrMsg(res.err);
-        setOpen(false);
-      }
-    } catch (error) {
-      // console.log("Catch block ====>", error);
+
+      setSnackOpen(true);
+      setSnackMsg(res.msg);
+      setOpen(false);
+      getnumberOfUser();
+    } catch (err) {
+      setSnackerropen(true);
+      setSnackErrMsg(err?.msg || "User creation failed");
+      setOpen(false);
     }
   };
+
   return (
     <>
       <Snackbar open={snackopen} autoHideDuration={3000} onClose={SnanbarClose}>

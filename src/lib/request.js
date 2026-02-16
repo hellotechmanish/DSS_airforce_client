@@ -1,5 +1,10 @@
 import api from "./api";
 export const GET = async (url, params = {}) => {
+  console.log("🔥============================");
+  console.log("🔥 GET API CALLED =>", url);
+  console.trace("📍 Called From:");
+  console.log("🔥============================");
+
   const res = await api.get(url, { params });
   return res;
 };

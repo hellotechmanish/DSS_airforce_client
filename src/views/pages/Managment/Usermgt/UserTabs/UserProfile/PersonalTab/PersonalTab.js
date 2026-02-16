@@ -1,8 +1,5 @@
-import React, { useState, useEffect } from "react";
-import PropTypes from "prop-types";
-
-import { Grid, Breadcrumbs, Typography, Container } from "@mui/material";
-import { Link, useLocation } from "react-router-dom";
+import { Grid, Typography } from "@mui/material";
+import { useLocation } from "react-router-dom";
 
 export default function UserManagment() {
   const { state } = useLocation();

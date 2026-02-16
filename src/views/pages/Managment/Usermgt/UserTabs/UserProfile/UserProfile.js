@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 import PropTypes from "prop-types";
 
 import {
@@ -71,7 +71,9 @@ export default function UserManagment() {
               className="linkcolor"
               underline="hover"
             >
-              <Typography className="heading-black cursor">User</Typography>{" "}
+              <Typography className="heading-black cursor">
+                User
+              </Typography>{" "}
             </Link>
             <Typography className="heading-black  ">
               {state?.fullName}

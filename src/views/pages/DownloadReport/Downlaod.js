@@ -1,16 +1,13 @@
 import React, { useState, useEffect } from "react";
 import {
   Grid,
-  Backdrop,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
   Button,
-  Box,
   IconButton,
   Typography,
-  Tooltip,
   Snackbar,
   TextField,
 } from "@mui/material";
@@ -25,7 +22,6 @@ import { HiOutlineDownload } from "react-icons/hi";
 import { styled } from "@mui/material/styles";
 import CloseIcon from "@mui/icons-material/Close";
 //React Icons
-import { RiDeleteBin6Line } from "react-icons/ri";
 import axios from "axios";
 import { FETCH_URL } from "../../../fetchIp";
 
@@ -107,7 +103,7 @@ export default function MaxWidthDialog({
   };
   const [startDate, setStartDate] = useState();
   const [endDate, setEndDate] = useState(
-    moment(new Date()).format("YYYY-MM-DD")
+    moment(new Date()).format("YYYY-MM-DD"),
   );
   const handleData = (data, datatype) => {
     if (datatype == "startDate") {
@@ -137,7 +133,7 @@ export default function MaxWidthDialog({
       // console.log("Body from handleDownloadReport ==>", body);
       let resp = await axios.post(
         `${FETCH_URL}/api/device/generateReport`,
-        body
+        body,
       );
 
       // console.log("resp from handleDownloadReport ==>", resp);
@@ -164,7 +160,7 @@ export default function MaxWidthDialog({
         const url = window.URL.createObjectURL(
           new Blob([file], {
             type: "application/csv",
-          })
+          }),
         );
         const link = document.createElement("a");
         link.href = url;

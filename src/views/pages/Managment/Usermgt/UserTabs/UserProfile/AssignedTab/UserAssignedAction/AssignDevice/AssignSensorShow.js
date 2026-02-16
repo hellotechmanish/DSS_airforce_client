@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   Grid,
   Dialog,
@@ -6,9 +6,6 @@ import {
   DialogTitle,
   IconButton,
   Typography,
-  Input,
-  TextField,
-  FormLabel,
   Box,
   Tabs,
   Tab,
@@ -20,8 +17,8 @@ import MuiAlert from "@mui/material/Alert";
 import PropTypes from "prop-types";
 import { styled } from "@mui/material/styles";
 import CloseIcon from "@mui/icons-material/Close";
-import { FETCH_URL } from "../../../../../../../../../fetchIp";
-//React Icons
+import { POST } from "../../../../../../../../../lib/request";
+import { API } from "../../../../../../../../../lib/endpoint";
 
 const BootstrapDialog = styled(Dialog)(({ theme }) => ({
   "& .MuiDialogContent-root": {
@@ -101,29 +98,16 @@ export default function MaxWidthDialog({ user, sensorValue }) {
 
   // ========================== Get Assign sensor ================================ //
   const getAssignSensorData = async () => {
-    let token = JSON.parse(localStorage.getItem("userData")).token;
     try {
-      const response = await fetch(`${FETCH_URL}/api/user/getassignSensor`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          userId: user?._id,
-          deviceId: sensorValue?._id,
-        }),
+      const res = await POST(API.USERS.GET_ASSIGNED_SENSOR, {
+        userId: user?._id,
+        deviceId: sensorValue?._id,
       });
-      const res = await response.json();
-      if (response.ok) {
-        console.log(
-          "Check Res EditDevice Data from assignSensorSHow",
-          res.msg[0]
-        );
-        setGetSelectSensor(res.msg[0]);
-      }
-    } catch (error) {
-      // console.log("Catch block ====>", error);
+
+      // API returns array, you were using first item
+      setGetSelectSensor(res.msg?.[0]);
+    } catch (err) {
+      console.log("Error fetching assigned sensor data", err);
     }
   };
 

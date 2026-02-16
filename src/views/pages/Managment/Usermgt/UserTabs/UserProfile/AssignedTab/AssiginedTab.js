@@ -9,7 +9,6 @@ import TableRow from "@mui/material/TableRow";
 import dayjs from "dayjs";
 import { IoChevronBackOutline } from "react-icons/io5";
 import NodataFound from "../../../../../../../assets/img/nodatafound.png";
-import { FETCH_URL } from "../../../../../../../fetchIp";
 import AssignSite from "./UserAssignedAction/AssignSite";
 import DeviceDelete from "./UserAssignedAction/UserDeviceDelete";
 import DeleteSite from "./UserAssignedAction/UserSiteDelete";
@@ -17,6 +16,9 @@ import ViewProfile from "./SensorProfile";
 import AssignDevice from "./UserAssignedAction/AssignDevice/AssignDevice";
 import EditDeviceSensor from "./UserAssignedAction/EditDeviceSensor";
 import SensorShow from "./UserAssignedAction/AssignDevice/AssignSensorShow";
+import { GET, POST } from "../../../../../../../lib/request";
+import { API } from "../../../../../../../lib/endpoint";
+
 export default function Sites({ state }) {
   const [useraSite, setuseraSite] = useState(null);
   const [deviceview, setDeviceView] = useState(false);
@@ -24,6 +26,7 @@ export default function Sites({ state }) {
   const [selectSite, setSelectSiteName] = useState(null);
   const [selectUid, setSelectUid] = useState(null);
   // console.log("Check state state", state._id);
+  const [device, setDevice] = useState(null);
 
   const DeviceDataView = (row) => {
     // console.log("Check Assign USer ID & SiteID", row);
@@ -40,51 +43,26 @@ export default function Sites({ state }) {
   };
   // // console.log("Check Device Data on OnClick", deviceview);
   const getnumberOfAssignSite = async () => {
-    let token = JSON.parse(localStorage.getItem("userData")).token;
-    const response = await fetch(
-      `${FETCH_URL}/api/site/getSiteByUserId/${state?._id}`,
-      {
-        method: "GET",
-        headers: {
-          Accept: "application/json",
-          "Content-type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
-    let res = await response.json();
-    if (response.ok) {
-      console.log("  get number Of User  List resp ===> ", res.msg);
+    try {
+      const res = await GET(API.SITE.BY_USER(state?._id));
+
+      console.log("Assigned Site List =>", res.msg);
       setuseraSite(res.msg);
-    } else {
-      // console.log("Error in get technician List ==> ", res);
+    } catch (err) {
+      console.log("Error fetching assigned sites", err);
     }
   };
-  const [device, setDevice] = useState(null);
 
   const getdevicebyuserId = async () => {
-    let token = JSON.parse(localStorage.getItem("userData")).token;
-    const response = await fetch(
-      `${FETCH_URL}/api/device/getdeviceListbysiteIdanduserId`,
-      {
-        method: "POST",
-        headers: {
-          Accept: "application/json",
-          "Content-type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          siteId: siteId,
-          userId: state?._id,
-        }),
-      }
-    );
-    let res = await response.json();
-    if (response.ok) {
-      // console.log(" get device List by site Id resp ===> ", res.msg);
+    try {
+      const res = await POST(API.DEVICE.BY_SITE_AND_USER, {
+        siteId: siteId,
+        userId: state?._id,
+      });
+
       setDevice(res.msg);
-    } else {
-      // // console.log("Error in get device List by site Id ==> ", res);
+    } catch (err) {
+      console.log("Error fetching device list", err);
     }
   };
 

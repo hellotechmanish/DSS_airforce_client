@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Grid, Container, Typography, Input } from "@mui/material";
-import { FETCH_URL } from "../../../../../../fetchIp";
-
+import { API } from "../../../../../../lib/endpoint";
+import { POST } from "../../../../../../lib/request";
 import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
 //React Icons
 // export default function MaxWidthDialog({
@@ -42,30 +42,19 @@ export default function MaxWidthDialog(props) {
   } = props;
   const [showconfrim, setShowConfrim] = useState(false);
   const [uidMatch, setUidMatch] = useState(true);
-  const CheckUserUid = async () => {
-    let token = JSON.parse(localStorage.getItem("userData")).token;
 
+  const CheckUserUid = async () => {
     try {
-      const response = await fetch(`${FETCH_URL}/api/user/checkUserUid`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          uid: uid,
-        }),
+      const res = await POST(API.USERS.CHECK_UID, {
+        uid,
       });
-      const res = await response.json();
-      if (response.ok) {
-        // // console.log("Check Uid Match Status", res.msg);
-        setUidMatch(res.status);
-      } else {
-      }
-    } catch (error) {
-      // console.log("Catch block ====>", error);
+
+      setUidMatch(res.status);
+    } catch (err) {
+      console.log("Error checking user UID", err);
     }
   };
+
   useEffect(() => {
     if (open && uid) {
       CheckUserUid(uid);

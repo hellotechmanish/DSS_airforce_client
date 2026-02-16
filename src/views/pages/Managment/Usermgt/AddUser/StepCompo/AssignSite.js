@@ -1,4 +1,3 @@
-import React, { useState, useEffect } from "react";
 import { styled } from "@mui/material/styles";
 import Radio from "@mui/material/Radio";
 import RadioGroup from "@mui/material/RadioGroup";
@@ -14,7 +13,6 @@ import {
 } from "@mui/material";
 import { Link } from "react-router-dom";
 //React Icons
-import { FETCH_URL } from "../../../../../../fetchIp";
 const Search = styled("div")(({ theme }) => ({
   position: "relative",
   borderRadius: "0px",

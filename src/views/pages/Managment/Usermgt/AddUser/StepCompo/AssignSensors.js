@@ -16,11 +16,10 @@ import {
   Tabs,
   Tab,
   Checkbox,
-  FormGroup,
 } from "@mui/material";
-//React Icons
-import SearchIcon from "@mui/icons-material/Search";
-import { FETCH_URL } from "../../../../../../fetchIp";
+import { GET } from "../../../../../../lib/request";
+import { API } from "../../../../../../lib/endpoint";
+
 
 function TabPanel(props) {
   const { children, value, index, ...other } = props;
@@ -123,26 +122,14 @@ export default function CustomizedDialogs(props) {
   // console.log(" sensorValue ", sensorValue);
 
   const getnumberOfDevice = async () => {
-    let token = JSON.parse(localStorage.getItem("userData")).token;
-    const response = await fetch(
-      `${FETCH_URL}/api/device/getDeviceById/${originalDeviceData}`,
-      {
-        method: "GET",
-        headers: {
-          Accept: "application/json",
-          "Content-type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
-    let res = await response.json();
-    if (response.ok) {
-      // // console.log("get DeviceById List resp ===> ", res.msg);
+    try {
+      const res = await GET(API.DEVICE.GET_BY_ID(originalDeviceData));
       setSensorValue(res.msg);
-    } else {
-      // console.log("Error in get site List ==> ", res);
+    } catch (err) {
+      console.log("Error fetching device by id", err);
     }
   };
+
   useEffect(() => {
     getnumberOfDevice();
   }, []);

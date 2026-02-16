@@ -22,10 +22,11 @@ import {
 } from "@mui/material";
 import MuiAlert from "@mui/material/Alert";
 import PropTypes from "prop-types";
-import { FETCH_URL } from "../../../../../../../../fetchIp";
 import { styled } from "@mui/material/styles";
 import CloseIcon from "@mui/icons-material/Close";
 import { CiEdit } from "react-icons/ci";
+import { API } from "../../../../../../../../lib/endpoint";
+import { POST } from "../../../../../../../../lib/request";
 
 const BootstrapDialog = styled(Dialog)(({ theme }) => ({
   "& .MuiDialogContent-root": {
@@ -130,7 +131,7 @@ export default function MaxWidthDialog({
     setSnackerropen(false);
     setSnackErrMsg("");
   };
-  const [siteid, setSitesid] = useState(null);
+  // const [siteid, setSitesid] = useState(null);
   // For Last Step
   // Data For Backend
   const [resValue, setResValue] = React.useState([]);
@@ -230,61 +231,36 @@ export default function MaxWidthDialog({
   }, [device]);
 
   const EditDeviceData = async () => {
-    let token = JSON.parse(localStorage.getItem("userData")).token;
     try {
-      const response = await fetch(`${FETCH_URL}/api/user/getassignSensor`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          userId: UserId,
-          deviceId: device?._id,
-        }),
+      const res = await POST(API.USERS.GET_ASSIGNED_SENSOR, {
+        userId: UserId,
+        deviceId: device?._id,
       });
-      const res = await response.json();
-      if (response.ok) {
-        // console.log("Check Res EditDevice Data", res.msg);
-        setGetSelectSensor(res.msg);
-      } else {
-        // // console.log
-        setSnackErrMsg(res.err);
-      }
-    } catch (error) {
-      // console.log("Catch block ====>", error);
+
+      setGetSelectSensor(res.msg);
+    } catch (err) {
+      setSnackErrMsg(err?.msg || "Something went wrong");
     }
   };
+
   const EditDevice = async () => {
-    let token = JSON.parse(localStorage.getItem("userData")).token;
     try {
-      const response = await fetch(`${FETCH_URL}/api/user/assignDeviceSensor`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          userId: UserId,
-          deviceId: device?._id,
-          phaseNumber: phaseNumber,
-          resistanceNumber: resValue,
-          spdNumber: spdNumber,
-          gnNumber: gnNumber,
-        }),
+      const res = await POST(API.USERS.ASSIGN_DEVICE_SENSOR, {
+        userId: UserId,
+        deviceId: device?._id,
+        phaseNumber,
+        resistanceNumber: resValue,
+        spdNumber,
+        gnNumber,
       });
-      const res = await response.json();
-      if (response.ok) {
-        setSnackOpen(true);
-        setSnackMsg(res.msg);
-        setOpen(false);
-        EditDeviceData();
-      } else {
-        setSnackerropen(true);
-        setSnackErrMsg(res.err);
-      }
-    } catch (error) {
-      // console.log("Catch block ====>", error);
+
+      setSnackOpen(true);
+      setSnackMsg(res.msg);
+      setOpen(false);
+      EditDeviceData(); // refresh assigned sensors
+    } catch (err) {
+      setSnackerropen(true);
+      setSnackErrMsg(err?.msg || "Something went wrong");
     }
   };
 
