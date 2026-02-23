@@ -1,29 +1,25 @@
 import React, { useState, useEffect } from "react";
 import {
   Grid,
-  Backdrop,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
   Button,
-  Box,
   IconButton,
   Typography,
-  Tooltip,
   Snackbar,
   Input,
 } from "@mui/material";
 import MuiAlert from "@mui/material/Alert";
-
+import { API } from "../../../../../lib/endpoint";
+import { POST } from "../../../../../lib/request";
 import PropTypes from "prop-types";
-import { FETCH_URL } from "../../../../../fetchIp";
 import { styled } from "@mui/material/styles";
 import CloseIcon from "@mui/icons-material/Close";
 import { useForm } from "react-hook-form";
 import { ErrorMessage } from "@hookform/error-message";
 //React Icons
-import { RiDeleteBin6Line } from "react-icons/ri";
 import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
 
 const BootstrapDialog = styled(Dialog)(({ theme }) => ({
@@ -113,7 +109,7 @@ export default function MaxWidthDialog({ getnumberOftechnician }) {
       setUid("");
       setPasswordInput({ password: "", confirmPassword: "" });
     }
-  }, [open === false]);
+  }, [open]);
 
   const [passwordValue, setPasswordValue] = useState(null);
   const [confirmPasswordValue, setConfirmPasswordValue] = useState(null);
@@ -183,82 +179,72 @@ export default function MaxWidthDialog({ getnumberOftechnician }) {
   const newPassword = passwordInput.confirmPassword;
 
   const CraeteTechnician = async () => {
-    let token = JSON.parse(localStorage.getItem("userData")).token;
-    if (
-      passwordInput.password.length === 0 &&
-      passwordInput.confirmPassword.length === 0
-    ) {
+    // validation
+    if (!passwordInput.password) {
       setPasswordErr("Password is required");
-      setConfirmPasswordError(" Confirm password is required");
       return;
     }
-    if (passwordInput.confirmPassword !== passwordInput.password) {
+
+    if (!passwordInput.confirmPassword) {
+      setConfirmPasswordError("Confirm password is required");
+      return;
+    }
+
+    if (passwordInput.password !== passwordInput.confirmPassword) {
       setConfirmPasswordError("Confirm password is not matched");
       return;
     }
-    if (passwordInput.confirmPassword.length < 8) {
-      setConfirmPasswordError("At least minumum 8 characters");
-      return;
-    }
-    if (passwordInput.confirmPassword.length < 8) {
-      setConfirmPasswordError("At least minumum 8 characters");
+
+    if (passwordInput.password.length < 8) {
+      setConfirmPasswordError("At least minimum 8 characters");
       return;
     }
 
     try {
-      const response = await fetch(`${FETCH_URL}/api/user/addUser`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          password: newPassword,
-          fullName: fullName,
-          uid: uid,
-          type: "technician",
-        }),
+      const res = await POST(API.USERS.CREATE, {
+        password: newPassword,
+        fullName: fullName,
+        uid: uid,
+        type: "technician",
       });
-      const res = await response.json();
-      if (response.ok) {
+
+      if (res) {
         setSnackOpen(true);
-        setSnackMsg(res.msg);
+        setSnackMsg(res?.msg || "Technician created successfully");
+
         setOpen(false);
         getnumberOftechnician();
       } else {
         setSnackerropen(true);
-        setSnackErrMsg(res.err);
+        setSnackErrMsg(res?.err || "Failed to create technician");
+
         setOpen(false);
       }
     } catch (error) {
-      // console.log("Catch block ====>", error);
+      console.error("CraeteTechnician error:", error);
+
+      setSnackerropen(true);
+      setSnackErrMsg(error?.msg || "Failed to create technician");
+
+      setOpen(false);
     }
   };
 
   const CheckUserUid = async () => {
-    let token = JSON.parse(localStorage.getItem("userData")).token;
-
     try {
-      const response = await fetch(`${FETCH_URL}/api/user/checkUserUid`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          uid: uid,
-        }),
+      const res = await POST(API.USERS.CHECK_UID, {
+        uid: uid,
       });
-      const res = await response.json();
-      if (response.ok) {
-        // // console.log("Check Uid Match Status", res.msg);
-        setUidMatch(res.status);
-      } else {
+
+      if (res) {
+        setUidMatch(res?.status || false);
       }
     } catch (error) {
-      // console.log("Catch block ====>", error);
+      console.error("CheckUserUid error:", error);
+      setUidMatch(false);
     }
   };
+
   useEffect(() => {
     CheckUserUid(uid);
   }, [uid]);
@@ -380,7 +366,9 @@ export default function MaxWidthDialog({ getnumberOftechnician }) {
                       <AiOutlineEyeInvisible color="grey" />
                     )}
                   </Typography>
-                  <Typography className="red-typo">{passwordError}</Typography>{" "}
+                  <Typography className="red-typo">
+                    {passwordError}
+                  </Typography>{" "}
                 </Grid>
               </Grid>
 

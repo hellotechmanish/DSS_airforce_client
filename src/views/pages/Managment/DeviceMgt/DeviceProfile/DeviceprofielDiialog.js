@@ -15,14 +15,14 @@ import {
 import MuiAlert from "@mui/material/Alert";
 
 import PropTypes from "prop-types";
-import { FETCH_URL } from "../../../../../fetchIp";
 import DeleteDevice from "../ActionButton/DeleteDevice";
 import { styled } from "@mui/material/styles";
 import CloseIcon from "@mui/icons-material/Close";
 //React Icons
 import { AuthContext } from "../../../../../context/AuthContext";
 import axiosInstance from "../../../../../api/axiosInstance";
-
+import { POST } from "../../../../../lib/request";
+import { API } from "../../../../../lib/endpoint";
 const BootstrapDialog = styled(Dialog)(({ theme }) => ({
   "& .MuiDialogContent-root": {
     padding: theme.spacing(2),
@@ -139,46 +139,46 @@ export default function MaxWidthDialog({
       console.error("Error fetching data:", error);
     }
   };
-  const EditDeviceProfile = async () => {
-    let token = JSON.parse(localStorage.getItem("userData")).token;
 
+  const EditDeviceProfile = async () => {
     try {
-      const response = await fetch(`${FETCH_URL}/api/device/editDevice`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          deviceID: sensorValue._id,
-          deviceName: deviceName,
-          nodeUid: nodeUid,
-          vmrSensors: +vmrSensors,
-          resSensors: +resSensors,
-          spdSensors: +spdSensors,
-          nerSensors: +nerSensors,
-          vmrSensorsThreshold: vmrSensorsThreshold,
-          resSensorsThreshold: +resSensorsThreshold,
-          spdSensorsThreshold: +spdSensorsThreshold,
-          nerSensorsThreshold: +nerSensorsThreshold,
-        }),
-      });
-      const res = await response.json();
-      if (response.ok) {
+      const body = {
+        deviceID: sensorValue?._id,
+        deviceName: deviceName,
+        nodeUid: nodeUid,
+        vmrSensors: +vmrSensors,
+        resSensors: +resSensors,
+        spdSensors: +spdSensors,
+        nerSensors: +nerSensors,
+        vmrSensorsThreshold: vmrSensorsThreshold,
+        resSensorsThreshold: +resSensorsThreshold,
+        spdSensorsThreshold: +spdSensorsThreshold,
+        nerSensorsThreshold: +nerSensorsThreshold,
+      };
+
+      const res = await POST(API.DEVICE.EDIT, body);
+
+      if (res) {
         setSnackOpen(true);
-        setSnackMsg(res.msg);
+        setSnackMsg(res?.msg || "Device updated successfully");
+
         getdeviceListbysite();
         getnumberOfDevice(deviceID2);
+
         setOpen(false);
         setInputState(true);
       } else {
         setSnackerropen(true);
-        setSnackErrMsg(res.err);
+        setSnackErrMsg(res?.err || "Failed to update device");
       }
     } catch (error) {
-      // console.log("Catch block ====>", error);
+      console.error("EditDeviceProfile error:", error);
+
+      setSnackerropen(true);
+      setSnackErrMsg(error?.msg || "Failed to update device");
     }
   };
+
   useEffect(() => {
     if (deviceID2) {
       getSingleDeviceData();

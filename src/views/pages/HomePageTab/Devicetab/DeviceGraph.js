@@ -27,7 +27,6 @@ import {
   Legend,
 } from "chart.js";
 import { AuthContext } from "../../../../context/AuthContext";
-import { FETCH_URL } from "../../../../fetchIp";
 import { POST } from "../../../../lib/request";
 import { API } from "../../../../lib/endpoint";
 

@@ -10,13 +10,13 @@ import {
 } from "@mui/material";
 import { Link, useLocation } from "react-router-dom";
 import AddDeviceDialog from "../../DeviceMgt/AddDevice/AddDevice";
-import { FETCH_URL } from "../../../../../fetchIp";
 import Viewprofile from "../../DeviceMgt/DeviceProfile/DeviceprofielDiialog";
 import NodataFound from "../../../../../assets/img/nodatafound.png";
 import DeviceGraph from "./DeviceGraph";
 import { AuthContext } from "../../../../../context/AuthContext";
 import axiosInstance from "../../../../../api/axiosInstance";
-
+import { API } from "../../../../../lib/endpoint";
+import { GET } from "../../../../../lib/request";
 function TabPanel(props) {
   const { children, value, index, ...other } = props;
 
@@ -58,30 +58,34 @@ export default function Sites() {
   const auth = React.useContext(AuthContext);
   const getdeviceListbysite = async () => {
     try {
-      const response = await axiosInstance.get(
-        `${FETCH_URL}/api/device/getdeviceListbysiteId/${state?._id}`
-      );
-      const newDevices = response.data?.msg;
+      if (!state?._id) return;
+
+      const res = await GET(API.DEVICE.LIST_BY_SITE(state._id));
+
+      const newDevices = res?.msg || [];
+
       setDevice(newDevices);
     } catch (error) {
-      console.error("Error fetching data:", error);
+      console.error("Error fetching device list:", error);
+      setDevice([]);
     }
   };
 
   const getnumberOfDevice = async (deviceID) => {
     try {
-      // setLoadingDevice(true);
-      const response = await axiosInstance.get(
-        `${FETCH_URL}/api/device/getDeviceById/${deviceID}`
-      );
-      const newDevices = response.data?.msg;
+      const res = await GET(API.DEVICE.GET_BY_ID(deviceID));
+
+      const newDevices = res?.msg;
+
       if (newDevices) {
         console.log(newDevices);
+
         setSensorValue(newDevices);
         setDeviceID2(newDevices?._id);
       }
     } catch (error) {
-      console.error("Error fetching data:", error);
+      console.error("Error fetching device:", error);
+      setSensorValue(null);
     }
   };
 
@@ -299,32 +303,35 @@ export default function Sites() {
                         sensorValue.vmrSensors
                           ? 1.3
                           : 0 ||
-                            (sensorValue?.nerSensors &&
-                              sensorValue?.resSensors &&
-                              sensorValue?.spdSensors)
-                          ? 3.5
-                          : 0 ||
-                            (sensorValue?.nerSensors &&
-                              sensorValue?.resSensors &&
-                              sensorValue?.vmrSensors)
-                          ? 1.5
-                          : 0 ||
-                            (sensorValue?.spdSensors &&
-                              sensorValue?.resSensors &&
-                              sensorValue?.vmrSensors)
-                          ? 1.7
-                          : 0 ||
-                            (sensorValue?.nerSensors && sensorValue?.resSensors)
-                          ? 5.25
-                          : 0 ||
-                            (sensorValue?.spdSensors && sensorValue?.resSensors)
-                          ? 5.25
-                          : 0 ||
-                            (sensorValue?.vmrSensors && sensorValue?.resSensors)
-                          ? 1.5
-                          : 0 || sensorValue?.resSensors
-                          ? 10.5
-                          : 0
+                              (sensorValue?.nerSensors &&
+                                sensorValue?.resSensors &&
+                                sensorValue?.spdSensors)
+                            ? 3.5
+                            : 0 ||
+                                (sensorValue?.nerSensors &&
+                                  sensorValue?.resSensors &&
+                                  sensorValue?.vmrSensors)
+                              ? 1.5
+                              : 0 ||
+                                  (sensorValue?.spdSensors &&
+                                    sensorValue?.resSensors &&
+                                    sensorValue?.vmrSensors)
+                                ? 1.7
+                                : 0 ||
+                                    (sensorValue?.nerSensors &&
+                                      sensorValue?.resSensors)
+                                  ? 5.25
+                                  : 0 ||
+                                      (sensorValue?.spdSensors &&
+                                        sensorValue?.resSensors)
+                                    ? 5.25
+                                    : 0 ||
+                                        (sensorValue?.vmrSensors &&
+                                          sensorValue?.resSensors)
+                                      ? 1.5
+                                      : 0 || sensorValue?.resSensors
+                                        ? 10.5
+                                        : 0
                       }
                     >
                       <Typography
@@ -357,7 +364,7 @@ export default function Sites() {
                                   </Typography>
                                 </>
                               );
-                            }
+                            },
                           )}
                       </Grid>
                     </Grid>
@@ -372,32 +379,35 @@ export default function Sites() {
                         sensorValue.vmrSensors
                           ? 1.3
                           : 0 ||
-                            (sensorValue?.nerSensors &&
-                              sensorValue?.resSensors &&
-                              sensorValue?.spdSensors)
-                          ? 3.5
-                          : 0 ||
-                            (sensorValue?.nerSensors &&
-                              sensorValue?.resSensors &&
-                              sensorValue?.vmrSensors)
-                          ? 1.5
-                          : 0 ||
-                            (sensorValue?.nerSensors &&
-                              sensorValue?.spdSensors &&
-                              sensorValue?.vmrSensors)
-                          ? 1.5
-                          : 0 ||
-                            (sensorValue?.nerSensors && sensorValue?.resSensors)
-                          ? 5.25
-                          : 0 ||
-                            (sensorValue?.nerSensors && sensorValue?.spdSensors)
-                          ? 5.25
-                          : 0 ||
-                            (sensorValue?.nerSensors && sensorValue?.vmrSensors)
-                          ? 1.5
-                          : 0 || sensorValue?.nerSensors
-                          ? 10.5
-                          : 0
+                              (sensorValue?.nerSensors &&
+                                sensorValue?.resSensors &&
+                                sensorValue?.spdSensors)
+                            ? 3.5
+                            : 0 ||
+                                (sensorValue?.nerSensors &&
+                                  sensorValue?.resSensors &&
+                                  sensorValue?.vmrSensors)
+                              ? 1.5
+                              : 0 ||
+                                  (sensorValue?.nerSensors &&
+                                    sensorValue?.spdSensors &&
+                                    sensorValue?.vmrSensors)
+                                ? 1.5
+                                : 0 ||
+                                    (sensorValue?.nerSensors &&
+                                      sensorValue?.resSensors)
+                                  ? 5.25
+                                  : 0 ||
+                                      (sensorValue?.nerSensors &&
+                                        sensorValue?.spdSensors)
+                                    ? 5.25
+                                    : 0 ||
+                                        (sensorValue?.nerSensors &&
+                                          sensorValue?.vmrSensors)
+                                      ? 1.5
+                                      : 0 || sensorValue?.nerSensors
+                                        ? 10.5
+                                        : 0
                       }
                     >
                       <Typography
@@ -432,7 +442,7 @@ export default function Sites() {
                                   </Typography>
                                 </>
                               );
-                            }
+                            },
                           )}
                       </Grid>
                     </Grid>
@@ -448,37 +458,40 @@ export default function Sites() {
                         sensorValue.vmrSensors
                           ? 6.4
                           : 0 ||
-                            (sensorValue?.nerSensors &&
-                              sensorValue?.resSensors &&
-                              sensorValue?.spdSensors)
-                          ? 3.3
-                          : 0 ||
-                            (sensorValue?.nerSensors &&
-                              sensorValue?.resSensors &&
-                              sensorValue?.vmrSensors)
-                          ? 7.5
-                          : 0 ||
-                            (sensorValue?.nerSensors &&
-                              sensorValue?.spdSensors &&
-                              sensorValue?.vmrSensors)
-                          ? 7.5
-                          : 0 ||
-                            (sensorValue?.spdSensors &&
-                              sensorValue?.resSensors &&
-                              sensorValue?.vmrSensors)
-                          ? 7
-                          : 0 ||
-                            (sensorValue?.vmrSensors && sensorValue?.resSensors)
-                          ? 9
-                          : 0 ||
-                            (sensorValue?.vmrSensors && sensorValue?.spdSensors)
-                          ? 8
-                          : 0 ||
-                            (sensorValue?.vmrSensors && sensorValue?.nerSensors)
-                          ? 9
-                          : 0 || sensorValue?.vmrSensors
-                          ? 10.5
-                          : 0
+                              (sensorValue?.nerSensors &&
+                                sensorValue?.resSensors &&
+                                sensorValue?.spdSensors)
+                            ? 3.3
+                            : 0 ||
+                                (sensorValue?.nerSensors &&
+                                  sensorValue?.resSensors &&
+                                  sensorValue?.vmrSensors)
+                              ? 7.5
+                              : 0 ||
+                                  (sensorValue?.nerSensors &&
+                                    sensorValue?.spdSensors &&
+                                    sensorValue?.vmrSensors)
+                                ? 7.5
+                                : 0 ||
+                                    (sensorValue?.spdSensors &&
+                                      sensorValue?.resSensors &&
+                                      sensorValue?.vmrSensors)
+                                  ? 7
+                                  : 0 ||
+                                      (sensorValue?.vmrSensors &&
+                                        sensorValue?.resSensors)
+                                    ? 9
+                                    : 0 ||
+                                        (sensorValue?.vmrSensors &&
+                                          sensorValue?.spdSensors)
+                                      ? 8
+                                      : 0 ||
+                                          (sensorValue?.vmrSensors &&
+                                            sensorValue?.nerSensors)
+                                        ? 9
+                                        : 0 || sensorValue?.vmrSensors
+                                          ? 10.5
+                                          : 0
                       }
                     >
                       <Typography
@@ -520,7 +533,7 @@ export default function Sites() {
                                       </Grid>{" "}
                                     </>
                                   );
-                                }
+                                },
                               )}
                           </Grid>
                         </Grid>
@@ -555,7 +568,7 @@ export default function Sites() {
                                       </Grid>{" "}
                                     </>
                                   );
-                                }
+                                },
                               )}
                           </Grid>
                         </Grid>
@@ -590,7 +603,7 @@ export default function Sites() {
                                       </Grid>{" "}
                                     </>
                                   );
-                                }
+                                },
                               )}
                           </Grid>
                         </Grid>
@@ -625,7 +638,7 @@ export default function Sites() {
                                       </Grid>{" "}
                                     </>
                                   );
-                                }
+                                },
                               )}
                           </Grid>
                         </Grid>
@@ -660,7 +673,7 @@ export default function Sites() {
                                       </Grid>{" "}
                                     </>
                                   );
-                                }
+                                },
                               )}
                           </Grid>
                         </Grid>
@@ -695,7 +708,7 @@ export default function Sites() {
                                       </Grid>{" "}
                                     </>
                                   );
-                                }
+                                },
                               )}
                           </Grid>
                         </Grid>
@@ -713,32 +726,35 @@ export default function Sites() {
                         sensorValue.vmrSensors
                           ? 1.5
                           : 0 ||
-                            (sensorValue?.nerSensors &&
-                              sensorValue?.resSensors &&
-                              sensorValue?.spdSensors)
-                          ? 3.5
-                          : 0 ||
-                            (sensorValue?.spdSensors &&
-                              sensorValue?.resSensors &&
-                              sensorValue?.vmrSensors)
-                          ? 1.8
-                          : 0 ||
-                            (sensorValue?.nerSensors &&
-                              sensorValue?.spdSensors &&
-                              sensorValue?.vmrSensors)
-                          ? 1.5
-                          : 0 ||
-                            (sensorValue?.spdSensors && sensorValue?.resSensors)
-                          ? 5.25
-                          : 0 ||
-                            (sensorValue?.nerSensors && sensorValue?.spdSensors)
-                          ? 5.25
-                          : 0 ||
-                            (sensorValue?.vmrSensors && sensorValue?.spdSensors)
-                          ? 2.5
-                          : 0 || sensorValue?.spdSensors
-                          ? 10.5
-                          : 0
+                              (sensorValue?.nerSensors &&
+                                sensorValue?.resSensors &&
+                                sensorValue?.spdSensors)
+                            ? 3.5
+                            : 0 ||
+                                (sensorValue?.spdSensors &&
+                                  sensorValue?.resSensors &&
+                                  sensorValue?.vmrSensors)
+                              ? 1.8
+                              : 0 ||
+                                  (sensorValue?.nerSensors &&
+                                    sensorValue?.spdSensors &&
+                                    sensorValue?.vmrSensors)
+                                ? 1.5
+                                : 0 ||
+                                    (sensorValue?.spdSensors &&
+                                      sensorValue?.resSensors)
+                                  ? 5.25
+                                  : 0 ||
+                                      (sensorValue?.nerSensors &&
+                                        sensorValue?.spdSensors)
+                                    ? 5.25
+                                    : 0 ||
+                                        (sensorValue?.vmrSensors &&
+                                          sensorValue?.spdSensors)
+                                      ? 2.5
+                                      : 0 || sensorValue?.spdSensors
+                                        ? 10.5
+                                        : 0
                       }
                     >
                       <Typography align="center" className=" table-head fw-500">
@@ -767,7 +783,7 @@ export default function Sites() {
                                   </Typography>
                                 </>
                               );
-                            }
+                            },
                           )}
                       </Grid>
                     </Grid>

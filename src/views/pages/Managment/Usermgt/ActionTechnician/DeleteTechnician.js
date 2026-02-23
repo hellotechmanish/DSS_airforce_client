@@ -16,13 +16,13 @@ import {
 import MuiAlert from "@mui/material/Alert";
 
 import PropTypes from "prop-types";
-import { FETCH_URL } from "../../../../../fetchIp";
 
 import { styled } from "@mui/material/styles";
 import CloseIcon from "@mui/icons-material/Close";
 //React Icons
 import { RiDeleteBin6Line } from "react-icons/ri";
-
+import { API } from "../../../../../lib/endpoint";
+import { POST } from "../../../../../lib/request";
 const BootstrapDialog = styled(Dialog)(({ theme }) => ({
   "& .MuiDialogContent-root": {
     padding: theme.spacing(2),
@@ -92,34 +92,35 @@ export default function MaxWidthDialog({ techID, getnumberOftechnician }) {
     setSnackErrMsg("");
   };
 
-  const DeleteTech = async () => {
-    let token = JSON.parse(localStorage.getItem("userData")).token;
-    try {
-      const response = await fetch(`${FETCH_URL}/api/user/deleteUser`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          userId: techID,
-        }),
-      });
-      const res = await response.json();
-      if (response.ok) {
-        setSnackOpen(true); // Move the call to setSnackOpen here
-        setSnackMsg(res.msg);
-        setOpen(false);
-        getnumberOftechnician();
-      } else {
-        setSnackerropen(true);
-        setSnackErrMsg(res.err);
-        setOpen(false);
-      }
-    } catch (error) {
-      // console.log("Catch block ====>", error);
+ const DeleteTech = async () => {
+  try {
+    const res = await POST(API.USERS.DELETE, {
+      userId: techID,
+    });
+
+    if (res) {
+      setSnackOpen(true);
+      setSnackMsg(res?.msg || "Technician deleted successfully");
+
+      setOpen(false);
+      getnumberOftechnician();
+
+    } else {
+      setSnackerropen(true);
+      setSnackErrMsg(res?.err || "Failed to delete technician");
+
+      setOpen(false);
     }
-  };
+
+  } catch (error) {
+    console.error("DeleteTech error:", error);
+
+    setSnackerropen(true);
+    setSnackErrMsg(error?.msg || "Failed to delete technician");
+
+    setOpen(false);
+  }
+};
 
   return (
     <React.Fragment>

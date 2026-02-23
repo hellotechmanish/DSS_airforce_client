@@ -1,24 +1,17 @@
 import React, { useState, useEffect } from "react";
 import {
   Grid,
-  Backdrop,
   Dialog,
-  DialogActions,
   DialogContent,
   DialogTitle,
-  Button,
-  Box,
   IconButton,
   Typography,
-  Tooltip,
   Snackbar,
-  Input,
   TextField,
 } from "@mui/material";
 import MuiAlert from "@mui/material/Alert";
 
 import PropTypes from "prop-types";
-import { FETCH_URL } from "../../../fetchIp";
 import { styled } from "@mui/material/styles";
 import CloseIcon from "@mui/icons-material/Close";
 

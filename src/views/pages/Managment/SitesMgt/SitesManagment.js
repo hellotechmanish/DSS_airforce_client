@@ -18,34 +18,29 @@ import { Link } from "react-router-dom";
 import AddSiteDialog from "./AddSite/SitesAddDialog";
 import DeleteDialog from "./ActionButton/DeleteDialog";
 import EditDialog from "./ActionButton/EditDialog";
-import { FETCH_URL } from "../../../../fetchIp";
 import NodataFound from "../../../../assets/img/nodatafound.png";
 import { AuthContext } from "../../../../context/AuthContext";
+import { API } from "../../../../lib/endpoint";
+import { GET } from "../../../../lib/request";
 
 export default function Sites() {
   const [sites, setSites] = useState(null);
-  const [data, setData] = useState(null);
 
   const auth = React.useContext(AuthContext);
 
   const getnumberOfSite = async () => {
-    let token = JSON.parse(localStorage.getItem("userData")).token;
-    const response = await fetch(`${FETCH_URL}/api/site/getnumberOfSite`, {
-      method: "GET",
-      headers: {
-        Accept: "application/json",
-        "Content-type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-    });
-    let res = await response.json();
-    if (response.ok) {
-      // // console.log(" get site List resp ===> ", res.msg);
-      setSites(res.msg);
-    } else {
-      // console.log("Error in get site List ==> ", res);
+    try {
+      const res = await GET(API.SITE.COUNT);
+
+      if (res) {
+        setSites(res?.msg || []);
+      }
+    } catch (error) {
+      console.error("getnumberOfSite error:", error);
+      setSites([]);
     }
   };
+
   useEffect(() => {
     getnumberOfSite();
   }, []);

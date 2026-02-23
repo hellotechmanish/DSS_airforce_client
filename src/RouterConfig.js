@@ -63,6 +63,11 @@ export const routes = [
             element: <HomePage />,
           },
           {
+            path: "/test",
+            // element: <Navigate to="/dashboard" replace />,
+            element: <HomePage />,
+          },
+          {
             path: "/dashboard",
             element: <HomePage />,
           },

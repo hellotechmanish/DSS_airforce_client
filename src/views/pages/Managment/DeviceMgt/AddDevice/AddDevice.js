@@ -6,10 +6,8 @@ import {
   DialogContent,
   DialogTitle,
   Button,
-  Box,
   IconButton,
   Typography,
-  Tooltip,
   Snackbar,
   Input,
   TextField,
@@ -17,15 +15,11 @@ import {
 import MuiAlert from "@mui/material/Alert";
 
 import PropTypes from "prop-types";
-import { FETCH_URL } from "../../../../../fetchIp";
 import { useForm } from "react-hook-form";
 import { ErrorMessage } from "@hookform/error-message";
-import SuccessDialog from "../../../Dialog/SuceedFullDialog";
-import WrongDiloag from "../../../Dialog/WrongDialog";
 import { styled } from "@mui/material/styles";
 import CloseIcon from "@mui/icons-material/Close";
 //React Icons
-import { RiDeleteBin6Line } from "react-icons/ri";
 import { POST } from "../../../../../lib/request";
 import { API } from "../../../../../lib/endpoint";
 

@@ -1,13 +1,10 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
-  Grid,
-  Backdrop,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
   Button,
-  Box,
   IconButton,
   Typography,
   Tooltip,
@@ -16,8 +13,8 @@ import {
 import MuiAlert from "@mui/material/Alert";
 
 import PropTypes from "prop-types";
-import { FETCH_URL } from "../../../fetchIp";
-
+import { POST } from "../../../lib/request";
+import { API } from "../../../lib/endpoint";
 import { styled } from "@mui/material/styles";
 import CloseIcon from "@mui/icons-material/Close";
 //React Icons
@@ -98,31 +95,18 @@ export default function MaxWidthDialog({ alarmID, getnumberOfAlarm }) {
   };
 
   const DeleteAlarm = async () => {
-    let token = JSON.parse(localStorage.getItem("userData")).token;
     try {
-      const response = await fetch(`${FETCH_URL}/api/alarm/deleteAlarm`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          alarmId: alarmID,
-        }),
+      const res = await POST(API.ALARM.DELETE, {
+        alarmId: alarmID,
       });
-      const res = await response.json();
-      if (response.ok) {
-        // // console.log(" Delete site resp ===> ", res.msg);
-        setSnackOpen(true);
-        setSnackMsg(res.msg);
-        setOpen(false);
-        getnumberOfAlarm();
-      } else {
-        setSnackerropen(true);
-        setSnackErrMsg(res.err);
-      }
-    } catch (error) {
-      // console.log("Catch block ====>", error);
+
+      setSnackOpen(true);
+      setSnackMsg(res.msg);
+      setOpen(false);
+      getnumberOfAlarm();
+    } catch (err) {
+      setSnackerropen(true);
+      setSnackErrMsg(err?.msg || "Failed to delete alarm");
     }
   };
 

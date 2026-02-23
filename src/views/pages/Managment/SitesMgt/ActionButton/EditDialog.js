@@ -18,12 +18,13 @@ import MuiAlert from "@mui/material/Alert";
 import { useForm } from "react-hook-form";
 import { ErrorMessage } from "@hookform/error-message";
 import PropTypes from "prop-types";
-import { FETCH_URL } from "../../../../../fetchIp";
 
 import { styled } from "@mui/material/styles";
 import CloseIcon from "@mui/icons-material/Close";
 //React Icons
 import { CiEdit } from "react-icons/ci";
+import { API } from "../../../../../lib/endpoint";
+import { POST } from "../../../../../lib/request";
 
 const BootstrapDialog = styled(Dialog)(({ theme }) => ({
   "& .MuiDialogContent-root": {
@@ -115,37 +116,33 @@ export default function MaxWidthDialog({ row, getnumberOfSite, sitesID }) {
       setCountry(row.country ?? "");
     }
   }, [row]);
-  const EditSite = async () => {
-    let token = JSON.parse(localStorage.getItem("userData")).token;
 
+  const EditSite = async () => {
     try {
-      const response = await fetch(`${FETCH_URL}/api/site/editSite`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          siteId: sitesID,
-          siteName: siteName,
-          uid: uid,
-          location: location,
-          pincode: pincode,
-          country: country,
-        }),
+      const res = await POST(API.SITE.EDIT, {
+        siteId: sitesID,
+        siteName: siteName,
+        uid: uid,
+        location: location,
+        pincode: pincode,
+        country: country,
       });
-      const res = await response.json();
-      if (response.ok) {
+
+      if (res) {
         setSnackOpen(true);
-        setSnackMsg(res.msg);
+        setSnackMsg(res?.msg || "Site updated successfully");
+
         setOpen(false);
         getnumberOfSite();
       } else {
         setSnackerropen(true);
-        setSnackErrMsg(res.err);
+        setSnackErrMsg(res?.err || "Failed to update site");
       }
     } catch (error) {
-      // console.log("Catch block ====>", error);
+      console.error("EditSite error:", error);
+
+      setSnackerropen(true);
+      setSnackErrMsg(error?.msg || "Failed to update site");
     }
   };
 

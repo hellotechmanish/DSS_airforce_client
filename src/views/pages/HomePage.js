@@ -3,7 +3,6 @@ import React, { useState, useEffect } from "react";
 import PropTypes from "prop-types";
 import { Tabs, Tab, Typography, Grid } from "@mui/material";
 // Import Custom Component
-import { FETCH_URL } from "../../fetchIp";
 
 import DeviceTab from "./HomePageTab/Devicetab/Device";
 import { Container } from "@mui/system";

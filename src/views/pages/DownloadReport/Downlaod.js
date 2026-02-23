@@ -21,9 +21,8 @@ import { HiOutlineDownload } from "react-icons/hi";
 
 import { styled } from "@mui/material/styles";
 import CloseIcon from "@mui/icons-material/Close";
-//React Icons
-import axios from "axios";
-import { FETCH_URL } from "../../../fetchIp";
+import { POST, GET } from "../../../lib/request";
+import { API } from "../../../lib/endpoint";
 
 const BootstrapDialog = styled(Dialog)(({ theme }) => ({
   "& .MuiDialogContent-root": {
@@ -118,61 +117,52 @@ export default function MaxWidthDialog({
       setStartDate(GraphDate ?? moment(new Date()).format("YYYY-MM-DD"));
     }
   }, [open]);
-  // ========================================= //
 
   async function handleDownloadReport() {
-    // console.log("==== handleDownloadReport ====");
     try {
-      let body = {
+      const body = {
         deviceId: device?._id,
         sensorName: sensor,
         deviceNumber: deviceSensorNumber,
         startDate: startDate,
         endDate: endDate,
       };
-      // console.log("Body from handleDownloadReport ==>", body);
-      let resp = await axios.post(
-        `${FETCH_URL}/api/device/generateReport`,
-        body,
-      );
 
-      // console.log("resp from handleDownloadReport ==>", resp);
-      if (resp.status === 200) {
+      const resp = await POST(API.DEVICE.GENERATE_REPORT, body);
+
+      if (resp) {
         DownloadCSV();
       }
     } catch (error) {
-      // console.log("error from handleDownloadReport  ==> ", error);
+      setSnackerropen(true);
+      setSnackErrMsg(error?.msg || "Failed to generate report");
     }
   }
 
   // ============ Download CSV =========== //
-  async function DownloadCSV() {
-    // console.log("============= DownloadCSV () ================");
-    fetch(`${FETCH_URL}/api/device/downloadcsv`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/csv",
-      },
-    })
-      .then((res) => res.blob())
-      .then((file) => {
-        // console.log("data after the =>>", file);
-        const url = window.URL.createObjectURL(
-          new Blob([file], {
-            type: "application/csv",
-          }),
-        );
-        const link = document.createElement("a");
-        link.href = url;
-        link.setAttribute("download", "file.csv");
-        document.body.appendChild(link);
-        link.click();
-        link.parentNode.removeChild(link);
-      })
-      .catch((error) => {
-        // console.log(error);
+  const DownloadCSV = async () => {
+    try {
+      const res = await GET(API.DEVICE.DOWNLOAD_CSV, {
+        responseType: "blob", // important for CSV download
       });
-  }
+
+      const url = window.URL.createObjectURL(
+        new Blob([res], { type: "application/csv" }),
+      );
+
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", "report.csv");
+
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (error) {
+      setSnackerropen(true);
+      setSnackErrMsg(error?.msg || "Failed to download CSV");
+    }
+  };
+
   React.useEffect(() => {
     if (sensor === "RES" && device?.resSensors) {
       let arr = [];

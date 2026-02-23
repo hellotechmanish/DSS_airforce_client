@@ -1,5 +1,5 @@
 import React, { useContext, useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { styled } from "@mui/material/styles";
 import { Container } from "@mui/system";
 
@@ -7,7 +7,6 @@ import {
   Box,
   Grid,
   List,
-  Badge,
   Button,
   Avatar,
   Tooltip,
@@ -23,13 +22,11 @@ import Sound from "react-sound";
 // Logo Images
 import NavbarBgs from "../../assets/img/Navbar-bgs.png";
 import LeftLogo from "../../assets/img/Left-logo.png";
-import RightLogo from "../../assets/img/Right-logo.png";
 import alertSound from "../../assets/sounds/alertsound.mp3";
 import { FiMenu } from "react-icons/fi";
 import { VscUnmute, VscMute } from "react-icons/vsc";
 
 // Internal Import
-import { FETCH_URL } from "../../fetchIp";
 import RebootDialog from "./RebootDialog";
 import LogoutDialog from "./LogoutDialog";
 import routes from "../../routes/AdminRoutes";
@@ -53,7 +50,6 @@ export default function ProminentAppBar() {
   // ============= userRole ============== //
   const auth = React.useContext(AuthContext);
   const { token, setToken, user, setUser } = useContext(AuthContext);
-  const navigate = useNavigate();
   const [state, setState] = React.useState({
     top: false,
     left: false,
@@ -85,23 +81,16 @@ export default function ProminentAppBar() {
   };
 
   const [shutdown, setShutDown] = useState(null);
+
   const getShutdownStatus = async () => {
-    const response = await fetch(`${FETCH_URL}/api/device/shutdown`, {
-      method: "GET",
-      headers: {
-        Accept: "application/json",
-        "Content-type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-    });
-    let res = await response.json();
-    if (response.ok) {
-      // // console.log(" getShutdownStatus resp ===> ", res.msg);
+    try {
+      const res = await GET(API.DEVICE.SHUTDOWN);
       setShutDown(res.msg);
-    } else {
-      // // console.log("Error in getShutdownStatus ==> ", res);
+    } catch (err) {
+      console.log("Error fetching shutdown status", err);
     }
   };
+
   const toggleDrawer = (anchor, open) => (event) => {
     if (
       event &&

@@ -25,9 +25,10 @@ import {
 } from "chart.js";
 import dayjs from "dayjs";
 import { AuthContext } from "../../../../../context/AuthContext";
-import { FETCH_URL } from "../../../../../fetchIp";
 import hondaGif from "../../../../../assets/img/hondagif.gif";
+import { API } from "../../../../../lib/endpoint";
 
+import { POST } from "../../../../../lib/request";
 let interval;
 ChartJS.register(
   CategoryScale,
@@ -36,22 +37,22 @@ ChartJS.register(
   LineElement,
   Title,
   Tooltip,
-  Legend
+  Legend,
 );
 const getTempValue = (row) =>
   Number(
     row?.msg?.TempValues?.DATASTREAMS?.[0]?.value ??
-    row?.msg?.DATASTREAMS?.[0]?.value ??
-    row?.temp ??
-    0
+      row?.msg?.DATASTREAMS?.[0]?.value ??
+      row?.temp ??
+      0,
   );
 
 const getHumValue = (row) =>
   Number(
     row?.msg?.HumValues?.DATASTREAMS?.[0]?.value ??
-    row?.msg?.DATASTREAMS?.[0]?.value ??
-    row?.humidity ??
-    0
+      row?.msg?.DATASTREAMS?.[0]?.value ??
+      row?.humidity ??
+      0,
   );
 export const options = {
   responsive: true,
@@ -75,17 +76,17 @@ export default function Graph({
   const getTempValue = (row) =>
     Number(
       row?.msg?.TempValues?.DATASTREAMS?.[0]?.value ??
-      row?.msg?.DATASTREAMS?.[0]?.value ??
-      row?.temp ??
-      0
+        row?.msg?.DATASTREAMS?.[0]?.value ??
+        row?.temp ??
+        0,
     );
-  
+
   const getHumValue = (row) =>
     Number(
       row?.msg?.HumValues?.DATASTREAMS?.[0]?.value ??
-      row?.msg?.DATASTREAMS?.[0]?.value ??
-      row?.humidity ??
-      0
+        row?.msg?.DATASTREAMS?.[0]?.value ??
+        row?.humidity ??
+        0,
     );
   const auth = React.useContext(AuthContext);
   const currentDate = dayjs().toDate();
@@ -93,7 +94,7 @@ export default function Graph({
   const [dateType, setDateType] = useState(0);
 
   const [startDate, setStartDate] = useState(
-    moment(new Date()).format("YYYY-MM-DD")
+    moment(new Date()).format("YYYY-MM-DD"),
   );
 
   const handleData = (data, datatype) => {
@@ -147,7 +148,7 @@ export default function Graph({
             let obj = {};
             obj["label"] = `R${i + 1}`;
             obj["data"] = graphData?.map(
-              (item) => item.msg.DATASTREAMS[i]?.value
+              (item) => item.msg.DATASTREAMS[i]?.value,
             );
             obj["borderColor"] = borderColorArray[i];
             obj["backgroundColor"] = backgroundColorArray[i];
@@ -158,7 +159,7 @@ export default function Graph({
             let obj = {};
             obj["label"] = `R${i + 1}`;
             obj["data"] = graphData?.map(
-              (item) => item.msg.DATASTREAMS[i]?.value
+              (item) => item.msg.DATASTREAMS[i]?.value,
             );
             obj["borderColor"] = borderColorArray[i];
             obj["backgroundColor"] = backgroundColorArray[i];
@@ -176,7 +177,7 @@ export default function Graph({
             let obj = {};
             obj["label"] = `SPD${i + 1}`;
             obj["data"] = graphData?.map(
-              (item) => item.msg.DATASTREAMS[i]?.value
+              (item) => item.msg.DATASTREAMS[i]?.value,
             );
             obj["borderColor"] = borderColorArray[i];
             obj["backgroundColor"] = backgroundColorArray[i];
@@ -187,7 +188,7 @@ export default function Graph({
             let obj = {};
             obj["label"] = `SPD${i + 1}`;
             obj["data"] = graphData?.map(
-              (item) => item.msg.DATASTREAMS[i]?.value
+              (item) => item.msg.DATASTREAMS[i]?.value,
             );
             obj["borderColor"] = borderColorArray[i];
             obj["backgroundColor"] = backgroundColorArray[i];
@@ -204,7 +205,7 @@ export default function Graph({
             let obj = {};
             obj["label"] = `GN${i + 1}`;
             obj["data"] = graphData?.map(
-              (item) => item.msg.DATASTREAMS[i]?.value
+              (item) => item.msg.DATASTREAMS[i]?.value,
             );
             obj["borderColor"] = borderColorArray[i];
             obj["backgroundColor"] = backgroundColorArray[i];
@@ -215,7 +216,7 @@ export default function Graph({
             let obj = {};
             obj["label"] = `GN${i + 1}`;
             obj["data"] = graphData?.map(
-              (item) => item.msg.DATASTREAMS[i]?.value
+              (item) => item.msg.DATASTREAMS[i]?.value,
             );
             obj["borderColor"] = borderColorArray[i];
             obj["backgroundColor"] = backgroundColorArray[i];
@@ -284,30 +285,32 @@ export default function Graph({
 
   React.useEffect(() => {
     let user = auth.user.deviceSensors.find(
-      (item) => item.deviceId === device._id
+      (item) => item.deviceId === device._id,
     );
     setUserDevice(user);
   }, [auth]);
 
   // function get Graph data
   async function getData() {
-    if (device) {
-      try {
-        let resp = await axios.post(`${FETCH_URL}/api/device/latestData`, {
-          deviceId: device._id,
-          sensorName: sensor,
-          deviceNumber: `${phasevalue - 1}`,
-          startDate: startDate,
-          endDate: startDate,
-        });
+    if (!device) return;
 
-        // // console.log("resp from graph data ==>", resp.data.msg);
-        setLabels([...new Set(resp.data.msg.map((item) => item.time))]);
+    try {
+      const res = await POST(API.DEVICE.LATEST_DATA, {
+        deviceId: device?._id,
+        sensorName: sensor,
+        deviceNumber: `${phasevalue - 1}`,
+        startDate: startDate,
+        endDate: startDate,
+      });
 
-        setGraphData(resp.data.msg);
-      } catch (error) {
-        // // console.log("error from getData () ", error);
-      }
+      const data = res?.msg || [];
+
+      setLabels([...new Set(data.map((item) => item.time))]);
+      setGraphData(data);
+    } catch (error) {
+      console.error("getData error:", error);
+      setLabels([]);
+      setGraphData([]);
     }
   }
 
@@ -384,7 +387,7 @@ export default function Graph({
               <Typography className="white-typo mt-8 ">
                 Humidity :{" "}
                 <span className="white-typo">
-                {getHumValue({ msg: device }).toFixed(2)} %
+                  {getHumValue({ msg: device }).toFixed(2)} %
                 </span>
               </Typography>
               <DewnloadReport

@@ -17,13 +17,13 @@ import {
 import MuiAlert from "@mui/material/Alert";
 
 import PropTypes from "prop-types";
-import { FETCH_URL } from "../../../../../fetchIp";
 import { styled } from "@mui/material/styles";
 import CloseIcon from "@mui/icons-material/Close";
 //React Icons
 import { RiLockPasswordLine } from "react-icons/ri";
 import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
-
+import { POST } from "../../../../../lib/request";
+import { API } from "../../../../../lib/endpoint";
 const BootstrapDialog = styled(Dialog)(({ theme }) => ({
   "& .MuiDialogContent-root": {
     padding: theme.spacing(2),
@@ -167,51 +167,48 @@ export default function MaxWidthDialog({ UserID, getnumberOfUser }) {
   const newPassword = passwordInput.confirmPassword;
 
   const CraeteTechnicianPassword = async () => {
-    let token = JSON.parse(localStorage.getItem("userData")).token;
-    if (
-      passwordInput.password.length === 0 &&
-      passwordInput.confirmPassword.length === 0
-    ) {
+    // validation
+    if (!passwordInput.password) {
       setPasswordErr("Password is required");
-      setConfirmPasswordError(" Confirm password is required");
       return;
     }
-    if (passwordInput.confirmPassword !== passwordInput.password) {
+
+    if (!passwordInput.confirmPassword) {
+      setConfirmPasswordError("Confirm password is required");
+      return;
+    }
+
+    if (passwordInput.password !== passwordInput.confirmPassword) {
       setConfirmPasswordError("Confirm password is not matched");
       return;
     }
-    if (passwordInput.confirmPassword.length < 8) {
-      setConfirmPasswordError("At least minumum 8 characters");
+
+    if (passwordInput.password.length < 8) {
+      setConfirmPasswordError("At least minimum 8 characters");
       return;
     }
-    if (passwordInput.confirmPassword.length < 8) {
-      setConfirmPasswordError("At least minumum 8 characters");
-      return;
-    }
+
     try {
-      const response = await fetch(`${FETCH_URL}/api/user/resetPassword`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          userId: UserID,
-          password: newPassword,
-        }),
+      const res = await POST(API.USERS.RESET_PASSWORD, {
+        userId: UserID,
+        password: newPassword,
       });
-      const res = await response.json();
-      if (response.ok) {
+
+      if (res) {
         setSnackOpen(true);
-        setSnackMsg(res.msg);
+        setSnackMsg(res?.msg || "Password reset successfully");
+
         setOpen(false);
         getnumberOfUser();
       } else {
         setSnackerropen(true);
-        setSnackErrMsg(res.err);
+        setSnackErrMsg(res?.err || "Failed to reset password");
       }
     } catch (error) {
-      // console.log("Catch block ====>", error);
+      console.error("Reset password error:", error);
+
+      setSnackerropen(true);
+      setSnackErrMsg(error?.msg || "Failed to reset password");
     }
   };
 

@@ -18,10 +18,10 @@ import MuiAlert from "@mui/material/Alert";
 import { useForm } from "react-hook-form";
 import { ErrorMessage } from "@hookform/error-message";
 import PropTypes from "prop-types";
-import { FETCH_URL } from "../../../../../fetchIp";
 import { styled } from "@mui/material/styles";
 import CloseIcon from "@mui/icons-material/Close";
-
+import { POST } from "../../../../../lib/request";
+import { API } from "../../../../../lib/endpoint";
 const BootstrapDialog = styled(Dialog)(({ theme }) => ({
   "& .MuiDialogContent-root": {
     padding: theme.spacing(2),
@@ -78,6 +78,7 @@ export default function MaxWidthDialog({ getnumberOfSite }) {
   const [snackmsg, setSnackMsg] = useState("");
   const [snackErrMsg, setSnackErrMsg] = useState();
   const [snackerropen, setSnackerropen] = useState(false);
+  const [uidMatch, setUidMatch] = useState(true);
   const {
     register,
     formState: { errors },
@@ -109,65 +110,51 @@ export default function MaxWidthDialog({ getnumberOfSite }) {
     register("");
   };
   const CraeteSite = async () => {
-    let token = JSON.parse(localStorage.getItem("userData")).token;
-
     try {
-      const response = await fetch(`${FETCH_URL}/api/site/createSite`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          siteName: siteName,
-          uid: uid,
-          location: location,
-          pincode: pincode,
-          country: country,
-          state: state,
-        }),
+      const res = await POST(API.SITE.CREATE, {
+        siteName: siteName,
+        uid: uid,
+        location: location,
+        pincode: pincode,
+        country: country,
+        state: state,
       });
-      const res = await response.json();
-      if (response.ok) {
+
+      if (res) {
         setOpen(false);
         setSnackOpen(true);
-        setSnackMsg(res.msg);
+        setSnackMsg(res?.msg || "Site created successfully");
+
         getnumberOfSite();
         handleClose();
       } else {
         setSnackerropen(true);
         setOpen(false);
-        setSnackErrMsg(res.err);
+        setSnackErrMsg(res?.err || "Failed to create site");
       }
     } catch (error) {
-      // console.log("Catch block ====>", error);
-    }
-  };
-  const [uidMatch, setUidMatch] = useState(true);
-  const CheckSiteUid = async () => {
-    let token = JSON.parse(localStorage.getItem("userData")).token;
+      console.error("CraeteSite error:", error);
 
-    try {
-      const response = await fetch(`${FETCH_URL}/api/site/checkSiteUid`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          uid: uid,
-        }),
-      });
-      const res = await response.json();
-      if (response.ok) {
-        // // console.log("Check Uid Match Status", res.msg);
-        setUidMatch(res.status);
-      } else {
-      }
-    } catch (error) {
-      // console.log("Catch block ====>", error);
+      setSnackerropen(true);
+      setSnackErrMsg(error?.msg || "Failed to create site");
     }
   };
+
+  const CheckSiteUid = async () => {
+    try {
+      const res = await POST(API.SITE.CHECK_UID, {
+        uid: uid,
+      });
+
+      if (res) {
+        setUidMatch(res?.status || false);
+      }
+    } catch (error) {
+      console.error("CheckSiteUid error:", error);
+      setUidMatch(false);
+    }
+  };
+
   useEffect(() => {
     CheckSiteUid(uid);
   }, [uid]);

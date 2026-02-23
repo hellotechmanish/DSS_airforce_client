@@ -16,7 +16,8 @@ import {
 import MuiAlert from "@mui/material/Alert";
 
 import PropTypes from "prop-types";
-import { FETCH_URL } from "../../../../../fetchIp";
+import { POST } from "../../../../../lib/request";
+import { API } from "../../../../../lib/endpoint";
 
 import { styled } from "@mui/material/styles";
 import CloseIcon from "@mui/icons-material/Close";
@@ -93,31 +94,26 @@ export default function MaxWidthDialog({ UserID, getnumberOfUser }) {
   };
 
   const DeleteUser = async () => {
-    let token = JSON.parse(localStorage.getItem("userData")).token;
     try {
-      const response = await fetch(`${FETCH_URL}/api/user/deleteUser`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          userId: UserID,
-        }),
+      const res = await POST(API.USERS.DELETE, {
+        userId: UserID,
       });
-      const res = await response.json();
-      if (response.ok) {
-        // console.log(" Delete site resp ===> ", res.msg);
+
+      if (res) {
         setSnackOpen(true);
-        setSnackMsg(res.msg);
+        setSnackMsg(res?.msg || "User deleted successfully");
+
         setOpen(false);
         getnumberOfUser();
       } else {
         setSnackerropen(true);
-        setSnackErrMsg(res.err);
+        setSnackErrMsg(res?.err || "Failed to delete user");
       }
     } catch (error) {
-      // console.log("Catch block ====>", error);
+      console.error("DeleteUser error:", error);
+
+      setSnackerropen(true);
+      setSnackErrMsg(error?.msg || "Failed to delete user");
     }
   };
 

@@ -18,10 +18,10 @@ import {
 import MuiAlert from "@mui/material/Alert";
 import SiteAdd from "../../../../../SitesMgt/AddSite/SitesAddDialog";
 import PropTypes from "prop-types";
-import { FETCH_URL } from "../../../../../../../../fetchIp";
 import { styled } from "@mui/material/styles";
 import CloseIcon from "@mui/icons-material/Close";
-
+import { API } from "../../../../../../../../lib/endpoint";
+import { GET,POST } from "../../../../../../../../lib/request";
 const BootstrapDialog = styled(Dialog)(({ theme }) => ({
   "& .MuiDialogContent-root": {
     padding: theme.spacing(2),
@@ -97,50 +97,40 @@ export default function MaxWidthDialog({ getnumberOfAssignSite, UserId }) {
     setSitesid(data._id);
   };
   const getnumberOfSite = async () => {
-    let token = JSON.parse(localStorage.getItem("userData")).token;
-    const response = await fetch(`${FETCH_URL}/api/site/getnumberOfSite`, {
-      method: "GET",
-      headers: {
-        Accept: "application/json",
-        "Content-type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-    });
-    let res = await response.json();
-    if (response.ok) {
-      // // console.log(" get site List resp ===> ", res.msg);
-      setSites(res.msg);
-    } else {
-      // console.log("Error in get site List ==> ", res);
+    try {
+      const res = await GET(API.SITE.COUNT);
+
+      if (res) {
+        setSites(res?.msg || []);
+      }
+    } catch (error) {
+      console.error("getnumberOfSite error:", error);
+      setSites([]);
     }
   };
 
   const AssignSiteToUser = async () => {
-    let token = JSON.parse(localStorage.getItem("userData")).token;
     try {
-      const response = await fetch(`${FETCH_URL}/api/user/assignSite`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          userId: UserId,
-          siteId: siteid,
-        }),
+      const res = await POST(API.USERS.ASSIGN_SITE, {
+        userId: UserId,
+        siteId: siteid,
       });
-      const res = await response.json();
-      if (response.ok) {
+
+      if (res) {
         setSnackOpen(true);
-        setSnackMsg(res.msg);
+        setSnackMsg(res?.msg || "Site assigned successfully");
+
         setOpen(false);
         getnumberOfAssignSite();
       } else {
         setSnackerropen(true);
-        setSnackErrMsg(res.err);
+        setSnackErrMsg(res?.err || "Failed to assign site");
       }
     } catch (error) {
-      // console.log("Catch block ====>", error);
+      console.error("AssignSiteToUser error:", error);
+
+      setSnackerropen(true);
+      setSnackErrMsg(error?.msg || "Failed to assign site");
     }
   };
 

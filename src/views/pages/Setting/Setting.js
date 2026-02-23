@@ -9,11 +9,11 @@ import {
   Snackbar,
 } from "@mui/material";
 import { Link } from "react-router-dom";
-import { FETCH_URL } from "../../../fetchIp";
 import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
 import { AuthContext } from "../../../context/AuthContext";
 import MuiAlert from "@mui/material/Alert";
-
+import { POST } from "../../../lib/request";
+import { API } from "../../../lib/endpoint";
 const Alert = React.forwardRef(function Alert(props, ref) {
   return <MuiAlert elevation={6} ref={ref} variant="filled" {...props} />;
 });
@@ -58,35 +58,27 @@ export default function UserManagment() {
   }
 
   const EditAdminDetails = async () => {
-    let token = JSON.parse(localStorage.getItem("userData")).token;
     try {
-      const response = await fetch(`${FETCH_URL}/api/user/editUser`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          fullName: fullname,
-          uid: uid,
-          userRole: Admin?.user?.role,
-          userId: Admin?.user?._id,
-        }),
+      const res = await POST(API.USERS.EDIT, {
+        fullName: fullname,
+        uid: uid,
+        userRole: Admin?.user?.role,
+        userId: Admin?.user?._id,
       });
-      const res = await response.json();
 
-      if (response.ok) {
-        // setOpen(false);
+      if (res) {
         setInputState(true);
+
         setSnackOpen(true);
-        setSnackMsg(res.msg);
+        setSnackMsg(res?.msg || "Admin details updated successfully");
+
         UserPassWordRest();
-      } else {
-        // console.log("Else block ====>");
-        // setOpen(false);
       }
     } catch (error) {
-      // console.log("Catch block ====>", error);
+      console.error("EditAdminDetails error:", error);
+
+      setSnackerropen(true);
+      setSnackErrMsg(error?.msg || "Failed to update admin details");
     }
   };
 
@@ -160,31 +152,25 @@ export default function UserManagment() {
   const newPassword = passwordInput.confirmPassword;
 
   const UserPassWordRest = async () => {
-    let token = JSON.parse(localStorage.getItem("userData")).token;
-
     try {
-      const response = await fetch(`${FETCH_URL}/api/user/resetPassword`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          userId: Admin?.user?._id,
-          password: newPassword,
-        }),
+      const res = await POST(API.USERS.RESET_PASSWORD, {
+        userId: Admin?.user?._id,
+        password: newPassword,
       });
-      const res = await response.json();
-      if (response.ok) {
-        // console.log("Password Reset ", res.msg);
+
+      if (res) {
         setShow(!show);
+
         setSnackOpen(true);
-        setSnackMsg(res.msg);
+        setSnackMsg(res?.msg || "Password reset successfully");
+
         setInputState(true);
-      } else {
       }
     } catch (error) {
-      // console.log("Catch block ====>", error);
+      console.error("UserPassWordRest error:", error);
+
+      setSnackerropen(true);
+      setSnackErrMsg(error?.msg || "Failed to reset password");
     }
   };
   return (

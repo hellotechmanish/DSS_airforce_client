@@ -11,10 +11,10 @@ import {
   Typography,
   Breadcrumbs,
 } from "@mui/material";
-import { FETCH_URL } from "../../../fetchIp";
 import NodataFound from "../../../assets/img/nodatafound.png";
 import { Link } from "react-router-dom";
-
+import { API } from "../../../lib/endpoint";
+import { GET } from "../../../lib/request";
 // function createData(name, calories, fat, carbs, protein) {
 //   return { name, calories, fat, carbs, protein };
 // }
@@ -30,21 +30,15 @@ import { Link } from "react-router-dom";
 export default function BasicTable() {
   const [resistance, setResistance] = useState(null);
   const getAllSiteResistance = async () => {
-    let token = JSON.parse(localStorage.getItem("userData")).token;
-    const response = await fetch(`${FETCH_URL}/api/site/getAllSiteTemp`, {
-      method: "GET",
-      headers: {
-        Accept: "application/json",
-        "Content-type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-    });
-    let res = await response.json();
-    if (response.ok) {
-      console.log(" get number Of Site resp ===> ", res.msg);
-      setResistance(res.msg);
-    } else {
-      // // console.log("Error in get number Of Site ==> ", res);
+    try {
+      const res = await GET(API.SITE.GET_ALL_SITE_TEMP);
+
+      console.log("getAllSiteTemp resp ===>", res?.msg);
+
+      setResistance(res?.msg || []);
+    } catch (error) {
+      console.error("getAllSiteResistance error:", error);
+      setResistance([]);
     }
   };
 

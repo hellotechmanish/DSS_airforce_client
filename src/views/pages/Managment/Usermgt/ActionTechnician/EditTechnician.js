@@ -19,12 +19,10 @@ import { CiEdit } from "react-icons/ci";
 import { useForm } from "react-hook-form";
 import { ErrorMessage } from "@hookform/error-message";
 import PropTypes from "prop-types";
-import { FETCH_URL } from "../../../../../fetchIp";
 import { styled } from "@mui/material/styles";
 import CloseIcon from "@mui/icons-material/Close";
-//React Icons
-import { RiDeleteBin6Line } from "react-icons/ri";
-
+import { POST } from "../../../../../lib/request";
+import { API } from "../../../../../lib/endpoint";
 const BootstrapDialog = styled(Dialog)(({ theme }) => ({
   "& .MuiDialogContent-root": {
     padding: theme.spacing(2),
@@ -107,36 +105,32 @@ export default function MaxWidthDialog({ techID, row, getnumberOftechnician }) {
   };
 
   const EditTechnician = async () => {
-    let token = JSON.parse(localStorage.getItem("userData")).token;
-
     try {
-      const response = await fetch(`${FETCH_URL}/api/user/editUser`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          fullName: fullName,
-          uid: uid,
-          userRole: 1,
-          userId: techID,
-        }),
+      const res = await POST(API.USERS.EDIT, {
+        fullName: fullName,
+        uid: uid,
+        userRole: 1,
+        userId: techID,
       });
-      const res = await response.json();
-      if (response.ok) {
+
+      if (res) {
         setSnackOpen(true);
-        setSnackMsg(res.msg);
+        setSnackMsg(res?.msg || "Technician updated successfully");
+
         setOpen(false);
         getnumberOftechnician();
       } else {
         setSnackerropen(true);
-        setSnackErrMsg(res.err);
+        setSnackErrMsg(res?.err || "Failed to update technician");
       }
     } catch (error) {
-      // console.log("Catch block ====>", error);
+      console.error("EditTechnician error:", error);
+
+      setSnackerropen(true);
+      setSnackErrMsg(error?.msg || "Failed to update technician");
     }
   };
+
   useEffect(() => {
     if (row) {
       setFullName(row.fullName);

@@ -6,10 +6,8 @@ import {
   DialogContent,
   DialogTitle,
   Button,
-  Box,
   IconButton,
   Typography,
-  Tooltip,
   Snackbar,
   Input,
   TextField,
@@ -17,15 +15,14 @@ import {
 import MuiAlert from "@mui/material/Alert";
 
 import PropTypes from "prop-types";
-import { FETCH_URL } from "../../../../fetchIp";
 import { useForm } from "react-hook-form";
 import { ErrorMessage } from "@hookform/error-message";
 import SuccessDialog from "../../Dialog/SuceedFullDialog";
-import WrongDialog from "../../Dialog/WrongDialog";
 import { styled } from "@mui/material/styles";
 import CloseIcon from "@mui/icons-material/Close";
 //React Icons
-import { RiDeleteBin6Line } from "react-icons/ri";
+import { API } from "../../../../lib/endpoint";
+import { POST } from "../../../../lib/request";
 
 const BootstrapDialog = styled(Dialog)(({ theme }) => ({
   "& .MuiDialogContent-root": {
@@ -82,7 +79,6 @@ export default function MaxWidthDialog({
   const {
     register,
     formState: { errors },
-    handleSubmit,
   } = useForm();
   const [deviceName, setDeviceName] = useState(null);
   const [nodeUid, setNodeUid] = useState(null);
@@ -147,30 +143,24 @@ export default function MaxWidthDialog({
   const [openDialogName, setOpenDialog] = React.useState(null);
 
   const CraeteDevice = async () => {
-    let token = JSON.parse(localStorage.getItem("userData")).token;
     try {
-      const response = await fetch(`${FETCH_URL}/api/device/createDevice`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          siteId: value === 0 ? sitezero?._id : state?._id,
-          deviceName: deviceName,
-          nodeUid: nodeUid,
-          vmrSensors: +vmrSensors,
-          resSensors: +resSensors,
-          spdSensors: +spdSensors,
-          nerSensors: +nerSensors,
-          vmrSensorsThreshold: vmrSensorsThreshold,
-          resSensorsThreshold: +resSensorsThreshold,
-          spdSensorsThreshold: +spdSensorsThreshold,
-          nerSensorsThreshold: +nerSensorsThreshold,
-        }),
-      });
-      const res = await response.json();
-      if (response.ok) {
+      const body = {
+        siteId: value === 0 ? sitezero?._id : state?._id,
+        deviceName: deviceName,
+        nodeUid: nodeUid,
+        vmrSensors: +vmrSensors,
+        resSensors: +resSensors,
+        spdSensors: +spdSensors,
+        nerSensors: +nerSensors,
+        vmrSensorsThreshold: vmrSensorsThreshold,
+        resSensorsThreshold: +resSensorsThreshold,
+        spdSensorsThreshold: +spdSensorsThreshold,
+        nerSensorsThreshold: +nerSensorsThreshold,
+      };
+
+      const res = await POST(API.DEVICE.CREATE, body);
+
+      if (res) {
         clearData();
         getdeviceListbysite();
         setOpenDialog("success");
@@ -178,33 +168,30 @@ export default function MaxWidthDialog({
         setOpenDialog("reject");
       }
     } catch (error) {
-      // console.log("Catch block ====>", error);
+      console.error("CreateDevice error:", error);
+      setOpenDialog("reject");
     }
   };
 
   const [uidMatch, setUidMatch] = useState(true);
+
   const CheckDeviceUid = async () => {
-    let token = JSON.parse(localStorage.getItem("userData")).token;
     try {
-      const response = await fetch(`${FETCH_URL}/api/device/checkDeviceUid`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          uid: nodeUid,
-        }),
-      });
-      const res = await response.json();
-      if (response.ok) {
-        setUidMatch(res.status);
-      } else {
+      const body = {
+        uid: nodeUid,
+      };
+
+      const res = await POST(API.DEVICE.CHECK_UID, body);
+
+      if (res) {
+        setUidMatch(res?.status);
       }
     } catch (error) {
-      // console.log("Catch block ====>", error);
+      console.error("CheckDeviceUid error:", error);
+      setUidMatch(false);
     }
   };
+
   useEffect(() => {
     if (open && nodeUid) {
       CheckDeviceUid(nodeUid);

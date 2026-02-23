@@ -1,28 +1,25 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
-  Grid,
-  Backdrop,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
   Button,
-  Box,
   IconButton,
   Typography,
   Tooltip,
   Snackbar,
 } from "@mui/material";
 import MuiAlert from "@mui/material/Alert";
-
 import PropTypes from "prop-types";
-import { FETCH_URL } from "../../../../../fetchIp";
-
 import { styled } from "@mui/material/styles";
 import CloseIcon from "@mui/icons-material/Close";
+
+import { API } from "../../../../../lib/endpoint";
+import { POST } from "../../../../../lib/request";
+
 //React Icons
 import { RiDeleteBin6Line } from "react-icons/ri";
-
 const BootstrapDialog = styled(Dialog)(({ theme }) => ({
   "& .MuiDialogContent-root": {
     padding: theme.spacing(2),
@@ -93,32 +90,26 @@ export default function MaxWidthDialog({ sitesID, getnumberOfSite }) {
   };
 
   const deleteUser = async () => {
-    let token = JSON.parse(localStorage.getItem("userData")).token;
-
     try {
-      const response = await fetch(`${FETCH_URL}/api/site/deleteSite`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          siteId: sitesID,
-        }),
+      const res = await POST(API.SITE.DELETE, {
+        siteId: sitesID,
       });
-      const res = await response.json();
-      if (response.ok) {
-        // // console.log(" Delete site resp ===> ", res.msg);
+
+      if (res) {
         setSnackOpen(true);
-        setSnackMsg(res.msg);
+        setSnackMsg(res?.msg || "Site deleted successfully");
+
         setOpen(false);
         getnumberOfSite();
       } else {
         setSnackerropen(true);
-        setSnackErrMsg(res.err);
+        setSnackErrMsg(res?.err || "Failed to delete site");
       }
     } catch (error) {
-      // console.log("Catch block ====>", error);
+      console.error("deleteSite error:", error);
+
+      setSnackerropen(true);
+      setSnackErrMsg(error?.msg || "Failed to delete site");
     }
   };
 

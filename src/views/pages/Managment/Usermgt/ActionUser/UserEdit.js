@@ -19,8 +19,8 @@ import { useForm } from "react-hook-form";
 import { ErrorMessage } from "@hookform/error-message";
 //React Icons
 import { CiEdit } from "react-icons/ci";
-import { FETCH_URL } from "../../../../../fetchIp";
-
+import { API } from "../../../../../lib/endpoint";
+import { POST } from "../../../../../lib/request";
 const BootstrapDialog = styled(Dialog)(({ theme }) => ({
   "& .MuiDialogContent-root": {
     padding: theme.spacing(0),
@@ -75,34 +75,28 @@ export default function CustomizedDialogs({ getnumberOfUser, row, UserID }) {
   const handleClose = () => {
     setOpen(false);
   };
+
   const EditUser = async () => {
-    let token = JSON.parse(localStorage.getItem("userData")).token;
     try {
-      const response = await fetch(`${FETCH_URL}/api/user/editUser`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          userRole: 2,
-          fullName: fullName,
-          uid: uid,
-          userId: UserID,
-        }),
+      const res = await POST(API.USERS.EDIT, {
+        userRole: 2,
+        fullName: fullName,
+        uid: uid,
+        userId: UserID,
       });
-      const res = await response.json();
-      if (response.ok) {
+
+      if (res) {
         getnumberOfUser();
         setOpen(false);
       } else {
-        // console.log("Else block ====>");
         setOpen(false);
       }
     } catch (error) {
-      // console.log("Catch block ====>", error);
+      console.error("EditUser error:", error);
+      setOpen(false);
     }
   };
+
   useEffect(() => {
     if (row) {
       setFullName(row.fullName);
