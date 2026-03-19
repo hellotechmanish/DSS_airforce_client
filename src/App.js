@@ -78,7 +78,6 @@ import { Outlet } from "react-router-dom";
 import "./App.css";
 import LoaderDialog from "./views/component/loader";
 import { AuthContext } from "./context/AuthContext";
-import { AdminContext } from "./context/AdminContext";
 import { Toaster } from "react-hot-toast";
 
 function App() {

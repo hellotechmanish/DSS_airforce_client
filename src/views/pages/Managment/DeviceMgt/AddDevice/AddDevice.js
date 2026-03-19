@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   Grid,
   Dialog,
@@ -138,7 +138,6 @@ export default function MaxWidthDialog({
     setSnackerropen(false);
     setSnackErrMsg("");
   };
-  const [openDialogName, setOpenDialog] = React.useState(null);
 
   const CreateDevice = async () => {
     if (!state?._id) {
@@ -179,7 +178,6 @@ export default function MaxWidthDialog({
     } catch (error) {
       console.error("Create Device Error =>", error);
 
-      setOpenDialog("reject");
       setSnackerropen(true);
       setSnackErrMsg(error?.msg || "Something went wrong");
     }
@@ -187,7 +185,7 @@ export default function MaxWidthDialog({
 
   const [uidMatch, setUidMatch] = useState(true);
 
-  const CheckDeviceUid = async () => {
+  const CheckDeviceUid = useCallback(async () => {
     if (!nodeUid) return; // 🔥 null guard
 
     try {
@@ -201,13 +199,13 @@ export default function MaxWidthDialog({
     } catch (error) {
       console.error("Check UID Error =>", error);
     }
-  };
+  }, [nodeUid]);
 
   useEffect(() => {
     if (open && nodeUid) {
       CheckDeviceUid();
     }
-  }, [nodeUid, open]);
+  }, [nodeUid, open, CheckDeviceUid]);
 
   return (
     <React.Fragment>
@@ -226,8 +224,22 @@ export default function MaxWidthDialog({
         </Alert>
       </Snackbar>
       <Button
-        sx={{ width: "150px" }}
-        className=" skyblue-bg-button fs-16 hover "
+        variant="outlined"
+        sx={{
+          // width: "150px",
+          color: "#1e4976",
+          borderColor: "#1e4976",
+          borderRadius: "6px",
+          fontSize: "16px",
+          fontWeight: 500,
+          textTransform: "none",
+
+          "&:hover": {
+            // backgroundColor: "#1e4976",
+            // color: "#fff",
+            borderColor: "#1e4976",
+          },
+        }}
         onClick={handleClickOpen}
       >
         Add Device

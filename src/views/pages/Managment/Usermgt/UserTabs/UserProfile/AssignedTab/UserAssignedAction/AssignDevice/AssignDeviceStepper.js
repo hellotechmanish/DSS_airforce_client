@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   Button,
   Step,
@@ -192,18 +192,18 @@ export default function Clusterhead({
         return null;
     }
   }
-  useEffect(() => {
-    getdeviceListbysite();
-  }, []);
-
-  const getdeviceListbysite = async () => {
+  const getdeviceListbysite = useCallback(async () => {
     try {
-      const res = await GET(API.DEVICE.LIST_BY_SITE(siteId));
+      const res = await GET(API.DEVICE.LIST_BY_SITEID(siteId));
       setDevice(res.msg);
     } catch (err) {
       console.log("Error fetching device list by site", err);
     }
-  };
+  }, [siteId]);
+
+  useEffect(() => {
+    getdeviceListbysite();
+  }, [getdeviceListbysite]);
 
   const AssingDevice = async () => {
     try {

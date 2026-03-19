@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Grid,
   Dialog,
@@ -184,53 +184,40 @@ export default function MaxWidthDialog({
   }
 
   const [getSelectSensor, setGetSelectSensor] = useState(null);
-  useEffect(() => {
-    EditDeviceData();
-  }, []);
 
-  // Sensor Value Show Function Start
-  const [rValue, setRValue] = useState([]);
-  function setResSensor() {
-    let arr = [];
-    for (let i = 0; i < new Array(device?.resSensors).length; i++) {
-      arr.push(`R${i + 1}`);
-    }
-    setRValue(arr);
-  }
+  const rValue = useMemo(
+    () =>
+      Array.from({ length: Number(device?.resSensors || 0) }, (_, i) => {
+        return `R${i + 1}`;
+      }),
+    [device?.resSensors],
+  );
 
-  const [gnValue, setGnValue] = useState([]);
-  function setGnSensor() {
-    let arr = [];
-    for (let i = 0; i < new Array(device?.nerSensors).length; i++) {
-      arr.push(`GN${i + 1}`);
-    }
-    setGnValue(arr);
-  }
-  const [vmrValue, setVmrValue] = useState([]);
-  function setVmrSensor() {
-    let arr = [];
-    for (let i = 0; i < new Array(device?.vmrSensors).length; i++) {
-      arr.push(`PH${i + 1}`);
-    }
-    setVmrValue(arr);
-  }
-  const [spValue, setSPalue] = useState([]);
-  function setSpdSensor() {
-    let arr = [];
-    for (let i = 0; i < new Array(device?.spdSensors).length; i++) {
-      arr.push(`SPD${i + 1}`);
-    }
-    setSPalue(arr);
-  }
+  const gnValue = useMemo(
+    () =>
+      Array.from({ length: Number(device?.nerSensors || 0) }, (_, i) => {
+        return `GN${i + 1}`;
+      }),
+    [device?.nerSensors],
+  );
 
-  React.useEffect(() => {
-    setResSensor();
-    setVmrSensor();
-    setSpdSensor();
-    setGnSensor();
-  }, [device]);
+  const vmrValue = useMemo(
+    () =>
+      Array.from({ length: Number(device?.vmrSensors || 0) }, (_, i) => {
+        return `PH${i + 1}`;
+      }),
+    [device?.vmrSensors],
+  );
 
-  const EditDeviceData = async () => {
+  const spValue = useMemo(
+    () =>
+      Array.from({ length: Number(device?.spdSensors || 0) }, (_, i) => {
+        return `SPD${i + 1}`;
+      }),
+    [device?.spdSensors],
+  );
+
+  const EditDeviceData = useCallback(async () => {
     try {
       const res = await POST(API.USERS.GET_ASSIGNED_SENSOR, {
         userId: UserId,
@@ -241,7 +228,11 @@ export default function MaxWidthDialog({
     } catch (err) {
       setSnackErrMsg(err?.msg || "Something went wrong");
     }
-  };
+  }, [UserId, device?._id]);
+
+  useEffect(() => {
+    EditDeviceData();
+  }, [EditDeviceData]);
 
   const EditDevice = async () => {
     try {

@@ -54,7 +54,8 @@ export const API = {
 
     GET_BY_ID: (deviceId) => `/device/getDeviceById/${deviceId}`,
 
-    LIST_BY_SITE: (siteId) => `/device/getdeviceListbysiteId/${siteId}`,
+    LIST_BY_SITEID: (siteId) => `/device/getdeviceListbysiteId/${siteId}`,
+    LIST_BY_SITES: "/device/getdeviceListbysiteIds",
 
     BY_SITE_AND_USER: "/device/getdeviceListbysiteIdanduserId",
 

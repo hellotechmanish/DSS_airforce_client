@@ -16,7 +16,7 @@ import PropTypes from "prop-types";
 import { styled } from "@mui/material/styles";
 import CloseIcon from "@mui/icons-material/Close";
 //React Icons
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { API } from "../../../../../lib/endpoint";
 
 import { POST } from "../../../../../lib/request";

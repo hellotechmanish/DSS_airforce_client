@@ -1,347 +1,232 @@
-import React, { useState, useEffect } from "react";
-import {
-  Grid,
-  Backdrop,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  Button,
-  Box,
-  IconButton,
-  Typography,
-  Tooltip,
-  Snackbar,
-  Input,
-} from "@mui/material";
-import MuiAlert from "@mui/material/Alert";
+"use client";
 
-import PropTypes from "prop-types";
-import { styled } from "@mui/material/styles";
-import CloseIcon from "@mui/icons-material/Close";
-//React Icons
+import { useState } from "react";
 import { RiLockPasswordLine } from "react-icons/ri";
 import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
 import { POST } from "../../../../../lib/request";
 import { API } from "../../../../../lib/endpoint";
-const BootstrapDialog = styled(Dialog)(({ theme }) => ({
-  "& .MuiDialogContent-root": {
-    padding: theme.spacing(2),
-  },
-  "& .MuiDialogActions-root": {
-    padding: theme.spacing(),
-  },
-}));
+import toast from "react-hot-toast";
 
-const BootstrapDialogTitle = (props) => {
-  const { children, onClose, ...other } = props;
+export default function ResetPasswordModal({ UserID, getnumberOfUser }) {
+  const [open, setOpen] = useState(false);
 
-  return (
-    <DialogTitle className="dialog-title-add" sx={{ m: 0, p: 1.2 }} {...other}>
-      {children}
-      <Typography className="white-typo">Reset User Password </Typography>{" "}
-      {onClose ? (
-        <IconButton
-          aria-label="close"
-          onClick={onClose}
-          className="dialogcrossicon-white"
-        >
-          <CloseIcon />
-        </IconButton>
-      ) : null}
-    </DialogTitle>
-  );
-};
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
-BootstrapDialogTitle.propTypes = {
-  children: PropTypes.node,
-  onClose: PropTypes.func.isRequired,
-};
-const Alert = React.forwardRef(function Alert(props, ref) {
-  return <MuiAlert elevation={6} ref={ref} variant="filled" {...props} />;
-});
-export default function MaxWidthDialog({ UserID, getnumberOfUser }) {
-  const [open, setOpen] = React.useState(false);
-  const [fullWidth] = React.useState(true);
-  const [maxWidth] = React.useState("md");
-  const [show, setShow] = useState(false);
-  const [showconfrim, setShowConfrim] = useState(false);
-
-  const handleClickOpen = () => {
-    setOpen(true);
-    setShow(false);
-    setShowConfrim(false);
-  };
-  const handleClose = () => {
-    setOpen(false);
-    setPasswordInput({ password: "", confirmPassword: "" });
-  };
-
-  // SnackBar
-  const [snackopen, setSnackOpen] = useState(false);
-  const [snackmsg, setSnackMsg] = useState("");
-  const [snackErrMsg, setSnackErrMsg] = useState();
-  const [snackerropen, setSnackerropen] = useState(false);
-
-  const SnanbarClose = (event, reason) => {
-    if (reason === "clickaway") {
-      return;
-    }
-    setSnackOpen(false);
-    setSnackMsg("");
-  };
-
-  const SnackbarErrorClose = (event, reason) => {
-    if (reason === "clickaway") {
-      return;
-    }
-    setSnackerropen(false);
-    setSnackErrMsg("");
-  };
-
-  const [passwordValue, setPasswordValue] = useState(null);
-  const [confirmPasswordValue, setConfirmPasswordValue] = useState(null);
-  const [passwordError, setPasswordErr] = useState("");
-  const [confirmPasswordError, setConfirmPasswordError] = useState("");
   const [passwordInput, setPasswordInput] = useState({
     password: "",
     confirmPassword: "",
   });
 
-  const handlePasswordChange = (evnt) => {
-    const passwordInputValue = evnt.target.value.trim();
-    const passwordInputFieldName = evnt.target.name;
-    const NewPasswordInput = {
+  const [passwordError, setPasswordErr] = useState("");
+  const [confirmPasswordError, setConfirmPasswordError] = useState("");
+
+  // const [toast, setToast] = useState(null);
+
+  const handlePasswordChange = (e) => {
+    const { name, value } = e.target;
+
+    setPasswordInput({
       ...passwordInput,
-      [passwordInputFieldName]: passwordInputValue,
-    };
-    setPasswordInput(NewPasswordInput);
+      [name]: value.trim(),
+    });
   };
-  const handleValidation = (evnt) => {
-    const passwordInputValue = evnt.target.value.trim();
-    const passwordInputFieldName = evnt.target.name;
-    //for password
-    if (passwordInputFieldName === "password") {
-      const uppercaseRegExp = /(?=.*?[A-Z])/;
-      const lowercaseRegExp = /(?=.*?[a-z])/;
-      const digitsRegExp = /(?=.*?[0-8])/;
-      const specialCharRegExp = /(?=.*?[#?!@$%^&*-])/;
-      const minLengthRegExp = /.{6,}/;
-      const passwordLength = passwordInputValue.length;
-      const uppercasePassword = uppercaseRegExp.test(passwordInputValue);
-      const lowercasePassword = lowercaseRegExp.test(passwordInputValue);
-      const digitsPassword = digitsRegExp.test(passwordInputValue);
-      const specialCharPassword = specialCharRegExp.test(passwordInputValue);
-      const minLengthPassword = minLengthRegExp.test(passwordInputValue);
-      let errMsg = "";
-      if (passwordLength === 0) {
-        errMsg = "Password can not  empty";
-      } else if (!uppercasePassword) {
-        errMsg = "At least one Uppercase";
-      } else if (!lowercasePassword) {
-        errMsg = "At least one Lowercase";
-      } else if (!digitsPassword) {
-        errMsg = "At least one digit";
-      } else if (!specialCharPassword) {
-        errMsg = "At least one Special Characters";
-      } else if (!minLengthPassword) {
-        errMsg = "At least minumum 6 characters";
-      } else {
-        errMsg = "";
-      }
-      setPasswordErr(errMsg);
+
+  const handleValidation = (e) => {
+    const { name, value } = e.target;
+
+    if (name === "password") {
+      const uppercase = /(?=.*?[A-Z])/;
+      const lowercase = /(?=.*?[a-z])/;
+      const digit = /(?=.*?[0-9])/;
+      const special = /(?=.*?[#?!@$%^&*-])/;
+
+      let msg = "";
+
+      if (!value) msg = "Password cannot be empty";
+      else if (!uppercase.test(value)) msg = "At least one uppercase letter";
+      else if (!lowercase.test(value)) msg = "At least one lowercase letter";
+      else if (!digit.test(value)) msg = "At least one number";
+      else if (!special.test(value)) msg = "At least one special character";
+      else if (value.length < 8) msg = "Minimum 8 characters required";
+
+      setPasswordErr(msg);
     }
-    // for confirm password
+
     if (
-      passwordInputFieldName === "confirmPassword" ||
-      (passwordInputFieldName === "password" &&
-        passwordInput.confirmPassword.length > 0)
+      name === "confirmPassword" ||
+      (name === "password" && passwordInput.confirmPassword)
     ) {
-      if (passwordInput.confirmPassword !== passwordInput.password) {
-        setConfirmPasswordError("Confirm password is not matched");
+      if (passwordInput.password !== passwordInput.confirmPassword) {
+        setConfirmPasswordError("Passwords do not match");
       } else {
         setConfirmPasswordError("");
       }
     }
   };
-  const newPassword = passwordInput.confirmPassword;
 
-  const CraeteTechnicianPassword = async () => {
-    // validation
+  const resetPassword = async () => {
     if (!passwordInput.password) {
-      setPasswordErr("Password is required");
-      return;
-    }
-
-    if (!passwordInput.confirmPassword) {
-      setConfirmPasswordError("Confirm password is required");
+      setPasswordErr("Password required");
       return;
     }
 
     if (passwordInput.password !== passwordInput.confirmPassword) {
-      setConfirmPasswordError("Confirm password is not matched");
-      return;
-    }
-
-    if (passwordInput.password.length < 8) {
-      setConfirmPasswordError("At least minimum 8 characters");
+      setConfirmPasswordError("Passwords do not match");
       return;
     }
 
     try {
       const res = await POST(API.USERS.RESET_PASSWORD, {
         userId: UserID,
-        password: newPassword,
+        password: passwordInput.confirmPassword,
       });
 
       if (res) {
-        setSnackOpen(true);
-        setSnackMsg(res?.msg || "Password reset successfully");
-
+        toast.success("Password reset successfully");
+        // setToast({
+        //   type: "success",
+        //   msg: res?.msg || "Password reset successfully",
+        // });
         setOpen(false);
         getnumberOfUser();
       } else {
-        setSnackerropen(true);
-        setSnackErrMsg(res?.err || "Failed to reset password");
+        toast.error("Failed to reset password");
+        // setToast({ type: "error", msg: "Failed to reset password" });
       }
-    } catch (error) {
-      console.error("Reset password error:", error);
-
-      setSnackerropen(true);
-      setSnackErrMsg(error?.msg || "Failed to reset password");
+    } catch {
+      toast.error("Something went wrong");
+      // setToast({ type: "error", msg: "Something went wrong" });
     }
   };
 
   return (
-    <React.Fragment>
-      <Snackbar open={snackopen} autoHideDuration={3000} onClose={SnanbarClose}>
-        <Alert onClose={SnanbarClose} severity={"success"}>
-          {snackmsg}
-        </Alert>
-      </Snackbar>
-      <Snackbar
-        open={snackerropen}
-        autoHideDuration={8000}
-        onClose={SnackbarErrorClose}
+    <>
+      {/* Icon Button */}
+      <button
+        onClick={() => setOpen(true)}
+        className="p-2 rounded-lg text-blue-600 hover:bg-blue-100 transition"
       >
-        <Alert onClose={SnackbarErrorClose} severity={"error"}>
-          {snackErrMsg}
-        </Alert>
-      </Snackbar>
-      <Tooltip title="Password" className="tooltipheight">
-        <IconButton className="mt-5px icons-blue" onClick={handleClickOpen}>
-          <RiLockPasswordLine />
-        </IconButton>
-      </Tooltip>
+        <RiLockPasswordLine size={20} />
+      </button>
 
-      <BootstrapDialog
-        fullWidth={fullWidth}
-        maxWidth={maxWidth}
-        open={open}
-        onClose={handleClose}
-        PaperProps={{
-          className: "SmallDialog",
-        }}
-      >
-        <BootstrapDialogTitle
-          onClose={handleClose}
-          id="customized-dialog-title"
+      {/* Modal */}
+      {open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="bg-white w-full max-w-lg rounded-xl shadow-xl p-6">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-lg font-semibold text-gray-800">
+                Reset User Password
+              </h2>
+
+              <button
+                onClick={() => setOpen(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Password */}
+              <div>
+                <label className="text-sm text-gray-600">New Password</label>
+
+                <div className="relative mt-2">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    name="password"
+                    value={passwordInput.password}
+                    onChange={handlePasswordChange}
+                    onKeyUp={handleValidation}
+                    className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-400 focus:outline-none"
+                  />
+
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-2 text-gray-500"
+                  >
+                    {showPassword ? (
+                      <AiOutlineEye size={20} />
+                    ) : (
+                      <AiOutlineEyeInvisible size={20} />
+                    )}
+                  </button>
+                </div>
+
+                {passwordError && (
+                  <p className="text-red-500 text-xs mt-1">{passwordError}</p>
+                )}
+              </div>
+
+              {/* Confirm Password */}
+              <div>
+                <label className="text-sm text-gray-600">
+                  Confirm Password
+                </label>
+
+                <div className="relative mt-2">
+                  <input
+                    type={showConfirm ? "text" : "password"}
+                    name="confirmPassword"
+                    value={passwordInput.confirmPassword}
+                    onChange={handlePasswordChange}
+                    onKeyUp={handleValidation}
+                    className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-400 focus:outline-none"
+                  />
+
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirm(!showConfirm)}
+                    className="absolute right-3 top-2 text-gray-500"
+                  >
+                    {showConfirm ? (
+                      <AiOutlineEye size={20} />
+                    ) : (
+                      <AiOutlineEyeInvisible size={20} />
+                    )}
+                  </button>
+                </div>
+
+                {confirmPasswordError && (
+                  <p className="text-red-500 text-xs mt-1">
+                    {confirmPasswordError}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Buttons */}
+            <div className="flex justify-end gap-3 mt-8">
+              <button
+                onClick={() => setOpen(false)}
+                className="px-4 py-2 border rounded-lg hover:bg-gray-100 transition"
+              >
+                Cancel
+              </button>
+
+              <button
+                onClick={resetPassword}
+                className="px-4 py-2 text-white rounded-lg bg-gradient-to-br from-[#0a192f] to-[#0f3057] hover:opacity-90 transition shadow-md"
+              >
+                Submit
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Toast */}
+      {toast && (
+        <div
+          className={`fixed bottom-6 right-6 px-4 py-2 rounded-lg shadow text-white ${
+            toast.type === "success" ? "bg-green-500" : "bg-red-500"
+          }`}
         >
-          {" "}
-        </BootstrapDialogTitle>
-        <DialogContent className="mt-16">
-          <Grid container justifyContent="space-between">
-            <Grid item md={5.8}>
-              <Typography className="heading-black mt-12">
-                New Password
-              </Typography>
-              <Grid sx={{ position: "relative" }}>
-                <Input
-                  className=" input-style-1c mt-12 width100"
-                  type={show ? "text" : "password"}
-                  disableUnderline
-                  //   onChange={passwordChange}
-                  // {...register("singleErrorInput", {
-                  //   required: "This is required.",
-                  // })}
-                  value={passwordValue}
-                  onChange={handlePasswordChange}
-                  onKeyUp={handleValidation}
-                  name="password"
-                />
-                <Typography
-                  sx={{ position: "absolute", top: 18, right: 5 }}
-                  align="right"
-                  className="fs-24 cursor-point "
-                  onClick={() => setShow(!show)}
-                >
-                  {show ? (
-                    <AiOutlineEye color="grey" />
-                  ) : (
-                    <AiOutlineEyeInvisible color="grey" />
-                  )}
-                </Typography>
-                <Typography className="red-typo">{passwordError}</Typography>
-              </Grid>{" "}
-            </Grid>
-
-            <Grid item md={5.8}>
-              <Typography className="heading-black mt-12">
-                Confirm password
-              </Typography>
-              <Grid sx={{ position: "relative" }}>
-                <Input
-                  className=" input-style-1c mt-12 width100"
-                  type={showconfrim ? "text" : "password"}
-                  disableUnderline
-                  value={confirmPasswordValue}
-                  onChange={handlePasswordChange}
-                  onKeyUp={handleValidation}
-                  name="confirmPassword"
-                />{" "}
-                <Typography
-                  sx={{ position: "absolute", top: 18, right: 5 }}
-                  align="right"
-                  className="fs-24 cursor-point "
-                  onClick={() => setShowConfrim(!showconfrim)}
-                >
-                  {showconfrim ? (
-                    <AiOutlineEye color="grey" />
-                  ) : (
-                    <AiOutlineEyeInvisible color="grey" />
-                  )}
-                </Typography>
-                <Typography className="red-typo">
-                  {confirmPasswordError}
-                </Typography>{" "}
-              </Grid>
-            </Grid>
-          </Grid>
-        </DialogContent>
-        <DialogActions className="hgt-40" sx={{ marginBottom: "10px" }}>
-          <Button
-            sx={{ marginRight: "10px" }}
-            className="  grey-br-button width-100  hover"
-            onClick={handleClose}
-          >
-            Cancel
-          </Button>
-          <Button
-            sx={{ padding: "5px 0px" }}
-            type="submit"
-            className={
-              passwordInput?.confirmPassword?.length < 6
-                ? "skyblue-br-button  width-100 hover"
-                : "skyblue-bg-button   width-100  hover"
-            }
-            onClick={() => {
-              CraeteTechnicianPassword();
-            }}
-          >
-            Submit
-          </Button>
-        </DialogActions>
-      </BootstrapDialog>
-    </React.Fragment>
+          {toast.msg}
+        </div>
+      )}
+    </>
   );
 }

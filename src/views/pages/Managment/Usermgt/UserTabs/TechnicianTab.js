@@ -1,141 +1,105 @@
-import { Typography, Grid } from "@mui/material";
-import Table from "@mui/material/Table";
-import TableBody from "@mui/material/TableBody";
-import TableCell from "@mui/material/TableCell";
-import TableContainer from "@mui/material/TableContainer";
-import TableHead from "@mui/material/TableHead";
-import TableRow from "@mui/material/TableRow";
-import dayjs from "dayjs";
+"use client";
 
+import dayjs from "dayjs";
 import { Link } from "react-router-dom";
 import NodataFound from "../../../../../assets/img/nodatafound.png";
+
 import EditTechnician from "../ActionTechnician/EditTechnician";
 import DeleteDialog from "../ActionTechnician/DeleteTechnician";
 import PasswordReset from "../ActionTechnician/PasswordReset";
+
 export default function Sites({ technician, getnumberOftechnician }) {
   return (
-    <>
-      <Grid container direction="row" className=" mt-24 width100  mb-40">
-        {technician?.length > 0 ? (
-          <TableContainer className="width100 table-container">
-            <Table aria-label="simple table">
-              <TableHead>
-                <TableRow>
-                  <TableCell
-                    align="center"
-                    className="subheading-grey600 fs-16"
-                  >
-                    UID
-                  </TableCell>
-                  <TableCell
-                    align="center"
-                    className="subheading-grey600 fs-16"
-                  >
-                    Technician Name
-                  </TableCell>
-                  <TableCell
-                    align="center"
-                    className="subheading-grey600 fs-16"
-                  >
-                    Password
-                  </TableCell>
-                  <TableCell
-                    align="center"
-                    className="subheading-grey600 fs-16"
-                  >
-                    Added on
-                  </TableCell>
-                  <TableCell
-                    align="center"
-                    className="subheading-grey600 fs-16"
-                  >
-                    Action
-                  </TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {technician?.map((row) => (
-                  <TableRow key={row.name}>
-                    <TableCell
-                      align="center"
-                      className="p-0"
-                      component="th"
-                      scope="row"
+    <div className="mt-10 mb-16 w-full">
+      {technician?.length > 0 ? (
+        <div className="bg-white rounded-xl shadow-md border overflow-x-auto">
+          <table className="min-w-full text-sm text-center">
+            {/* ===== Table Head ===== */}
+            <thead className="bg-gray-100 text-gray-600 uppercase text-xs tracking-wider">
+              <tr>
+                <th className="px-6 py-4">UID</th>
+                <th className="px-6 py-4">Technician Name</th>
+                <th className="px-6 py-4">Password</th>
+                <th className="px-6 py-4">Added On</th>
+                <th className="px-6 py-4">Action</th>
+              </tr>
+            </thead>
+
+            {/* ===== Table Body ===== */}
+            <tbody>
+              {technician.map((row) => (
+                <tr
+                  key={row._id}
+                  className="border-b hover:bg-gray-50 transition"
+                >
+                  {/* UID */}
+                  <td className="px-6 py-4 font-semibold text-blue-600">
+                    <Link
+                      to="/technician-profile"
+                      state={row}
+                      className="hover:underline"
                     >
-                      <Link
-                        to="/technician-profile"
-                        state={row}
-                        className="linkcolor sky-typo fw-600 hover"
-                      >
-                        {row.uid}{" "}
-                      </Link>
-                    </TableCell>
-                    <TableCell align="center">
-                      <Link
-                        to="/technician-profile"
-                        state={row}
-                        className="linkcolor sky-typo fw-600 hover"
-                      >
-                        {row.fullName}{" "}
-                      </Link>
-                    </TableCell>
-                    <TableCell align="center" className="heading-black ">
-                      *********
-                    </TableCell>
-                    <TableCell align="center" className="heading-black ">
-                      {dayjs(row?.createdAt).format("DD-MM-YYYY")}
-                    </TableCell>
-                    <TableCell align="center">
-                      <Grid
-                        container
-                        justifyContent="space-evenly"
-                        direction="row"
-                      >
-                        <EditTechnician
-                          techID={row._id}
-                          row={row}
-                          getnumberOftechnician={getnumberOftechnician}
-                        />{" "}
-                        <PasswordReset
-                          techID={row._id}
-                          getnumberOftechnician={getnumberOftechnician}
-                        />
-                        <DeleteDialog
-                          techID={row._id}
-                          getnumberOftechnician={getnumberOftechnician}
-                        />
-                        {/* <EditDialog
-                          row={row}
-                          sitesID={row._id}
-                          getnumberOfSite={getnumberOfSite}
-                        />
-                        <DeleteDialog
-                          sitesID={row._id}
-                          getnumberOfSite={getnumberOfSite}
-                        /> */}
-                      </Grid>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        ) : (
-          <Grid container>
-            <Grid item className="mt-32 width100">
-              <Typography align="center">
-                <img alt="NodaFound" src={NodataFound} />{" "}
-              </Typography>
-            </Grid>
-            <Typography className="heading-black width100 mt-42" align="center">
-              No User Found!
-            </Typography>
-            <Typography className="heading-black width100 mt-24" align="center">
-              Click Add Button
-            </Typography>
-          </Grid>
-        )}
-      </Grid>
-    </>
+                      {row.uid}
+                    </Link>
+                  </td>
+
+                  {/* Name */}
+                  <td className="px-6 py-4 font-medium text-gray-800">
+                    <Link
+                      to="/technician-profile"
+                      state={row}
+                      className="hover:underline"
+                    >
+                      {row.fullName}
+                    </Link>
+                  </td>
+
+                  {/* Password */}
+                  <td className="px-6 py-4 text-gray-500">*********</td>
+
+                  {/* Date */}
+                  <td className="px-6 py-4 text-gray-700">
+                    {dayjs(row?.createdAt).format("DD-MM-YYYY")}
+                  </td>
+
+                  {/* Actions */}
+                  <td className="px-6 py-4">
+                    <div className="flex justify-center gap-4">
+                      <EditTechnician
+                        techID={row._id}
+                        row={row}
+                        getnumberOftechnician={getnumberOftechnician}
+                      />
+
+                      <PasswordReset
+                        techID={row._id}
+                        getnumberOftechnician={getnumberOftechnician}
+                      />
+
+                      <DeleteDialog
+                        techID={row._id}
+                        getnumberOftechnician={getnumberOftechnician}
+                      />
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <div className="flex flex-col items-center justify-center mt-16">
+          <img
+            alt="NoDataFound"
+            src={NodataFound}
+            className="w-52 opacity-80"
+          />
+
+          <p className="mt-6 text-gray-700 font-semibold">No User Found!</p>
+
+          <p className="mt-2 text-gray-500">Click Add Button</p>
+        </div>
+      )}
+    </div>
   );
 }

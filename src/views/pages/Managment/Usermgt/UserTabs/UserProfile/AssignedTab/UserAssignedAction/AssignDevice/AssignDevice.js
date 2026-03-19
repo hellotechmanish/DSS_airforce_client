@@ -44,7 +44,6 @@ BootstrapDialogTitle.propTypes = {
   children: PropTypes.node,
   onClose: PropTypes.func.isRequired,
 };
-const options = ["Option 1", "Option 2"];
 export default function CustomizedDialogs({
   deviceID,
   UserId,

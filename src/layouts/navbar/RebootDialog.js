@@ -19,8 +19,6 @@ import PropTypes from "prop-types";
 
 import { styled } from "@mui/material/styles";
 import CloseIcon from "@mui/icons-material/Close";
-//React Icons
-import { RiDeleteBin6Line } from "react-icons/ri";
 
 const BootstrapDialog = styled(Dialog)(({ theme }) => ({
   "& .MuiDialogContent-root": {
@@ -109,7 +107,7 @@ export default function MaxWidthDialog({ getRebootStatus }) {
       </Snackbar>
       <Grid container onClick={() => handleClickOpen()}>
         <ListItemIcon className="sidebar-icon">
-          <img src={Reboot} className="sidebar-image" />
+          <img src={Reboot} alt="Reboot" className="sidebar-image" />
         </ListItemIcon>
         <ListItemText disableTypography className="sidebar-text">
           Reboot

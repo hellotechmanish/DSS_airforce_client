@@ -215,7 +215,7 @@ export default function UserManagment() {
                   className="input-style-1c mt-12 width100"
                   disableUnderline
                   value={uid}
-                  disabled={inputState || Admin.user.role === 0 ? true : false}
+                  disabled={inputState || Admin.user.role === "admin" ? true : false}
                   onChange={(e) => setUid(e.target.value)}
                 />
               </Grid>{" "}
@@ -226,7 +226,7 @@ export default function UserManagment() {
                 <Input
                   className=" input-style-1c mt-12 width100"
                   disableUnderline
-                  disabled={inputState || Admin.user.role === 0 ? true : false}
+                  disabled={inputState || Admin.user.role === "admin" ? true : false}
                   value={fullname}
                   onChange={(e) => setFullName(e.target.value)}
                 />
@@ -302,7 +302,7 @@ export default function UserManagment() {
                 >
                   Cancel
                 </Button>
-                {auth.user.role === 0 ? (
+                {auth.user.role === "admin" ? (
                   <Button
                     className="skyblue-bg-button width-150 hover"
                     onClick={() => UserPassWordRest()}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Grid,
   Dialog,
@@ -8,7 +8,6 @@ import {
   Typography,
   TextField,
 } from "@mui/material";
-import MuiAlert from "@mui/material/Alert";
 
 import PropTypes from "prop-types";
 import { styled } from "@mui/material/styles";
@@ -47,9 +46,6 @@ BootstrapDialogTitle.propTypes = {
   children: PropTypes.node,
   onClose: PropTypes.func.isRequired,
 };
-const Alert = React.forwardRef(function Alert(props, ref) {
-  return <MuiAlert elevation={6} ref={ref} variant="filled" {...props} />;
-});
 export default function MaxWidthDialog({
   state,
   sensorValue,
@@ -66,7 +62,7 @@ export default function MaxWidthDialog({
   const handleCloseProfile = () => {
     setOpen(false);
   };
-  const [inputState, setInputState] = useState(true);
+  const [inputState] = useState(true);
   const [deviceName, setDeviceName] = useState(null);
   const [nodeUid, setNodeUid] = useState(null);
   const [vmrSensors, setVmrSensors] = useState(null);
@@ -76,30 +72,6 @@ export default function MaxWidthDialog({
   const [resSensorsThreshold, setResSensorsThreshold] = useState(null);
   const [spdSensorsThreshold, setSpdSensorsThreshold] = useState(null);
   const [nerSensorsThreshold, setNerSensorsThreshold] = useState(null);
-
-  function ChangeInputState() {
-    setInputState(false);
-  }
-
-  function ChangeInputCancel(e) {
-    setInputState(true);
-  }
-
-  const [vmrSensorsThreshold, setVmrSensorsThreshold] = useState({
-    r: "",
-    y: " ",
-    b: "",
-    rY: "",
-    Yb: "",
-    rb: "",
-  });
-
-  const handleChangesetR = (event) => {
-    setVmrSensorsThreshold((data) => ({
-      ...data,
-      [event.target.name]: event.target.value,
-    }));
-  };
 
   useEffect(() => {
     if (sensorValue) {
@@ -193,7 +165,6 @@ export default function MaxWidthDialog({
                     name="r"
                     disabled
                     value={sensorValue?.vmrSensorsThreshold?.r}
-                    onChange={handleChangesetR}
                   />
                 </Grid>
 
@@ -206,7 +177,6 @@ export default function MaxWidthDialog({
                     name="y"
                     disabled
                     value={sensorValue?.vmrSensorsThreshold?.y}
-                    onChange={handleChangesetR}
                   />
                 </Grid>
                 <Grid item md={1.4}>
@@ -217,7 +187,6 @@ export default function MaxWidthDialog({
                     label="B"
                     name="b"
                     disabled
-                    onChange={handleChangesetR}
                     value={sensorValue?.vmrSensorsThreshold?.b}
                   />
                 </Grid>
@@ -229,7 +198,6 @@ export default function MaxWidthDialog({
                     label="RY"
                     name="rY"
                     disabled
-                    onChange={handleChangesetR}
                     value={sensorValue?.vmrSensorsThreshold?.ry}
                   />
                 </Grid>
@@ -242,7 +210,6 @@ export default function MaxWidthDialog({
                     label="YB"
                     name="Yb"
                     disabled
-                    onChange={handleChangesetR}
                     value={sensorValue?.vmrSensorsThreshold?.yb}
                   />
                 </Grid>
@@ -254,7 +221,6 @@ export default function MaxWidthDialog({
                     label="RB"
                     name="rb"
                     disabled
-                    onChange={handleChangesetR}
                     value={sensorValue?.vmrSensorsThreshold?.rb}
                   />
                 </Grid>

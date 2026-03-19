@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   Grid,
   Dialog,
@@ -12,7 +12,6 @@ import {
   Checkbox,
   FormControlLabel,
 } from "@mui/material";
-import MuiAlert from "@mui/material/Alert";
 
 import PropTypes from "prop-types";
 import { styled } from "@mui/material/styles";
@@ -36,7 +35,6 @@ const BootstrapDialogTitle = (props) => {
     <DialogTitle className="dialog-title-add" sx={{ m: 0, p: 1.2 }} {...other}>
       <Typography className="white-typo">Assigned Sensors </Typography>{" "}
       {children}
-      {children}
       {onClose ? (
         <IconButton
           aria-label="close"
@@ -54,9 +52,6 @@ BootstrapDialogTitle.propTypes = {
   children: PropTypes.node,
   onClose: PropTypes.func.isRequired,
 };
-const Alert = React.forwardRef(function Alert(props, ref) {
-  return <MuiAlert elevation={6} ref={ref} variant="filled" {...props} />;
-});
 
 function TabPanel(props) {
   const { children, value, index, ...other } = props;
@@ -97,8 +92,9 @@ export default function MaxWidthDialog({ user, sensorValue }) {
   const [getSelectSensor, setGetSelectSensor] = useState(null);
 
   // ========================== Get Assign sensor ================================ //
-  const getAssignSensorData = async () => {
+  const getAssignSensorData = useCallback(async () => {
     try {
+      if (!user?._id || !sensorValue?._id) return;
       const res = await POST(API.USERS.GET_ASSIGNED_SENSOR, {
         userId: user?._id,
         deviceId: sensorValue?._id,
@@ -109,11 +105,12 @@ export default function MaxWidthDialog({ user, sensorValue }) {
     } catch (err) {
       console.log("Error fetching assigned sensor data", err);
     }
-  };
+  }, [sensorValue?._id, user?._id]);
 
-  React.useEffect(() => {
+  useEffect(() => {
+    if (!open) return;
     getAssignSensorData();
-  }, []);
+  }, [open, getAssignSensorData]);
 
   return (
     <React.Fragment>

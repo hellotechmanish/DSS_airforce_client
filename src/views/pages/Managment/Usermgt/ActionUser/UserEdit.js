@@ -1,210 +1,145 @@
-import React, { useState, useEffect } from "react";
-import PropTypes from "prop-types";
-import { styled } from "@mui/material/styles";
-import CloseIcon from "@mui/icons-material/Close";
-import {
-  DialogContent,
-  IconButton,
-  DialogTitle,
-  Dialog,
-  Button,
-  Typography,
-  Tooltip,
-  Container,
-  Input,
-  Grid,
-  DialogActions,
-} from "@mui/material";
+"use client";
+
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
-import { ErrorMessage } from "@hookform/error-message";
-//React Icons
 import { CiEdit } from "react-icons/ci";
 import { API } from "../../../../../lib/endpoint";
 import { POST } from "../../../../../lib/request";
-const BootstrapDialog = styled(Dialog)(({ theme }) => ({
-  "& .MuiDialogContent-root": {
-    padding: theme.spacing(0),
-  },
-  "& .MuiDialogActions-root": {
-    padding: theme.spacing(1),
-  },
-}));
+import toast from "react-hot-toast";
 
-const BootstrapDialogTitle = (props) => {
-  const { children, onClose, ...other } = props;
+export default function EditUserModal({ getnumberOfUser, row, UserID }) {
+  const [open, setOpen] = useState(false);
 
-  return (
-    <DialogTitle className="dialog-title-add" sx={{ m: 0, p: 1.2 }} {...other}>
-      <Typography className="white-typo"> Edit User </Typography> {children}
-      {onClose ? (
-        <IconButton
-          aria-label="close"
-          onClick={onClose}
-          className="dialogcrossicon-white"
-        >
-          <CloseIcon />
-        </IconButton>
-      ) : null}
-    </DialogTitle>
-  );
-};
-
-BootstrapDialogTitle.propTypes = {
-  children: PropTypes.node,
-  onClose: PropTypes.func.isRequired,
-};
-const options = ["Option 1", "Option 2"];
-export default function CustomizedDialogs({ getnumberOfUser, row, UserID }) {
-  const [open, setOpen] = React.useState(false);
-  const [fullWidth] = React.useState(true);
-  const [maxWidth] = React.useState("lg");
-  const [fullName, setFullName] = useState(null);
-  const [uid, setUid] = useState(null);
   const {
     register,
-    formState: { errors },
     handleSubmit,
+    formState: { errors },
+    setValue,
   } = useForm();
-  const [fullNameErr, setFullNameErr] = useState(false);
-  const [uidErr, setUidErr] = useState(false);
-  // ==================== States ======================== //
 
-  const handleClickOpen = () => {
+  const handleOpen = () => {
     setOpen(true);
   };
+
   const handleClose = () => {
     setOpen(false);
   };
 
-  const EditUser = async () => {
+  const EditUser = async (data) => {
     try {
       const res = await POST(API.USERS.EDIT, {
         userRole: 2,
-        fullName: fullName,
-        uid: uid,
+        fullName: data.fullName,
+        uid: data.uid,
         userId: UserID,
       });
 
       if (res) {
+        toast.success(res?.msg || "User updated successfully");
         getnumberOfUser();
         setOpen(false);
       } else {
-        setOpen(false);
+        toast.error("Failed to update user");
       }
     } catch (error) {
-      console.error("EditUser error:", error);
-      setOpen(false);
+      console.error(error);
+      toast.error("Something went wrong");
     }
   };
 
   useEffect(() => {
     if (row) {
-      setFullName(row.fullName);
-      setUid(row.uid ?? "");
+      setValue("fullName", row.fullName);
+      setValue("uid", row.uid);
     }
-  }, [row]);
+  }, [row, setValue]);
 
   return (
     <>
-      <div>
-        <Tooltip title="Edit" className="tooltipheight">
-          <IconButton className="mt-5px icons-blue" onClick={handleClickOpen}>
-            <CiEdit />
-          </IconButton>
-        </Tooltip>
-        <BootstrapDialog
-          fullWidth={fullWidth}
-          maxWidth={maxWidth}
-          onClose={handleClose}
-          aria-labelledby="customized-dialog-title"
-          open={open}
-        >
-          <BootstrapDialogTitle
-            id="customized-dialog-title"
-            onClose={handleClose}
-          ></BootstrapDialogTitle>{" "}
-          <form onSubmit={handleSubmit(EditUser)}>
-            <DialogContent className="mt-32">
-              <Container maxWidth="xl">
-                <Grid container justifyContent="space-between">
-                  <Grid item md={5.8}>
-                    <Typography className="heading-black mt-16">
-                      Full Name
-                    </Typography>
-                    <Input
-                      className=" input-style-1c mt-12 width100"
-                      disableUnderline
-                      value={fullName}
-                      {...register("Full-Name-ErrorInput", {
-                        required: "Full Name is required.",
-                        onChange: (e) => {
-                          setFullName(e.target.value);
-                        },
-                      })}
-                    />
-                    <ErrorMessage
-                      errors={errors}
-                      name="Full-Name-ErrorInput"
-                      render={({ message }) => (
-                        <Typography className="red-typo">{message}</Typography>
-                      )}
-                    />
-                  </Grid>
-                  <Grid item md={5.8}>
-                    <Typography className="heading-black mt-16">UID</Typography>
-                    <Input
-                      className="input-style-1c mt-12 width100"
-                      disableUnderline
-                      value={uid}
-                      {...register("UID-ErrorInput", {
-                        required: "UID  is required.",
-                        onChange: (e) => {
-                          setUid(e.target.value);
-                        },
-                      })}
-                    />
-                    <ErrorMessage
-                      errors={errors}
-                      name="UID-ErrorInput"
-                      render={({ message }) => (
-                        <Typography className="red-typo">{message}</Typography>
-                      )}
-                    />
-                  </Grid>
-                </Grid>
-              </Container>
-            </DialogContent>
-            <DialogActions
-              style={{ padding: "0px", margin: "0px", height: "80px" }}
-            >
-              <React.Fragment>
-                <Grid
-                  container
-                  direction="row"
-                  justifyContent="flex-end"
-                  alignItems="center"
-                  className="mt-32 mb-10 mr-10"
-                >
-                  <Button
-                    color="inherit"
-                    onClick={handleClose}
-                    className="grey-br-button  mr-10 hover width-100"
-                  >
-                    Cancel
-                  </Button>
+      {/* Edit Button */}
+      <button
+        onClick={handleOpen}
+        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition"
+      >
+        <CiEdit size={20} />
+      </button>
 
-                  <Button
-                    type="submit"
-                    className="skyblue-bg-button mr-10 width-100 hover"
-                  >
-                    Submit
-                  </Button>
-                </Grid>
-              </React.Fragment>{" "}
-            </DialogActions>
-          </form>
-        </BootstrapDialog>
-      </div>
+      {/* Modal */}
+      {open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="bg-white w-full max-w-xl rounded-xl shadow-xl p-6">
+            {/* Header */}
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-lg font-semibold text-gray-800">Edit User</h2>
+
+              <button
+                onClick={handleClose}
+                className="text-gray-500 hover:text-gray-700 text-lg"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmit(EditUser)}>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Full Name */}
+                <div>
+                  <label className="text-sm text-gray-900">Full Name</label>
+
+                  <input
+                    {...register("fullName", {
+                      required: "Full name is required",
+                    })}
+                    className="w-full mt-2 border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-400 focus:outline-none"
+                  />
+
+                  {errors.fullName && (
+                    <p className="text-red-500 text-xs mt-1">
+                      {errors.fullName.message}
+                    </p>
+                  )}
+                </div>
+
+                {/* UID */}
+                <div>
+                  <label className="text-sm text-gray-900">UID</label>
+
+                  <input
+                    {...register("uid", {
+                      required: "UID is required",
+                    })}
+                    className="w-full mt-2 border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-400 focus:outline-none"
+                  />
+
+                  {errors.uid && (
+                    <p className="text-red-500 text-xs mt-1">
+                      {errors.uid.message}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Buttons */}
+              <div className="flex justify-end gap-3 mt-8">
+                <button
+                  type="button"
+                  onClick={handleClose}
+                  className="px-4 py-2 border rounded-lg hover:bg-gray-100 transition"
+                >
+                  Cancel
+                </button>
+
+                <button
+                  type="submit"
+                  className="px-4 py-2 text-white rounded-lg bg-gradient-to-br from-[#0a192f] to-[#0f3057] hover:opacity-90 transition shadow-md"
+                >
+                  Submit
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </>
   );
 }

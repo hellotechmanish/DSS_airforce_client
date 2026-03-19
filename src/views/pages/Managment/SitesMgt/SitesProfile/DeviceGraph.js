@@ -25,10 +25,9 @@ import {
 } from "chart.js";
 import dayjs from "dayjs";
 import { AuthContext } from "../../../../../context/AuthContext";
+import { FETCH_URL } from "../../../../../fetchIp";
 import hondaGif from "../../../../../assets/img/hondagif.gif";
-import { API } from "../../../../../lib/endpoint";
 
-import { POST } from "../../../../../lib/request";
 let interval;
 ChartJS.register(
   CategoryScale,
@@ -292,25 +291,23 @@ export default function Graph({
 
   // function get Graph data
   async function getData() {
-    if (!device) return;
+    if (device) {
+      try {
+        let resp = await axios.post(`${FETCH_URL}/api/device/latestData`, {
+          deviceId: device._id,
+          sensorName: sensor,
+          deviceNumber: `${phasevalue - 1}`,
+          startDate: startDate,
+          endDate: startDate,
+        });
 
-    try {
-      const res = await POST(API.DEVICE.LATEST_DATA, {
-        deviceId: device?._id,
-        sensorName: sensor,
-        deviceNumber: `${phasevalue - 1}`,
-        startDate: startDate,
-        endDate: startDate,
-      });
+        // // console.log("resp from graph data ==>", resp.data.msg);
+        setLabels([...new Set(resp.data.msg.map((item) => item.time))]);
 
-      const data = res?.msg || [];
-
-      setLabels([...new Set(data.map((item) => item.time))]);
-      setGraphData(data);
-    } catch (error) {
-      console.error("getData error:", error);
-      setLabels([]);
-      setGraphData([]);
+        setGraphData(resp.data.msg);
+      } catch (error) {
+        // // console.log("error from getData () ", error);
+      }
     }
   }
 
@@ -493,41 +490,42 @@ export default function Graph({
             </FormControl>{" "}
           </Grid>
           <Grid item md={3}>
-            {sensor === "VMR" ? (
-              <>
-                <FormControl
-                  className="MainPageFormControl mt10px grey-border "
-                  size="small"
+            {sensor === "VMR" && (
+              <FormControl size="small">
+                <TextField
+                  select
+                  variant="outlined"
+                  defaultValue="1"
+                  onChange={(e) => PhaseValueChange(Number(e.target.value))}
+                  sx={{
+                    backgroundColor: "#fff",
+                    borderRadius: "6px",
+                    minWidth: 120,
+                    "& .MuiSelect-select": {
+                      color: "#000",
+                    },
+                  }}
+                  MenuProps={{
+                    PaperProps: {
+                      sx: {
+                        backgroundColor: "#fff",
+                        "& .MuiMenuItem-root": {
+                          color: "#000",
+                        },
+                      },
+                    },
+                  }}
                 >
-                  <TextField
-                    select
-                    variant="filled"
-                    InputProps={{ disableUnderline: true }}
-                    className="Selectdropstyle"
-                    labelId="demo-select-small"
-                    id="demo-select-small"
-                    defaultValue={1}
-                    inputProps={{ "aria-label": "Without label" }}
-                    onChange={(e) => {
-                      PhaseValueChange(e.target.value);
-                    }}
-                  >
-                    {new Array(device.vmrSensor).map((item, i) => {
-                      return (
-                        <MenuItem
-                          value={i + 1}
-                          className="Selectmenustyle grey-border"
-                        >
-                          <Typography className="heading-black fs13px">
-                            PH{i + 1}
-                          </Typography>
-                        </MenuItem>
-                      );
-                    })}
-                  </TextField>
-                </FormControl>{" "}
-              </>
-            ) : null}
+                  {Array.from({ length: Number(device?.vmrSensor || 0) }).map(
+                    (_, i) => (
+                      <MenuItem key={i} value={String(i + 1)}>
+                        PH{i + 1}
+                      </MenuItem>
+                    ),
+                  )}
+                </TextField>
+              </FormControl>
+            )}
           </Grid>
           <Grid item md={5} justifyContent="flex-end" alignItems="flex-end">
             <Typography align="right" className="mr-10 ">

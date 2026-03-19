@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import PropTypes from "prop-types";
 import {
   Typography,
@@ -14,7 +14,6 @@ import Viewprofile from "../../DeviceMgt/DeviceProfile/DeviceprofielDiialog";
 import NodataFound from "../../../../../assets/img/nodatafound.png";
 import DeviceGraph from "./DeviceGraph";
 import { AuthContext } from "../../../../../context/AuthContext";
-import axiosInstance from "../../../../../api/axiosInstance";
 import { API } from "../../../../../lib/endpoint";
 import { GET } from "../../../../../lib/request";
 function TabPanel(props) {
@@ -56,11 +55,11 @@ export default function Sites() {
   const intervalId = React.useRef(sensor);
 
   const auth = React.useContext(AuthContext);
-  const getdeviceListbysite = async () => {
+  const getdeviceListbysite = useCallback(async () => {
     try {
       if (!state?._id) return;
 
-      const res = await GET(API.DEVICE.LIST_BY_SITE(state._id));
+      const res = await GET(API.DEVICE.LIST_BY_SITEID(state._id));
 
       const newDevices = res?.msg || [];
 
@@ -69,7 +68,7 @@ export default function Sites() {
       console.error("Error fetching device list:", error);
       setDevice([]);
     }
-  };
+  }, [state?._id]);
 
   const getnumberOfDevice = async (deviceID) => {
     try {
@@ -102,7 +101,7 @@ export default function Sites() {
     if (state) {
       getdeviceListbysite();
     }
-  }, [state]);
+  }, [state, getdeviceListbysite]);
 
   useEffect(() => {
     if (device) {
@@ -199,7 +198,8 @@ export default function Sites() {
       </div>
       <Container maxWidth="xl">
         <div className="widthLR-90">
-          {auth.user.role === 2 || auth.user.role === 1 ? null : (
+          {auth.user.role === "user" ||
+          auth.user.role === "technician" ? null : (
             <Grid
               container
               direction="row"

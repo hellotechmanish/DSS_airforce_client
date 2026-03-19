@@ -1,24 +1,10 @@
-import React, { useState, useEffect } from "react";
-import {
-  Button,
-  Step,
-  Stepper,
-  Box,
-  StepLabel,
-  Grid,
-  DialogActions,
-  Snackbar,
-} from "@mui/material";
-import { useNavigate } from "react-router-dom";
-//core components that
-import MuiAlert from "@mui/material/Alert";
+"use client";
 
-import PersonalInfo from "./StepCompo/PersonalInfo";
-import AssignSite from "./StepCompo/AssignSite";
-import AssignDevice from "./StepCompo/AssignDevice";
-import AssignSensors from "./StepCompo/AssignSensors";
+import React, { useState } from "react";
+import { useForm } from "react-hook-form";
 import { GET, POST } from "../../../../../lib/request";
 import { API } from "../../../../../lib/endpoint";
+import toast from "react-hot-toast";
 
 const steps = [
   "Personal Info",
@@ -26,548 +12,345 @@ const steps = [
   "Assign Device",
   "Assign Sensors",
 ];
-const Alert = React.forwardRef(function Alert(props, ref) {
-  return <MuiAlert elevation={6} ref={ref} variant="filled" {...props} />;
-});
-export default function Clusterhead({ open, setOpen, getnumberOfUser }) {
-  const navigate = useNavigate();
 
-  const [activeStep, setActiveStep] = React.useState(0);
-  const [openDialogName, setOpenDialog] = React.useState(null);
-  const [show, setShow] = useState(false);
-  //For First Step
-  const [fullName, setFullName] = useState(null);
-  const [uid, setUid] = useState(null);
-  const [passwordValue, setPasswordValue] = useState(null);
-  const [confirmPasswordValue, setConfirmPasswordValue] = useState(null);
-  const [passwordInput, setPasswordInput] = useState({
-    password: "",
-    confirmPassword: "",
-  });
-  const newPassword = passwordInput.confirmPassword;
-  //For Second Step
-  const [sitesData, setSiteData] = useState(null);
-  const [originalData, setOriginalData] = useState(null);
-  const [siteUid, setSitesUid] = useState();
+export default function Clusterhead({ setOpen, getnumberOfUser }) {
+  const [activeStep, setActiveStep] = useState(0);
 
-  // const handleChangeSite = (e, data, i) => {
-  //   setOriginalData(e.target.value);
-  //   setSiteData(data.siteName);
-  //   setSitesUid(data.uid);
-  // };
+  const [sites, setSites] = useState([]);
+  const [devices, setDevices] = useState([]);
 
-  // console.log("Check originalData", originalData);
+  const [siteLoading, setSiteLoading] = useState(false);
+  const [deviceLoading] = useState(false);
 
-  function handleChangeSite(e, data, i) {
-    let storeArr = originalData;
-    if (e.target.value) {
-      storeArr = data._id;
-    } else {
-      storeArr = null;
-    }
-    // console.log(storeArr);
-    setOriginalData(storeArr);
-    setSiteData(data.siteName);
-    setSitesUid(data.uid);
-  }
+  const [selectedSiteIds, setSelectedSiteIds] = useState([]);
+  const [selectedDevices, setSelectedDevices] = useState([]);
 
-  // For Third Step
-  const [sitesDeviceData, setSitesDeviceData] = useState(null);
-  const [originalDeviceData, setOriginalDeviceData] = React.useState(null);
-  const [siteDeviceUid, setDeviceSitesUid] = useState(null);
-  // // console.log("Check originalDeviceData", originalDeviceData);
-  const handleChangeDevice = (e, data, i) => {
-    setOriginalDeviceData(e.target.value);
-    setSitesDeviceData(data.deviceName);
-    setDeviceSitesUid(data.nodeUid);
-  };
+  const [resValue, setResValue] = useState([]);
+  const [spdNumber] = useState([]);
+  const [gnNumber] = useState([]);
+  const [phaseNumber] = useState([]);
 
-  // For Last Step
-  const [resValue, setResValue] = React.useState([]);
-  function storeResValue(e, data, i) {
-    let storeArr = [...resValue];
-    let Element = storeArr.findIndex((item) => item === data);
-    if (Element >= 0) {
-      storeArr.splice(Element, 1);
-    } else {
-      storeArr.push(data);
-    }
-    setResValue(storeArr);
-  }
-  const [spdNumber, setSpdNumber] = useState([]);
-  function storeSpdValue(e, item, i) {
-    let storeArr = [...spdNumber];
-    let Element = storeArr.findIndex((item) => item === item);
-    if (Element >= 0) {
-      storeArr.splice(Element, 1);
-    } else {
-      storeArr.push(item);
-    }
-    setSpdNumber(storeArr);
-  }
-  const [gnNumber, setGnNumber] = useState([]);
+  const {
+    register,
+    handleSubmit,
+    watch,
+    formState: { errors },
+  } = useForm();
 
-  function storeGnValue(e, data, i) {
-    let storeArr = [...gnNumber];
-    let Element = storeArr.findIndex((item) => item === data);
-    if (Element >= 0) {
-      storeArr.splice(Element, 1);
-    } else {
-      storeArr.push(data);
-    }
-    setGnNumber(storeArr);
-  }
+  const password = watch("password");
 
-  const [phaseNumber, setPhaseNumber] = useState([]);
-  function storePhaseValue(e, data, i) {
-    let storeArr = [...phaseNumber];
-    let Element = storeArr.findIndex((item) => item === data);
-    if (Element >= 0) {
-      storeArr.splice(Element, 1);
-    } else {
-      storeArr.push(data);
-    }
-    setPhaseNumber(storeArr);
-  }
+  // ================= FETCH SITES =================
+  const fetchSites = async () => {
+    setSiteLoading(true);
 
-  // State For Validation
-  //For First Step Error Handle
-  const [fullNameErr, setFullNameErr] = useState(false);
-  const [uidErr, setUidErr] = useState(false);
-  const [passwordValid, setPasswordValid] = useState(false);
-  const [confirmpassValid, setConfirmPassValid] = useState(false);
-  const [passErr, setPassErr] = useState(false);
-  // For PassWord Extra Validation
-  const [passwordError, setPasswordErr] = useState("");
-  const [confirmPasswordError, setConfirmPasswordError] = useState("");
-  const [permissions, setPermissions] = useState([]); //===> For access permissions array
-  //For Second Step
-  const [sitesDataErr, setSiteDataErr] = useState(false);
-  // For Third Step
-  const [sitesDeviceDataErr, setSitesDeviceDataErr] = useState(null);
-  // For Last Step
-
-  const [device, setDevice] = useState(null);
-
-  // SnackBar
-  const [snackopen, setSnackOpen] = useState(false);
-  const [snackmsg, setSnackMsg] = useState("");
-  const [snackErrMsg, setSnackErrMsg] = useState();
-  const [snackerropen, setSnackerropen] = useState(false);
-
-  const SnanbarClose = (event, reason) => {
-    if (reason === "clickaway") {
-      return;
-    }
-    setSnackOpen(false);
-    setSnackMsg("");
-  };
-
-  const SnackbarErrorClose = (event, reason) => {
-    if (reason === "clickaway") {
-      return;
-    }
-    setSnackerropen(false);
-    setSnackErrMsg("");
-  };
-  // Function Calling
-  const handlePasswordChange = (evnt) => {
-    const passwordInputValue = evnt.target.value.trim();
-    const passwordInputFieldName = evnt.target.name;
-    const NewPasswordInput = {
-      ...passwordInput,
-      [passwordInputFieldName]: passwordInputValue,
-    };
-    setPasswordInput(NewPasswordInput);
-  };
-
-  const handleValidation = (evnt) => {
-    const passwordInputValue = evnt.target.value.trim();
-    const passwordInputFieldName = evnt.target.name;
-
-    //for password
-    if (passwordInputFieldName === "password") {
-      const uppercaseRegExp = /(?=.*?[A-Z])/;
-      const lowercaseRegExp = /(?=.*?[a-z])/;
-      const digitsRegExp = /(?=.*?[0-8])/;
-      const specialCharRegExp = /(?=.*?[#?!@$%^&*-])/;
-      const minLengthRegExp = /.{6,}/;
-      const passwordLength = passwordInputValue.length;
-      const uppercasePassword = uppercaseRegExp.test(passwordInputValue);
-      const lowercasePassword = lowercaseRegExp.test(passwordInputValue);
-      const digitsPassword = digitsRegExp.test(passwordInputValue);
-      const specialCharPassword = specialCharRegExp.test(passwordInputValue);
-      const minLengthPassword = minLengthRegExp.test(passwordInputValue);
-      let errMsg = "";
-      if (passwordLength === 0) {
-        errMsg = "Password can not  empty";
-      } else if (!uppercasePassword) {
-        errMsg = "At least one Uppercase";
-      } else if (!lowercasePassword) {
-        errMsg = "At least one Lowercase";
-      } else if (!digitsPassword) {
-        errMsg = "At least one digit";
-      } else if (!specialCharPassword) {
-        errMsg = "At least one Special Characters";
-      } else if (!minLengthPassword) {
-        errMsg = "At least minumum 6 characters";
-      } else {
-        errMsg = "";
-      }
-      setPasswordErr(errMsg);
-    }
-    // for confirm password
-    if (
-      passwordInputFieldName === "confirmPassword" ||
-      (passwordInputFieldName === "password" &&
-        passwordInput.confirmPassword.length > 0)
-    ) {
-      if (passwordInput.confirmPassword !== passwordInput.password) {
-        setConfirmPasswordError("Confirm password is not matched");
-      } else {
-        setConfirmPasswordError("");
-      }
-    }
-  };
-
-  const handleNext = () => {
-    if (activeStep === 0) {
-      const uppercaseRegExp = /(?=.*?[A-Z])/;
-      const lowercaseRegExp = /(?=.*?[a-z])/;
-      const digitsRegExp = /(?=.*?[0-8])/;
-      const specialCharRegExp = /(?=.*?[#?!@$%^&*-])/;
-      const minLengthRegExp = /.{6,}/;
-      if (!fullName) {
-        setFullNameErr(true);
-      }
-      if (!uid) {
-        setUidErr(true);
-      }
-      if (!passwordInput?.password) {
-        setPasswordValid(true);
-        uppercaseRegExp.test(passwordInput?.password);
-        lowercaseRegExp.test(passwordInput?.password);
-        digitsRegExp.test(passwordInput?.password);
-        specialCharRegExp.test(passwordInput?.password);
-        minLengthRegExp.test(passwordInput?.password);
-      }
-      if (!passwordInput?.confirmPassword) {
-        setConfirmPassValid(true);
-      }
-      if (!sitesData) {
-        setSiteDataErr(true);
-      }
-      if (
-        fullName &&
-        uid &&
-        passwordInput?.password &&
-        passwordInput?.confirmPassword &&
-        passwordInput?.password === passwordInput.confirmPassword &&
-        uppercaseRegExp.test(passwordInput?.password) &&
-        lowercaseRegExp.test(passwordInput?.password) &&
-        digitsRegExp.test(passwordInput?.password) &&
-        specialCharRegExp.test(passwordInput?.password) &&
-        minLengthRegExp.test(passwordInput?.password)
-      ) {
-        setActiveStep((prevActiveStep) => prevActiveStep + 1);
-      }
-    } else if (activeStep === 1) {
-      if (originalData.length > 0) {
-        if (sitesData) {
-          setActiveStep((prevActiveStep) => prevActiveStep + 1);
-        }
-      }
-    } else if (activeStep === 2) {
-      if (!originalDeviceData) {
-        setSitesDeviceDataErr(true);
-      }
-      if (originalDeviceData) {
-        setActiveStep((prevActiveStep) => prevActiveStep + 1);
-      }
-    } else {
-      if (activeStep == 3) {
-        // console.log("Active Step is 4");
-        CreateUser();
-        // setActiveStep((prevActiveStep) => prevActiveStep + 1)
-      }
-    }
-  };
-  useEffect(() => {
-    if (fullName) {
-      setFullNameErr(false);
-    }
-    if (uid) {
-      setUidErr(false);
-    }
-    if (passwordInput?.password) {
-      setPasswordValid(false);
-    }
-    if (passwordInput?.confirmPassword) {
-      setConfirmPassValid(false);
-    }
-    if (sitesData) {
-      setSiteDataErr(false);
-    }
-    if (originalDeviceData) {
-      setSitesDeviceDataErr(false);
-    }
-    if (passwordInput) {
-      setSitesDeviceDataErr(false);
-    }
-  }, [
-    fullName,
-    uid,
-    passwordInput?.password,
-    passwordInput?.confirmPassword,
-    sitesData,
-    originalDeviceData,
-    passwordInput,
-  ]);
-  const handleBack = () => {
-    setActiveStep((prevActiveStep) => prevActiveStep - 1);
-  };
-
-  //===============================  ALL Form Elements here ================================//
-  function _renderStepContent(step) {
-    switch (step) {
-      case 0:
-        return (
-          <PersonalInfo
-            handleValidation={handleValidation}
-            handlePasswordChange={handlePasswordChange}
-            states={{
-              open,
-              show,
-              setShow,
-              uid,
-              setUid,
-              fullName,
-              setFullName,
-              confirmPasswordValue,
-              passwordValue,
-              confirmPasswordError,
-              passwordError,
-              fullNameErr,
-              uidErr,
-              passwordValid,
-              confirmpassValid,
-              passwordInput,
-            }}
-          />
-        );
-      case 1:
-        return (
-          <AssignSite
-            states={{
-              sitesDataErr,
-              originalData,
-              setOriginalData,
-              sites,
-              setSites,
-            }}
-            handleChangeSite={handleChangeSite}
-          />
-        );
-      case 2:
-        return (
-          <AssignDevice
-            handleChangeDevice={handleChangeDevice}
-            states={{
-              originalData,
-              sitesData,
-              siteUid,
-              device,
-              sitesDeviceDataErr,
-              originalDeviceData,
-            }}
-          />
-        );
-      case 3:
-        return (
-          <AssignSensors
-            states={{
-              originalDeviceData,
-              sitesDeviceData,
-              siteDeviceUid,
-              originalData,
-              sitesData,
-              siteUid,
-              device,
-              resValue,
-              spdNumber,
-              gnNumber,
-              phaseNumber,
-            }}
-            storeResValue={storeResValue}
-            storeSpdValue={storeSpdValue}
-            storeGnValue={storeGnValue}
-            storePhaseValue={storePhaseValue}
-          />
-        );
-      default:
-        return null;
-    }
-  }
-  useEffect(() => {
-    getdeviceListbysite(originalData);
-  }, [originalData]);
-
-  const getdeviceListbysite = async () => {
-    try {
-      const res = await GET(API.DEVICE.LIST_BY_SITE(originalData));
-      setDevice(res.msg);
-    } catch (err) {
-      console.log("Error fetching device list by site", err);
-    }
-  };
-
-  const [sites, setSites] = useState(null);
-
-  const getnumberOfSite = async () => {
     try {
       const res = await GET(API.SITE.COUNT);
-      console.log("get site list resp ===>", res.msg);
-      setSites(res.msg);
-    } catch (err) {
-      console.log("Error fetching site list", err);
+      console.log("this is the site here : ", res.msg);
+
+      setSites(res?.msg || []);
+    } catch {
+      toast.error("Failed to load sites");
+    }
+
+    setSiteLoading(false);
+  };
+
+  // ================= FETCH DEVICES =================
+  const fetchDevices = async (siteIds) => {
+    const res = await POST(API.DEVICE.LIST_BY_SITES, { siteIds });
+
+    console.log("list device : ", res);
+
+    setDevices(res?.msg || []);
+  };
+
+  // ================= SITE SELECT =================
+  const handleSiteSelect = (siteId) => {
+    setSelectedSiteIds((prev) =>
+      prev.includes(siteId)
+        ? prev.filter((id) => id !== siteId)
+        : [...prev, siteId],
+    );
+
+    setSelectedDevices([]);
+  };
+
+  // ================= DEVICE SELECT =================
+  const handleDeviceChange = (deviceId) => {
+    setSelectedDevices((prev) =>
+      prev.includes(deviceId)
+        ? prev.filter((id) => id !== deviceId)
+        : [...prev, deviceId],
+    );
+  };
+
+  // ================= MAP SITE DEVICES =================
+  const mapSiteDevices = () => {
+    return selectedSiteIds.map((siteId) => {
+      const devicesOfSite = devices
+        .filter(
+          (device) =>
+            device.siteId === siteId && selectedDevices.includes(device._id),
+        )
+        .map((device) => device._id);
+
+      return {
+        siteId,
+        devices: devicesOfSite,
+      };
+    });
+  };
+
+  // ================= NEXT STEP =================
+  const handleNext = async (data) => {
+    // STEP 0 → Personal Info → Fetch Sites
+    if (activeStep === 0) {
+      await fetchSites();
+      setActiveStep(1);
+      return;
+    }
+
+    // STEP 1 → Sites Selected → Fetch Devices
+    if (activeStep === 1) {
+      if (selectedSiteIds.length === 0) {
+        toast.error("Please select at least one site");
+        return;
+      }
+
+      console.log("Selected Site Ids:", selectedSiteIds);
+
+      await fetchDevices(selectedSiteIds);
+
+      setActiveStep(2);
+
+      return;
+    }
+
+    // STEP 2 → Device Validation
+    if (activeStep === 2) {
+      if (selectedDevices.length === 0) {
+        toast.error("Please select at least one device");
+        return;
+      }
+
+      setActiveStep(3);
+      return;
+    }
+
+    // STEP 3 → Submit
+    if (activeStep === 3) {
+      if (resValue.length === 0) {
+        toast.error("Please select at least one RES sensor");
+        return;
+      }
+
+      submitAllData(data);
     }
   };
 
-  useEffect(() => {
-    getnumberOfSite();
-  }, []);
+  // ================= FINAL SUBMIT =================
+  const submitAllData = async (data) => {
+    const siteDeviceMap = mapSiteDevices();
 
-  const CreateUser = async () => {
+    const finalPayload = {
+      fullName: data.fullName,
+      uid: data.uid,
+      password: data.password,
+      type: "user",
+
+      sites: siteDeviceMap,
+
+      resistanceNumber: resValue,
+      spdNumber,
+      gnNumber,
+      phaseNumber,
+    };
+
+    console.log("🔥 FINAL SUBMIT DATA =>", finalPayload);
+
     try {
-      const res = await POST(API.USERS.CREATE, {
-        password: newPassword,
-        fullName: fullName,
-        uid: uid,
-        type: "user",
-        siteId: originalData,
-        deviceId: originalDeviceData,
-        resistanceNumber: resValue,
-        spdNumber: spdNumber,
-        gnNumber: gnNumber,
-        phaseNumber: phaseNumber,
-      });
+      await POST(API.USERS.CREATE, finalPayload);
 
-      setSnackOpen(true);
-      setSnackMsg(res.msg);
-      setOpen(false);
+      toast.success("User created successfully");
+
       getnumberOfUser();
-    } catch (err) {
-      setSnackerropen(true);
-      setSnackErrMsg(err?.msg || "User creation failed");
       setOpen(false);
+    } catch (err) {
+      console.error(err);
+      toast.error("User creation failed");
     }
+  };
+
+  const handleBack = () => {
+    setActiveStep((prev) => prev - 1);
   };
 
   return (
-    <>
-      <Snackbar open={snackopen} autoHideDuration={3000} onClose={SnanbarClose}>
-        <Alert onClose={SnanbarClose} severity={"success"}>
-          {snackmsg}
-        </Alert>
-      </Snackbar>
-      <Snackbar
-        open={snackerropen}
-        autoHideDuration={8000}
-        onClose={SnackbarErrorClose}
-      >
-        <Alert onClose={SnackbarErrorClose} severity={"error"}>
-          {snackErrMsg}
-        </Alert>
-      </Snackbar>
-      <Box className="width100">
-        <div className="flex-class">
-          <div className="width100">
-            <Stepper
-              sx={{ marginLeft: "70px" }}
-              activeStep={activeStep}
-              alternativeLabel
-              className=" stepper "
+    <div className="w-full p-6">
+      {/* Stepper */}
+      <div className="flex justify-between mb-8">
+        {steps.map((label, index) => (
+          <div key={index} className="flex-1 text-center">
+            <div
+              className={`w-8 h-8 mx-auto rounded-full flex items-center justify-center text-sm
+              ${
+                activeStep >= index
+                  ? "bg-blue-600 text-white"
+                  : "bg-gray-300 text-gray-600"
+              }`}
             >
-              {steps.map((data, index) => {
-                const stepProps = {};
-                const labelProps = {};
-                return (
-                  <Step key={data} {...stepProps}>
-                    <StepLabel className="step" {...labelProps}>
-                      {data}
-                    </StepLabel>
-                  </Step>
-                );
-              })}
-            </Stepper>{" "}
+              {index + 1}
+            </div>
+
+            <p className="text-xs mt-2">{label}</p>
           </div>
-        </div>
-        {/* ====================== Rendering of element ========================= */}
-        <div style={{ minHeight: "380px", maxHeight: "auto" }}>
-          {_renderStepContent(activeStep)}{" "}
-        </div>
-        <DialogActions style={{ padding: "0px", margin: "0px" }}>
-          <React.Fragment>
-            <Box className="stepmain-box ">
-              <Grid
-                container
-                direction="row"
-                justifyContent="flex-end"
-                alignItems="center"
-                className="mt-32 mb-10 mr-10"
-              >
-                <Button
-                  color="inherit"
-                  disabled={activeStep === 0}
-                  onClick={handleBack}
-                  sx={{ mr: 4 }}
-                  className={activeStep ? "grey-br-button  hover" : null}
+        ))}
+      </div>
+
+      <form onSubmit={handleSubmit(handleNext)}>
+        {/* STEP 0 */}
+        {activeStep === 0 && (
+          <div className="grid grid-cols-2 gap-6">
+            <div>
+              <label className="text-sm font-semibold">Full Name</label>
+              <input
+                {...register("fullName", { required: "Required" })}
+                className="w-full border px-4 py-2 rounded"
+              />
+              {errors.fullName && (
+                <p className="text-red-500 text-xs">
+                  {errors.fullName.message}
+                </p>
+              )}
+            </div>
+
+            <div>
+              <label className="text-sm font-semibold">UID</label>
+              <input
+                {...register("uid", { required: "Required" })}
+                className="w-full border px-4 py-2 rounded"
+              />
+            </div>
+
+            <div>
+              <label className="text-sm font-semibold">Password</label>
+              <input
+                type="password"
+                {...register("password", { required: true })}
+                className="w-full border px-4 py-2 rounded"
+              />
+            </div>
+
+            <div>
+              <label className="text-sm font-semibold">Confirm Password</label>
+              <input
+                type="password"
+                {...register("confirmPassword", {
+                  validate: (value) =>
+                    value === password || "Passwords do not match",
+                })}
+                className="w-full border px-4 py-2 rounded"
+              />
+            </div>
+          </div>
+        )}
+
+        {/* STEP 1 */}
+        {activeStep === 1 && (
+          <div>
+            {siteLoading && <p>Loading Sites...</p>}
+
+            <div className="space-y-2">
+              {sites.map((site) => (
+                <label
+                  key={site._id}
+                  className={`flex gap-3 p-3 rounded cursor-pointer
+                  ${
+                    selectedSiteIds.includes(site._id)
+                      ? "bg-[#0f3057] text-white"
+                      : "hover:bg-gray-100"
+                  }`}
                 >
-                  Previous
-                </Button>
+                  <input
+                    type="checkbox"
+                    checked={selectedSiteIds.includes(site._id)}
+                    onChange={() => handleSiteSelect(site._id)}
+                  />
 
-                {activeStep == 3 ? null : (
-                  <Button
-                    onClick={handleNext}
-                    // className="purplebtn"
-                    // className={activeStep ? "purplebtn " : null}
-                    className={
-                      activeStep === steps.length - 1
-                        ? null
-                        : "skyblue-br-button width-100 mr-10 "
-                    }
-                  >
-                    {/* {activeStep === steps.length - 1 ? null : "Next"} */}
-                    {activeStep == 3 ? null : "next"}
-                  </Button>
-                )}
+                  {site.siteName}
+                </label>
+              ))}
+            </div>
+          </div>
+        )}
 
-                {activeStep == 3 && (
-                  <Button
-                    onClick={handleNext}
-                    className={
-                      activeStep === steps.length - 1
-                        ? "skyblue-bg-button mr-10 width-100 hover"
-                        : null
-                    }
-                  >
-                    Submit
-                  </Button>
-                )}
-              </Grid>
-            </Box>
-          </React.Fragment>{" "}
-        </DialogActions>
-        {/* <SuccessDialog
-          openData={openDialogName === "success"}
-          data={"User Added"}
-          handleClose={handleClose}
-        />
-        <WrongDialog
-          openData={openDialogName === "reject"}
-          data={"Error: Something went wrong !"}
-        /> */}
-      </Box>
-    </>
+        {/* STEP 2 */}
+        {activeStep === 2 && (
+          <div>
+            {deviceLoading && <p>Loading Devices...</p>}
+
+            <div className="space-y-2">
+              {devices.map((device) => (
+                <label
+                  key={device._id}
+                  className="flex gap-3 p-2 rounded hover:bg-gray-100"
+                >
+                  <input
+                    type="checkbox"
+                    checked={selectedDevices.includes(device._id)}
+                    onChange={() => handleDeviceChange(device._id)}
+                  />
+
+                  {device.deviceName}
+                </label>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* STEP 3 */}
+        {activeStep === 3 && (
+          <div className="flex gap-3">
+            {[1, 2, 3, 4].map((num) => (
+              <button
+                key={num}
+                type="button"
+                onClick={() =>
+                  setResValue((prev) =>
+                    prev.includes(num)
+                      ? prev.filter((n) => n !== num)
+                      : [...prev, num],
+                  )
+                }
+                className={`px-4 py-2 border rounded
+                ${resValue.includes(num) ? "bg-[#0f3057] text-white" : ""}`}
+              >
+                RES {num}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Buttons */}
+        <div className="flex justify-end gap-4 mt-8">
+          {activeStep > 0 && (
+            <button
+              type="button"
+              onClick={handleBack}
+              className="px-5 py-2 border rounded"
+            >
+              Previous
+            </button>
+          )}
+
+          <button
+            type="submit"
+            className="px-6 py-2 bg-[#0f3057] text-white rounded"
+          >
+            {activeStep === 3 ? "Create User" : "Next"}
+          </button>
+        </div>
+      </form>
+    </div>
   );
 }

@@ -1,210 +1,152 @@
-import React, { useState, useEffect } from "react";
-import {
-  Table,
-  TableBody,
-  Grid,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Container,
-  Typography,
-  Breadcrumbs,
-} from "@mui/material";
-import NodataFound from "../../../assets/img/nodatafound.png";
+"use client";
+
+import React, { useState, useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { API } from "../../../lib/endpoint";
 import { GET } from "../../../lib/request";
-// function createData(name, calories, fat, carbs, protein) {
-//   return { name, calories, fat, carbs, protein };
-// }
 
-// const rows = [
-//   createData("Frozen yoghurt", 159, 6.0, 24, 4.0),
-//   createData("Ice cream sandwich", 237, 9.0, 37, 4.3),
-//   createData("Eclair", 262, 16.0, 24, 6.0),
-//   createData("Cupcake", 305, 3.7, 67, 4.3),
-//   createData("Gingerbread", 356, 16.0, 49, 3.9),
-// ];
+import NodataFound from "../../../assets/img/nodatafound.png";
 
-export default function BasicTable() {
-  const [resistance, setResistance] = useState(null);
-  const getAllSiteResistance = async () => {
+export default function TemperatureTable() {
+  const [data, setData] = useState([]);
+  const [search, setSearch] = useState("");
+
+  // ================= FETCH =================
+  const getAllSiteTemperature = async () => {
     try {
       const res = await GET(API.SITE.GET_ALL_SITE_TEMP);
 
-      console.log("getAllSiteTemp resp ===>", res?.msg);
+      const formattedData =
+        res?.msg?.map((row) => {
+          const site = row?.siteId?.[0] || {};
 
-      setResistance(res?.msg || []);
+          return {
+            siteUid: site?.uid || "-",
+            siteName: site?.siteName || "-",
+            deviceUid: row?.nodeUid || "-",
+            deviceName: row?.deviceName || "-",
+            temperature: row?.tempValue ?? "-",
+            humidity: row?.humValue ?? "-",
+          };
+        }) || [];
+
+      setData(formattedData);
     } catch (error) {
-      console.error("getAllSiteResistance error:", error);
-      setResistance([]);
+      console.error(error);
+      setData([]);
     }
   };
 
   useEffect(() => {
-    getAllSiteResistance();
-  }, []);
-  useEffect(() => {
-    let interval = setInterval(() => {
-      getAllSiteResistance();
-    }, 20000);
+    getAllSiteTemperature();
 
-    return () => {
-      clearInterval(interval);
-    };
+    const interval = setInterval(getAllSiteTemperature, 20000);
+    return () => clearInterval(interval);
   }, []);
+
+  // ================= FILTER =================
+  const filteredData = useMemo(() => {
+    return data.filter((row) =>
+      `${row.deviceName} ${row.deviceUid}`
+        .toLowerCase()
+        .includes(search.toLowerCase()),
+    );
+  }, [data, search]);
 
   return (
-    <>
-      <Container maxWidth="xl">
-        <Grid container direction="row" className="widthLR-90  ">
-          <Typography className="white-typo textShadow   m-t-40px   fs-24  width100 ">
-            Temperature & Humidity Monitoring{" "}
-          </Typography>
+    <div className="p-6 bg-slate-100 min-h-screen">
+      {/* Breadcrumb */}
+      <nav className="mb-4 text-sm">
+        <Link to="/dashboard" className="text-sky-500 font-medium no-underline">
+          Dashboard
+        </Link>
+        <span className="mx-2">›</span>
+        <span className="text-[#0f3057] font-semibold">
+          Temperature Monitoring
+        </span>
+      </nav>
 
-          <Breadcrumbs separator="›" aria-label="breadcrumb" className="mt-24">
-            <Link
-              to="/dashboard"
-              className="linkcolor"
-              underline="hover"
-              key="1"
-            >
-              <Typography className="sky-typo fs-16">Dashboard</Typography>
-            </Link>
-            <Typography className="heading-black  ">
-              Temperature Monitoring
-            </Typography>
-            ,
-          </Breadcrumbs>
+      {/* Header */}
+      <div
+        className="bg-gradient-to-br from-[#0a192f] to-[#0f3057]
+        rounded-xl p-5 mb-5 flex justify-between items-center shadow-lg"
+      >
+        <h2 className="text-white text-xl font-semibold">
+          TEMPERATURE & HUMIDITY MONITORING
+        </h2>
 
-          <TableContainer className="width100 table-container-nobc mt-24">
-            <Table aria-label="simple table">
-              <TableHead className="table-row">
-                <TableRow>
-                  <TableCell
-                    align="center"
-                    className="white-typo fs-16 table-height border-right"
-                  >
-                    Site UID
-                  </TableCell>
-                  <TableCell
-                    align="center"
-                    className="white-typo fs-16 table-height border-right"
-                  >
-                    Site Name
-                  </TableCell>
-                  <TableCell
-                    align="center"
-                    className="white-typo fs-16 table-height border-right"
-                  >
-                    Device UID
-                  </TableCell>
-                  <TableCell
-                    align="center"
-                    className="white-typo fs-16 table-height border-right"
-                  >
-                    Device Name
-                  </TableCell>
-                  <TableCell
-                    align="center"
-                    className="white-typo fs-16 table-height border-left"
-                  >
-                    Temperature
-                  </TableCell>
-                  <TableCell
-                    align="center"
-                    className="white-typo fs-16 table-height border-left"
-                  >
-                    Humidity
-                  </TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {resistance?.map((row, index) => {
-                  console.log("rowrowrow", row);
-                  return (
-                    <>
-                      <TableRow
-                        key={row.index}
-                        sx={{
-                          "&:last-child td, &:last-child th": {
-                            border: 0,
-                            padding: "8px",
-                          },
-                        }}
-                      >
-                        {row?.siteId?.map((data, i) => {
-                          return (
-                            <>
-                              <TableCell
-                                align="center"
-                                className="heading-black table-height border-right "
-                                component="th"
-                                scope="row"
-                              >
-                                #{data.uid}
-                              </TableCell>
-                              <TableCell
-                                align="center"
-                                className="heading-black  table-height border-right"
-                              >
-                                {data.siteName}
-                              </TableCell>
-                            </>
-                          );
-                        })}
+        <span className="text-white font-medium">
+          {filteredData.length} Devices
+        </span>
+      </div>
 
-                        <TableCell
-                          align="center"
-                          className="heading-black  table-height border-right"
-                        >
-                          #{row.nodeUid}
-                        </TableCell>
-                        <TableCell
-                          align="center"
-                          className="heading-black  table-height border-right"
-                        >
-                          {row.deviceName}
-                        </TableCell>
-                        <TableCell
-                          align="center"
-                          className="heading-black  table-height border-right"
-                        >
-                          {row.tempValue}
-                        </TableCell>
-                        <TableCell
-                          align="center"
-                          className="heading-black  table-height border-right"
-                        >
-                          {row.humValue}
-                        </TableCell>
-                      </TableRow>
-                    </>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </TableContainer>
+      {/* SEARCH */}
+      <div className="mb-4 flex justify-between items-center">
+        <h3 className="text-xl font-semibold text-[#0f3057]">
+          Active Device Data
+        </h3>
 
-          {resistance?.length === 0 && (
-            <Grid
-              container
-              direction="row"
-              justifyContent="center"
-              alignItems="center"
-              sx={{ height: "60vh" }}
-            >
-              <Grid item>
-                <img alt="NodataFound" src={NodataFound} />
-                <Typography align="center" className="mt-16 blue-typo">
-                  No Device found!
-                </Typography>
-              </Grid>
-            </Grid>
-          )}
-        </Grid>
-      </Container>
-    </>
+        <input
+          type="text"
+          placeholder="Search..."
+          className="border border-gray-300 rounded-lg px-3 py-2 text-sm w-64"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+      </div>
+
+      {/* TABLE */}
+      <div className="bg-white rounded-xl shadow border border-gray-200 overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead className="bg-gray-50 text-gray-600">
+            <tr>
+              <th className="px-4 py-3 text-left">#</th>
+              <th className="px-4 py-3 text-left">Site UID</th>
+              <th className="px-4 py-3 text-left">Site Name</th>
+              <th className="px-4 py-3 text-left">Device UID</th>
+              <th className="px-4 py-3 text-left">Device Name</th>
+              <th className="px-4 py-3 text-left">Temperature (°C)</th>
+              <th className="px-4 py-3 text-left">Humidity (%)</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {filteredData.map((row, index) => (
+              <tr key={index} className="border-t hover:bg-gray-50">
+                <td className="px-4 py-3">{index + 1}</td>
+
+                <td className="px-4 py-3 text-blue-600 font-medium">
+                  #{row.siteUid}
+                </td>
+
+                <td className="px-4 py-3 text-blue-600 font-medium">
+                  {row.siteName}
+                </td>
+
+                <td className="px-4 py-3">#{row.deviceUid}</td>
+
+                <td className="px-4 py-3">{row.deviceName}</td>
+
+                <td className="px-4 py-3 text-red-600 font-semibold">
+                  {row.temperature}
+                </td>
+
+                <td className="px-4 py-3 text-blue-600 font-semibold">
+                  {row.humidity}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+
+        {/* NO DATA */}
+        {filteredData.length === 0 && (
+          <div className="flex flex-col items-center justify-center h-[60vh]">
+            <img alt="notafound" src={NodataFound} className="w-40 opacity-80" />
+            <p className="mt-4 text-blue-500 font-medium">No Device Found</p>
+          </div>
+        )}
+      </div>
+    </div>
   );
 }

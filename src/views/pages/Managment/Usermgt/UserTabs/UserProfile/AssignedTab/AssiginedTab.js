@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { Typography, Grid, Button } from "@mui/material";
+import React, { useCallback, useEffect, useState } from "react";
+import { Typography, Grid } from "@mui/material";
 import Table from "@mui/material/Table";
 import TableBody from "@mui/material/TableBody";
 import TableCell from "@mui/material/TableCell";
@@ -42,7 +42,7 @@ export default function Sites({ state }) {
     // setSelectUid(row?.uid);
   };
   // // console.log("Check Device Data on OnClick", deviceview);
-  const getnumberOfAssignSite = async () => {
+  const getnumberOfAssignSite = useCallback(async () => {
     try {
       const res = await GET(API.SITE.BY_USER(state?._id));
 
@@ -51,10 +51,11 @@ export default function Sites({ state }) {
     } catch (err) {
       console.log("Error fetching assigned sites", err);
     }
-  };
+  }, [state?._id]);
 
-  const getdevicebyuserId = async () => {
+  const getdevicebyuserId = useCallback(async () => {
     try {
+      if (!siteId || !state?._id) return;
       const res = await POST(API.DEVICE.BY_SITE_AND_USER, {
         siteId: siteId,
         userId: state?._id,
@@ -64,14 +65,14 @@ export default function Sites({ state }) {
     } catch (err) {
       console.log("Error fetching device list", err);
     }
-  };
+  }, [siteId, state?._id]);
 
   useEffect(() => {
     getnumberOfAssignSite();
-  }, []);
+  }, [getnumberOfAssignSite]);
   useEffect(() => {
-    getdevicebyuserId(siteId);
-  }, [siteId]);
+    getdevicebyuserId();
+  }, [getdevicebyuserId]);
 
   return (
     <>
@@ -233,7 +234,7 @@ export default function Sites({ state }) {
               <Grid container className=" mb-40">
                 <Grid item className="mt-32 width100">
                   <Typography align="center">
-                    <img src={NodataFound} />{" "}
+                    <img src={NodataFound} alt="" />{" "}
                   </Typography>
                 </Grid>
                 <Typography
@@ -367,7 +368,7 @@ export default function Sites({ state }) {
               <Grid container className="mb-40">
                 <Grid item className="mt-32 width100">
                   <Typography align="center">
-                    <img src={NodataFound} />{" "}
+                    <img src={NodataFound} alt="" />{" "}
                   </Typography>
                 </Grid>
                 <Typography

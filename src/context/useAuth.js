@@ -21,3 +21,17 @@ export const useAuth = create((set) => {
     },
   };
 });
+export const getUser = () => {
+  try {
+    const data = localStorage.getItem("userData");
+
+    if (!data) return null;
+
+    const parsed = JSON.parse(data);
+
+    return parsed.user; // yaha se direct user object mil jayega
+  } catch (error) {
+    console.error("User parse error:", error);
+    return null;
+  }
+};

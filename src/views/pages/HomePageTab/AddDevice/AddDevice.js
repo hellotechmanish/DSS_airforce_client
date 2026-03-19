@@ -1,577 +1,338 @@
-import React, { useState, useEffect } from "react";
-import {
-  Grid,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  Button,
-  IconButton,
-  Typography,
-  Snackbar,
-  Input,
-  TextField,
-} from "@mui/material";
-import MuiAlert from "@mui/material/Alert";
+"use client";
 
-import PropTypes from "prop-types";
+import React, { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
-import { ErrorMessage } from "@hookform/error-message";
-import SuccessDialog from "../../Dialog/SuceedFullDialog";
-import { styled } from "@mui/material/styles";
-import CloseIcon from "@mui/icons-material/Close";
-//React Icons
 import { API } from "../../../../lib/endpoint";
 import { POST } from "../../../../lib/request";
+import toast from "react-hot-toast";
 
-const BootstrapDialog = styled(Dialog)(({ theme }) => ({
-  "& .MuiDialogContent-root": {
-    padding: theme.spacing(2),
-  },
-  "& .MuiDialogActions-root": {
-    padding: theme.spacing(),
-  },
-}));
-
-const BootstrapDialogTitle = (props) => {
-  const { children, onClose, ...other } = props;
-
-  return (
-    <DialogTitle className="dialog-title-add" sx={{ m: 0, p: 1.2 }} {...other}>
-      {children}
-      <Typography className="white-typo">Add Device</Typography>{" "}
-      {onClose ? (
-        <IconButton
-          aria-label="close"
-          onClick={onClose}
-          className="dialogcrossicon-white"
-        >
-          <CloseIcon />
-        </IconButton>
-      ) : null}
-    </DialogTitle>
-  );
-};
-
-BootstrapDialogTitle.propTypes = {
-  children: PropTypes.node,
-  onClose: PropTypes.func.isRequired,
-};
-const Alert = React.forwardRef(function Alert(props, ref) {
-  return <MuiAlert elevation={6} ref={ref} variant="filled" {...props} />;
-});
-export default function MaxWidthDialog({
-  getnumberOfSite,
+export default function AddDeviceDialog({
   state,
   sitezero,
   value,
   getdeviceListbysite,
 }) {
-  const [open, setOpen] = React.useState(false);
-  const [fullWidth] = React.useState(true);
-  const [maxWidth] = React.useState("lg");
-  const handleClickOpen = () => {
-    setOpen(true);
-  };
-  const handleClose = () => {
-    setOpen(false);
-  };
-  const {
-    register,
-    formState: { errors },
-  } = useForm();
-  const [deviceName, setDeviceName] = useState(null);
-  const [nodeUid, setNodeUid] = useState(null);
-  const [vmrSensors, setVmrSensors] = useState(null);
-  const [resSensors, setResSensors] = useState(null);
-  const [spdSensors, setSpdSensors] = useState(null);
-  const [nerSensors, setNerSensors] = useState(null);
-  const [resSensorsThreshold, setResSensorsThreshold] = useState(null);
-  const [spdSensorsThreshold, setSpdSensorsThreshold] = useState(null);
-  const [nerSensorsThreshold, setNerSensorsThreshold] = useState(null);
-
-  //Phase Sensir Thershold
-
-  const [vmrSensorsThreshold, setVmrSensorsThreshold] = useState({
-    r: +"",
-    y: +"",
-    b: +"",
-    ry: +"",
-    yb: +"",
-    rb: +"",
-  });
-
-  const handleChangesetR = (event) => {
-    setVmrSensorsThreshold((data) => ({
-      ...data,
-      [event.target.name]: event.target.value,
-    }));
-  };
-
-  const clearData = () => {
-    setDeviceName("");
-    setNodeUid("");
-    setVmrSensors("");
-    setResSensors("");
-    setSpdSensors("");
-    setNerSensors("");
-    setResSensorsThreshold("");
-    setSpdSensorsThreshold("");
-    setNerSensorsThreshold("");
-  };
-  // SnackBar
-  const [snackopen, setSnackOpen] = useState(false);
-  const [snackmsg, setSnackMsg] = useState("");
-  const [snackErrMsg, setSnackErrMsg] = useState();
-  const [snackerropen, setSnackerropen] = useState(false);
-
-  const SnanbarClose = (event, reason) => {
-    if (reason === "clickaway") {
-      return;
-    }
-    setSnackOpen(false);
-    setSnackMsg("");
-  };
-
-  const SnackbarErrorClose = (event, reason) => {
-    if (reason === "clickaway") {
-      return;
-    }
-    setSnackerropen(false);
-    setSnackErrMsg("");
-  };
-  const [openDialogName, setOpenDialog] = React.useState(null);
-
-  const CraeteDevice = async () => {
-    try {
-      const body = {
-        siteId: value === 0 ? sitezero?._id : state?._id,
-        deviceName: deviceName,
-        nodeUid: nodeUid,
-        vmrSensors: +vmrSensors,
-        resSensors: +resSensors,
-        spdSensors: +spdSensors,
-        nerSensors: +nerSensors,
-        vmrSensorsThreshold: vmrSensorsThreshold,
-        resSensorsThreshold: +resSensorsThreshold,
-        spdSensorsThreshold: +spdSensorsThreshold,
-        nerSensorsThreshold: +nerSensorsThreshold,
-      };
-
-      const res = await POST(API.DEVICE.CREATE, body);
-
-      if (res) {
-        clearData();
-        getdeviceListbysite();
-        setOpenDialog("success");
-      } else {
-        setOpenDialog("reject");
-      }
-    } catch (error) {
-      console.error("CreateDevice error:", error);
-      setOpenDialog("reject");
-    }
-  };
-
+  const [open, setOpen] = useState(false);
   const [uidMatch, setUidMatch] = useState(true);
 
-  const CheckDeviceUid = async () => {
+  const {
+    register,
+    handleSubmit,
+    watch,
+    reset,
+    // formState: { errors },
+  } = useForm();
+
+  const nodeUid = watch("nodeUid");
+
+  // ================= UID CHECK =================
+  const checkDeviceUid = async (uid) => {
     try {
-      const body = {
-        uid: nodeUid,
-      };
-
-      const res = await POST(API.DEVICE.CHECK_UID, body);
-
-      if (res) {
-        setUidMatch(res?.status);
-      }
-    } catch (error) {
-      console.error("CheckDeviceUid error:", error);
+      const res = await POST(API.DEVICE.CHECK_UID, { uid });
+      setUidMatch(res?.status);
+    } catch (err) {
       setUidMatch(false);
     }
   };
 
   useEffect(() => {
     if (open && nodeUid) {
-      CheckDeviceUid(nodeUid);
+      checkDeviceUid(nodeUid);
     }
-  }, [nodeUid]);
+  }, [open, nodeUid]);
+
+  // ================= SUBMIT =================
+  const onSubmit = async (data) => {
+    try {
+      const body = {
+        siteId: value === 0 ? sitezero?._id : state?._id,
+        deviceName: data.deviceName,
+        nodeUid: data.nodeUid,
+        vmrSensors: +data.vmrSensors,
+        resSensors: +data.resSensors,
+        spdSensors: +data.spdSensors,
+        nerSensors: +data.nerSensors,
+        vmrSensorsThreshold: {
+          r: +data.r,
+          y: +data.y,
+          b: +data.b,
+          ry: +data.ry,
+          yb: +data.yb,
+          rb: +data.rb,
+        },
+        resSensorsThreshold: +data.resSensorsThreshold,
+        spdSensorsThreshold: +data.spdSensorsThreshold,
+        nerSensorsThreshold: +data.nerSensorsThreshold,
+      };
+
+      await POST(API.DEVICE.CREATE, body);
+
+      toast.success("Device created successfully");
+      window.location.reload();
+      reset();
+      setOpen(false);
+      getdeviceListbysite();
+    } catch (error) {
+      toast.error("Failed to create device");
+    }
+  };
 
   return (
-    <React.Fragment>
-      <Snackbar open={snackopen} autoHideDuration={3000} onClose={SnanbarClose}>
-        <Alert onClose={SnanbarClose} severity={"success"}>
-          {snackmsg}
-        </Alert>
-      </Snackbar>
-      <Snackbar
-        open={snackerropen}
-        autoHideDuration={8000}
-        onClose={SnackbarErrorClose}
+    <>
+      {/* Button */}
+      <button
+        onClick={() => setOpen(true)}
+        className="px-5 py-2 
+             bg-transparent
+             border border-blue-900
+             text-blue-900 text-sm font-semibold
+             rounded-lg
+             transition-all duration-200
+             hover:bg-blue-900 hover:text-white"
       >
-        <Alert onClose={SnackbarErrorClose} severity={"error"}>
-          {snackErrMsg}
-        </Alert>
-      </Snackbar>
-      <Button
-        sx={{ width: "150px" }}
-        className=" skyblue-bg-button fs-16 hover "
-        onClick={handleClickOpen}
-      >
-        Add Device
-      </Button>
-      <BootstrapDialog
-        fullWidth={fullWidth}
-        maxWidth={maxWidth}
-        open={open}
-        // onClose={(_, reason) => {
-        //   if (reason !== "backdropClick") {
-        //     handleClose();
-        //   }
-        // }}
-        onClose={handleClose}
-        PaperProps={{
-          className: "SmallDialog",
-        }}
-      >
-        <BootstrapDialogTitle
-          id="customized-dialog-title"
-          onClose={handleClose}
-        ></BootstrapDialogTitle>
-        <div>
-          <DialogContent>
-            <Grid container justifyContent="space-between">
-              <Grid item md={5.8}>
-                <Typography className="heading-black mt-16">
-                  Site Name
-                </Typography>
-                <Input
-                  className=" input-style-1c mt-12 width100"
-                  disableUnderline
-                  value={value === 0 ? sitezero?.siteName : state?.siteName}
-                  disabled
-                />
-              </Grid>
-              <Grid item md={5.8}>
-                <Typography className="heading-black mt-16">
-                  Site UID
-                </Typography>
-                <Input
-                  className="input-style-1c mt-12 width100"
-                  disableUnderline
-                  value={value === 0 ? sitezero?.uid : state?.uid}
-                  disabled
-                />
-              </Grid>
-              <Grid item md={5.8}>
-                <Typography className="heading-black mt-12">
-                  Device Name
-                </Typography>
-                <Input
-                  className=" input-style-1c mt-12 width100"
-                  disableUnderline
-                  value={deviceName}
-                  {...register("Device-Name-ErrorInput", {
-                    required: "Device Name is required.",
-                    onChange: (e) => {
-                      setDeviceName(e.target.value);
-                    },
-                  })}
-                />
-                <ErrorMessage
-                  errors={errors}
-                  name="Device-Name-ErrorInput"
-                  render={({ message }) => (
-                    <Typography className="red-typo">{message}</Typography>
-                  )}
-                />
-              </Grid>
-              <Grid item md={5.8}>
-                <Typography className="heading-black mt-12">
-                  Node UID
-                </Typography>
-                <Input
-                  className="input-style-1c mt-12 width100"
-                  disableUnderline
-                  value={nodeUid}
-                  {...register("Node-Uid-ErrorInput", {
-                    required: "Node UID is required.",
-                    onChange: (e) => {
-                      setNodeUid(e.target.value);
-                    },
-                  })}
-                />
-                {uidMatch === false ? (
-                  <Typography className="red-typo">
-                    Node UID Already Exist !
-                  </Typography>
-                ) : null}
-                <ErrorMessage
-                  errors={errors}
-                  name="Node-Uid-ErrorInput"
-                  render={({ message }) => (
-                    <Typography className="red-typo">{message}</Typography>
-                  )}
-                />
-              </Grid>
-              <Grid item md={5.8}>
-                <Typography className="heading-black mt-12">
-                  Phase Sensors
-                </Typography>
-                <Input
-                  className="input-style-1c mt-12 width100"
-                  disableUnderline
-                  value={vmrSensors}
-                  {...register("Phase-Sensors-ErrorInput", {
-                    required: "Phase Sensors is required.",
-                    onChange: (e) => {
-                      setVmrSensors(e.target.value);
-                    },
-                  })}
-                />
-                <ErrorMessage
-                  errors={errors}
-                  name="Phase-Sensors-ErrorInput"
-                  render={({ message }) => (
-                    <Typography className="red-typo">{message}</Typography>
-                  )}
-                />
-              </Grid>
-              <Grid item md={5.8}>
-                <Typography className="heading-black mt-12">
-                  Phase Sensor Threshold{" "}
-                </Typography>
-                <Grid container justifyContent="space-between">
-                  <Grid item md={1.8}>
-                    <TextField
-                      className=" mt-4 width100 text-field-style"
-                      id="outlined-basic"
-                      label="R"
-                      name="r" // required={true}
-                      value={vmrSensorsThreshold.r}
-                      onChange={handleChangesetR}
-                    />
-                  </Grid>
+        + Add Device
+      </button>
 
-                  <Grid item md={1.8}>
-                    <TextField
-                      className=" mt-4 width100 text-field-style"
-                      id="outlined-basic"
-                      label="Y"
-                      name="y"
-                      value={vmrSensorsThreshold.y}
-                      onChange={handleChangesetR}
-                    />
-                  </Grid>
-                  <Grid item md={1.8}>
-                    <TextField
-                      className=" mt-4 width100 text-field-style"
-                      id="outlined-basic"
-                      label="B"
-                      name="b"
-                      onChange={handleChangesetR}
-                      value={vmrSensorsThreshold.b}
-                    />
-                  </Grid>
-                  <Grid item md={1.8}>
-                    <TextField
-                      className=" mt-4 width100 text-field-style"
-                      id="outlined-basic"
-                      label="RY"
-                      name="ry"
-                      onChange={handleChangesetR}
-                      value={vmrSensorsThreshold.ry}
-                    />
-                  </Grid>
+      {/* Modal */}
+      {open && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4">
+          <div
+            className="w-full max-w-6xl bg-white rounded-xl shadow-xl border 
+                    max-h-[90vh] flex flex-col"
+          >
+            {/* Header */}
+            <div className="flex justify-between items-center px-6 py-4 border-b">
+              <h2 className="text-lg font-semibold text-[#0f3057]">
+                Add Device
+              </h2>
+              <button
+                onClick={() => {
+                  setOpen(false);
+                  reset();
+                }}
+                className="text-gray-500 hover:text-black text-xl"
+              >
+                ✕
+              </button>
+            </div>
 
-                  <Grid item md={1.8}>
-                    <TextField
-                      className=" mt-4 width100 text-field-style"
-                      id="outlined-basic"
-                      label="YB"
-                      name="yb"
-                      onChange={handleChangesetR}
-                      value={vmrSensorsThreshold.yb}
+            {/* Scrollable Body */}
+            <div className="overflow-y-auto flex-1">
+              <form
+                onSubmit={handleSubmit(onSubmit)}
+                className="p-6 space-y-8 bg-gray-50"
+              >
+                {/* ===== BASIC INFO ===== */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">
+                      Site Name
+                    </label>
+                    <input
+                      disabled
+                      value={value === 0 ? sitezero?.siteName : state?.siteName}
+                      className="w-full border px-3 py-2 rounded bg-gray-100"
                     />
-                  </Grid>
-                  <Grid item md={1.8}>
-                    <TextField
-                      className=" mt-4 width100 text-field-style"
-                      id="outlined-basic"
-                      label="RB"
-                      name="rb"
-                      onChange={handleChangesetR}
-                      value={vmrSensorsThreshold.rb}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-1">
+                      Site UID
+                    </label>
+                    <input
+                      disabled
+                      value={value === 0 ? sitezero?.uid : state?.uid}
+                      className="w-full border px-3 py-2 rounded bg-gray-100"
                     />
-                  </Grid>
-                </Grid>
-              </Grid>
-              <Grid item md={5.8}>
-                <Typography className="heading-black mt-12">
-                  SPD Sesnors
-                </Typography>
-                <Input
-                  className="input-style-1c mt-12 width100"
-                  disableUnderline
-                  value={spdSensors}
-                  {...register("Spd-Sesnors-ErrorInput", {
-                    required: "SPD Sesnors is required.",
-                    onChange: (e) => {
-                      setSpdSensors(e.target.value);
-                    },
-                  })}
-                />
-                <ErrorMessage
-                  errors={errors}
-                  name="Spd-Sesnors-ErrorInput"
-                  render={({ message }) => (
-                    <Typography className="red-typo">{message}</Typography>
-                  )}
-                />
-              </Grid>
-              <Grid item md={5.8}>
-                <Typography className="heading-black mt-12">
-                  SPD Sensor Threshold
-                </Typography>
-                <Input
-                  className="input-style-1c mt-12 width100"
-                  disableUnderline
-                  value={spdSensorsThreshold}
-                  {...register("Spd-Threshold-ErrorInput", {
-                    required: "SPD Sensor Threshold is required.",
-                    onChange: (e) => {
-                      setSpdSensorsThreshold(e.target.value);
-                    },
-                  })}
-                />
-                <ErrorMessage
-                  errors={errors}
-                  name="Spd-Threshold-ErrorInput"
-                  render={({ message }) => (
-                    <Typography className="red-typo">{message}</Typography>
-                  )}
-                />
-              </Grid>
+                  </div>
 
-              <Grid item md={5.8}>
-                <Typography className="heading-black mt-12">
-                  RES Sensors
-                </Typography>
-                <Input
-                  className="input-style-1c mt-12 width100"
-                  disableUnderline
-                  value={resSensors}
-                  {...register("Res-Sensors-ErrorInput", {
-                    required: " RES Sensors  is required.",
-                    onChange: (e) => {
-                      setResSensors(e.target.value);
-                    },
-                  })}
-                />
-                <ErrorMessage
-                  errors={errors}
-                  name="Res-Sensors-ErrorInput"
-                  render={({ message }) => (
-                    <Typography className="red-typo">{message}</Typography>
-                  )}
-                />
-              </Grid>
-              <Grid item md={5.8}>
-                <Typography className="heading-black mt-12">
-                  RES Sensor Threshold
-                </Typography>
-                <Input
-                  className="input-style-1c mt-12 width100"
-                  disableUnderline
-                  value={resSensorsThreshold}
-                  {...register("Res-Threshold-ErrorInput", {
-                    required: "   RES Sensor Threshold  is required.",
-                    onChange: (e) => {
-                      setResSensorsThreshold(e.target.value);
-                    },
-                  })}
-                />
-                <ErrorMessage
-                  errors={errors}
-                  name="Res-Threshold-ErrorInput"
-                  render={({ message }) => (
-                    <Typography className="red-typo">{message}</Typography>
-                  )}
-                />
-              </Grid>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">
+                      Device Name
+                    </label>
+                    <input
+                      placeholder="Enter device name (e.g. Transformer Panel)"
+                      {...register("deviceName", { required: "Required" })}
+                      className="w-full border px-3 py-2 rounded focus:ring-2 focus:ring-[#0f3057]"
+                    />
+                  </div>
 
-              <Grid item md={5.8}>
-                <Typography className="heading-black mt-12">
-                  GN Sensors
-                </Typography>
-                <Input
-                  className="input-style-1c mt-12 width100"
-                  disableUnderline
-                  value={nerSensors}
-                  {...register("GN-Sensors-ErrorInput", {
-                    required: "       GN Sensors  is required.",
-                    onChange: (e) => {
-                      setNerSensors(e.target.value);
-                    },
-                  })}
-                />
-                <ErrorMessage
-                  errors={errors}
-                  name="GN-Sensors-ErrorInput"
-                  render={({ message }) => (
-                    <Typography className="red-typo">{message}</Typography>
-                  )}
-                />
-              </Grid>
-              <Grid item md={5.8}>
-                <Typography className="heading-black mt-12">
-                  GN Sensor Threshold
-                </Typography>
-                <Input
-                  className="input-style-1c mt-12 width100"
-                  disableUnderline
-                  value={nerSensorsThreshold}
-                  {...register("GN-Threshold-ErrorInput", {
-                    required: " GN Sensors Threshold  is required.",
-                    onChange: (e) => {
-                      setNerSensorsThreshold(e.target.value);
-                    },
-                  })}
-                />
-                <ErrorMessage
-                  errors={errors}
-                  name="GN-Threshold-ErrorInput"
-                  render={({ message }) => (
-                    <Typography className="red-typo">{message}</Typography>
-                  )}
-                />
-              </Grid>
-            </Grid>
-          </DialogContent>{" "}
-          <DialogActions className="hgt-40" sx={{ marginBottom: "10px" }}>
-            <Button
-              sx={{ marginRight: "10px" }}
-              className="  grey-br-button width-100 hover "
-              onClick={handleClose}
-            >
-              Cancel
-            </Button>
-            <Button
-              sx={{ padding: "5px 0px" }}
-              className="skyblue-br-button width-100 hover"
-              type="submit"
-              onClick={() => CraeteDevice()}
-            >
-              Submit
-              <SuccessDialog
-                setOpen={setOpen}
-                open={openDialogName === "success"}
-              />
-            </Button>
-          </DialogActions>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">
+                      Node UID
+                    </label>
+                    <input
+                      placeholder="Enter unique node ID (e.g. NODE-1023)"
+                      {...register("nodeUid", { required: "Required" })}
+                      className="w-full border px-3 py-2 rounded focus:ring-2 focus:ring-[#0f3057]"
+                    />
+                    {!uidMatch && (
+                      <p className="text-red-500 text-sm mt-1">
+                        Node UID already exists
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* ===== SENSOR CONFIGURATION ===== */}
+                <div className="bg-white p-6 rounded-xl border shadow-sm space-y-6">
+                  <h3 className="text-md font-semibold text-[#0f3057]">
+                    Sensor Configuration
+                  </h3>
+
+                  {/* Phase Sensors */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-sm font-medium mb-1">
+                        Phase Sensors
+                      </label>
+                      <input
+                        type="number"
+                        placeholder="Enter number of phase sensors"
+                        {...register("vmrSensors", { required: "Required" })}
+                        className="w-full border px-3 py-2 rounded focus:ring-2 focus:ring-[#0f3057]"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium mb-2">
+                        Phase Threshold
+                      </label>
+
+                      <div className="grid grid-cols-3 gap-2">
+                        {[
+                          { name: "r", label: "R Phase" },
+                          { name: "y", label: "Y Phase" },
+                          { name: "b", label: "B Phase" },
+                          { name: "ry", label: "R-Y" },
+                          { name: "yb", label: "Y-B" },
+                          { name: "rb", label: "R-B" },
+                        ].map((item) => (
+                          <input
+                            key={item.name}
+                            type="number"
+                            placeholder={item.label}
+                            {...register(item.name)}
+                            className="border px-2 py-2 rounded text-sm focus:ring-1 focus:ring-[#0f3057]"
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* SPD */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-sm font-medium mb-1">
+                        SPD Sensors
+                      </label>
+                      <input
+                        type="number"
+                        placeholder="Enter SPD sensor count"
+                        {...register("spdSensors", { required: "Required" })}
+                        className="w-full border px-3 py-2 rounded focus:ring-2 focus:ring-[#0f3057]"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium mb-1">
+                        SPD Threshold
+                      </label>
+                      <input
+                        type="number"
+                        placeholder="Enter SPD threshold value"
+                        {...register("spdSensorsThreshold", {
+                          required: "Required",
+                        })}
+                        className="w-full border px-3 py-2 rounded focus:ring-2 focus:ring-[#0f3057]"
+                      />
+                    </div>
+                  </div>
+
+                  {/* RES */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-sm font-medium mb-1">
+                        RES Sensors
+                      </label>
+                      <input
+                        type="number"
+                        placeholder="Enter RES sensor count"
+                        {...register("resSensors", { required: "Required" })}
+                        className="w-full border px-3 py-2 rounded focus:ring-2 focus:ring-[#0f3057]"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium mb-1">
+                        RES Threshold
+                      </label>
+                      <input
+                        type="number"
+                        placeholder="Enter RES threshold value"
+                        {...register("resSensorsThreshold", {
+                          required: "Required",
+                        })}
+                        className="w-full border px-3 py-2 rounded focus:ring-2 focus:ring-[#0f3057]"
+                      />
+                    </div>
+                  </div>
+
+                  {/* GN */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-sm font-medium mb-1">
+                        GN Sensors
+                      </label>
+                      <input
+                        type="number"
+                        placeholder="Enter GN sensor count"
+                        {...register("nerSensors", { required: "Required" })}
+                        className="w-full border px-3 py-2 rounded focus:ring-2 focus:ring-[#0f3057]"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium mb-1">
+                        GN Threshold
+                      </label>
+                      <input
+                        type="number"
+                        placeholder="Enter GN threshold value"
+                        {...register("nerSensorsThreshold", {
+                          required: "Required",
+                        })}
+                        className="w-full border px-3 py-2 rounded focus:ring-2 focus:ring-[#0f3057]"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* ===== FOOTER ===== */}
+                <div className="flex justify-end gap-4 pt-4 border-t">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setOpen(false);
+                      reset();
+                    }}
+                    className="px-4 py-2 border rounded hover:bg-gray-100"
+                  >
+                    Cancel
+                  </button>
+
+                  <button
+                    type="submit"
+                    className="px-6 py-2 bg-[#0f3057] text-white rounded hover:bg-[#163e6b] transition"
+                  >
+                    Submit
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
         </div>
-      </BootstrapDialog>
-    </React.Fragment>
+      )}
+    </>
   );
 }

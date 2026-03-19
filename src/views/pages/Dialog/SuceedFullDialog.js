@@ -113,9 +113,10 @@ export default function MaxWidthDialog({
             },
           })({ zIndex: -1, backdropFilter: "blur(2px)" })}
         >
-          <img src={SuccesImg} className="successImg" />
+          <img alt="test" src={SuccesImg} className="successImg" />
           <Grid item className=" succesdialogitem">
             <img
+              alt="test"
               src={SccessGif}
               style={{
                 width: "90px",

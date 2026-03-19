@@ -46,6 +46,8 @@ function App({ deviceID, value1, setValue1, value }) {
     try {
       const res = await GET(API.DEVICE.GET_BY_ID(deviceID));
 
+      console.log("res from getDeviceById", res);
+
       if (res) {
         setSensorValue(res?.msg || {});
       }

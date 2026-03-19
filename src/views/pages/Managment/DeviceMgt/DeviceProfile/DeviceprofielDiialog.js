@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   Grid,
   Dialog,
@@ -129,7 +129,8 @@ export default function MaxWidthDialog({
     setSnackerropen(false);
     setSnackErrMsg("");
   };
-  const getSingleDeviceData = async () => {
+  const getSingleDeviceData = useCallback(async () => {
+    if (!deviceID2) return;
     try {
       const response = await axiosInstance.get(
         `/api/device/getDeviceDataById/${deviceID2}`,
@@ -138,7 +139,7 @@ export default function MaxWidthDialog({
     } catch (error) {
       console.error("Error fetching data:", error);
     }
-  };
+  }, [deviceID2]);
 
   const EditDeviceProfile = async () => {
     try {
@@ -180,10 +181,8 @@ export default function MaxWidthDialog({
   };
 
   useEffect(() => {
-    if (deviceID2) {
-      getSingleDeviceData();
-    }
-  }, [deviceID2]);
+    getSingleDeviceData();
+  }, [getSingleDeviceData]);
   useEffect(() => {
     if (singledeviceData) {
       setDeviceName(singledeviceData?.deviceName);
@@ -451,7 +450,7 @@ export default function MaxWidthDialog({
           </Grid>
         </DialogContent>
 
-        {auth.user.role === 2 || auth.user.role === 1 ? null : (
+        {auth.user.role === "user" || auth.user.role === "technician" ? null : (
           <DialogActions sx={{ marginBottom: "10px" }}>
             <Grid
               container

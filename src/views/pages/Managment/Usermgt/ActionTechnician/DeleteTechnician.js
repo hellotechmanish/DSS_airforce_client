@@ -1,188 +1,100 @@
-import React, { useState, useEffect } from "react";
-import {
-  Grid,
-  Backdrop,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  Button,
-  Box,
-  IconButton,
-  Typography,
-  Tooltip,
-  Snackbar,
-} from "@mui/material";
-import MuiAlert from "@mui/material/Alert";
+"use client";
 
-import PropTypes from "prop-types";
-
-import { styled } from "@mui/material/styles";
-import CloseIcon from "@mui/icons-material/Close";
-//React Icons
+import { useState } from "react";
 import { RiDeleteBin6Line } from "react-icons/ri";
-import { API } from "../../../../../lib/endpoint";
+import toast from "react-hot-toast";
+
 import { POST } from "../../../../../lib/request";
-const BootstrapDialog = styled(Dialog)(({ theme }) => ({
-  "& .MuiDialogContent-root": {
-    padding: theme.spacing(2),
-  },
-  "& .MuiDialogActions-root": {
-    padding: theme.spacing(),
-  },
-}));
+import { API } from "../../../../../lib/endpoint";
 
-const BootstrapDialogTitle = (props) => {
-  const { children, onClose, ...other } = props;
+export default function DeleteTechnicianModal({
+  techID,
+  getnumberOftechnician,
+}) {
+  const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const handleOpen = () => setOpen(true);
+  const handleClose = () => setOpen(false);
+
+  const DeleteTech = async () => {
+    try {
+      setLoading(true);
+
+      const res = await POST(API.USERS.DELETE, {
+        userId: techID,
+      });
+
+      if (res) {
+        toast.success(res?.msg || "Technician deleted successfully");
+        getnumberOftechnician();
+        setOpen(false);
+      } else {
+        toast.error(res?.err || "Failed to delete technician");
+      }
+    } catch (error) {
+      console.error("DeleteTech error:", error);
+      toast.error("Failed to delete technician");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <DialogTitle className="dialog-title" sx={{ m: 0, p: 1.2 }} {...other}>
-      {children}
-      <Typography className="white-typo">Delete Technician </Typography>{" "}
-      {onClose ? (
-        <IconButton
-          aria-label="close"
-          onClick={onClose}
-          className="dialogcrossicon-white"
-        >
-          <CloseIcon />
-        </IconButton>
-      ) : null}
-    </DialogTitle>
-  );
-};
-
-BootstrapDialogTitle.propTypes = {
-  children: PropTypes.node,
-  onClose: PropTypes.func.isRequired,
-};
-const Alert = React.forwardRef(function Alert(props, ref) {
-  return <MuiAlert elevation={6} ref={ref} variant="filled" {...props} />;
-});
-export default function MaxWidthDialog({ techID, getnumberOftechnician }) {
-  const [open, setOpen] = React.useState(false);
-  const [fullWidth] = React.useState(true);
-  const [maxWidth] = React.useState("sm");
-  const handleClickOpen = () => {
-    setOpen(true);
-  };
-  const handleClose = () => {
-    setOpen(false);
-  };
-
-  // SnackBar
-  const [snackopen, setSnackOpen] = useState(false);
-  const [snackmsg, setSnackMsg] = useState("");
-  const [snackErrMsg, setSnackErrMsg] = useState();
-  const [snackerropen, setSnackerropen] = useState(false);
-
-  const SnanbarClose = (event, reason) => {
-    if (reason === "clickaway") {
-      return;
-    }
-    setSnackOpen(false);
-    setSnackMsg("");
-  };
-
-  const SnackbarErrorClose = (event, reason) => {
-    if (reason === "clickaway") {
-      return;
-    }
-    setSnackerropen(false);
-    setSnackErrMsg("");
-  };
-
- const DeleteTech = async () => {
-  try {
-    const res = await POST(API.USERS.DELETE, {
-      userId: techID,
-    });
-
-    if (res) {
-      setSnackOpen(true);
-      setSnackMsg(res?.msg || "Technician deleted successfully");
-
-      setOpen(false);
-      getnumberOftechnician();
-
-    } else {
-      setSnackerropen(true);
-      setSnackErrMsg(res?.err || "Failed to delete technician");
-
-      setOpen(false);
-    }
-
-  } catch (error) {
-    console.error("DeleteTech error:", error);
-
-    setSnackerropen(true);
-    setSnackErrMsg(error?.msg || "Failed to delete technician");
-
-    setOpen(false);
-  }
-};
-
-  return (
-    <React.Fragment>
-      <Snackbar open={snackopen} autoHideDuration={3000} onClose={SnanbarClose}>
-        <Alert onClose={SnanbarClose} severity={"success"}>
-          {snackmsg}
-        </Alert>
-      </Snackbar>
-      <Snackbar
-        open={snackerropen}
-        autoHideDuration={8000}
-        onClose={SnackbarErrorClose}
+    <>
+      {/* Delete Button */}
+      <button
+        onClick={handleOpen}
+        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
+        title="Delete"
       >
-        <Alert onClose={SnackbarErrorClose} severity={"error"}>
-          {snackErrMsg}
-        </Alert>
-      </Snackbar>
-      <Tooltip title="Delete" className="tooltipheight">
-        <IconButton className="mt-5px icons-blue" onClick={handleClickOpen}>
-          <RiDeleteBin6Line />
-        </IconButton>
-      </Tooltip>
+        <RiDeleteBin6Line size={20} />
+      </button>
 
-      <BootstrapDialog
-        fullWidth={fullWidth}
-        maxWidth={maxWidth}
-        open={open}
-        onClose={handleClose}
-        PaperProps={{
-          className: "SmallDialog",
-        }}
-      >
-        <BootstrapDialogTitle
-          onClose={handleClose}
-          id="customized-dialog-title"
-        >
-          {" "}
-        </BootstrapDialogTitle>
-        <DialogContent className="mt-16">
-          <Typography className="subheading-grey600">
-            Are you sure you want to Delete this Technician?
-          </Typography>
-        </DialogContent>
-        <DialogActions className="hgt-40">
-          <Button
-            sx={{ marginRight: "10px" }}
-            className="  grey-br-button width-100  hover"
-            onClick={handleClose}
-          >
-            No
-          </Button>
-          <Button
-            sx={{ padding: "5px 0px" }}
-            className="red-br-button width-100  hover-shodow-red"
-            onClick={() => {
-              DeleteTech();
-            }}
-          >
-            Yes
-          </Button>
-        </DialogActions>
-      </BootstrapDialog>
-    </React.Fragment>
+      {/* Modal */}
+      {open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="bg-white w-full max-w-sm rounded-xl shadow-xl p-6">
+            {/* Header */}
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-semibold text-gray-800">
+                Delete Technician
+              </h2>
+
+              <button
+                onClick={handleClose}
+                className="text-gray-500 hover:text-gray-700 text-lg"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Message */}
+            <p className="text-gray-600 text-sm mb-6">
+              Are you sure you want to delete this technician?
+            </p>
+
+            {/* Buttons */}
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={handleClose}
+                className="px-4 py-2 border rounded-lg hover:bg-gray-100 transition"
+                disabled={loading}
+              >
+                No
+              </button>
+
+              <button
+                onClick={DeleteTech}
+                disabled={loading}
+                className="px-4 py-2 text-white rounded-lg bg-red-600 hover:bg-red-700 transition shadow"
+              >
+                {loading ? "Deleting..." : "Yes"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }

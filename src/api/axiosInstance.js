@@ -5,7 +5,7 @@ const axiosInstance = axios.create({
   baseURL: FETCH_URL,
 });
 
-const reqInterceptor = axiosInstance.interceptors.request.use(
+axiosInstance.interceptors.request.use(
   (request) => {
     const userData = JSON.parse(localStorage.getItem("userData"));
     request.headers["Authorization"] = "Bearer " + userData.token;

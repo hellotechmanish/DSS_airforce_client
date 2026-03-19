@@ -1,5 +1,5 @@
 // React import
-import { Outlet, useRouteError, Navigate } from "react-router-dom";
+// import { useRouteError } from "react-router-dom";
 
 // Layouts
 import AdminLayout from "./layouts/Admin";
@@ -21,23 +21,20 @@ import Temperature from "./views/pages/TemperatureMonitoring/TemperatureTable";
 import SitesProfile from "./views/pages/Managment/SitesMgt/SitesProfile/sites-profile";
 import TechnicianProfile from "./views/pages/Managment/Usermgt/UserTabs/TechProfile/TechnicianProfile";
 import UserProfile from "./views/pages/Managment/Usermgt/UserTabs/UserProfile/UserProfile";
-
+import TestHomepage from "../src/views/component/test-homepage";
 // 🔥 Import ProtectedRoute
 import ProtectedRoute from "./lib/ProtectedRoute";
-import { elements } from "chart.js";
-// import AdminLayout from "./layouts/Admin";
-// import AuthLayout from "./layouts/Auth";
 
-const RootErrorBoundary = () => {
-  let error = useRouteError();
-  return (
-    <div>
-      <h1>Something went wrong</h1>
-      <pre>{error?.message || JSON.stringify(error)}</pre>
-      <button onClick={() => (window.location.href = "/")}>Reload</button>
-    </div>
-  );
-};
+// const RootErrorBoundary = () => {
+//   let error = useRouteError();
+//   return (
+//     <div>
+//       <h1>Something went wrong</h1>
+//       <pre>{error?.message || JSON.stringify(error)}</pre>
+//       <button onClick={() => (window.location.href = "/")}>Reload</button>
+//     </div>
+//   );
+// };
 
 export const routes = [
   // 🔓 PUBLIC ROUTES
@@ -65,14 +62,14 @@ export const routes = [
           {
             path: "/test",
             // element: <Navigate to="/dashboard" replace />,
-            element: <HomePage />,
+            element: <TestHomepage />,
           },
           {
             path: "/dashboard",
             element: <HomePage />,
           },
           {
-            path: "/resistence-monitoring",
+            path: "/resistance-monitoring",
             element: <Resistence />,
           },
           {
@@ -107,6 +104,14 @@ export const routes = [
             path: "/user-profile",
             element: <UserProfile />,
           },
+          // {
+          //   path: "/reboot",
+          //   element: <Reboot />,
+          // },
+          // {
+          //   path: "/shutdown",
+          //   element: <Shutdown />,
+          // },
           {
             path: "*",
             element: <Unauthorized />,

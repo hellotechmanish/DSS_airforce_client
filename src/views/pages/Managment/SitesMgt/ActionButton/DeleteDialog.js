@@ -1,180 +1,66 @@
-import React, { useState } from "react";
-import {
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  Button,
-  IconButton,
-  Typography,
-  Tooltip,
-  Snackbar,
-} from "@mui/material";
-import MuiAlert from "@mui/material/Alert";
-import PropTypes from "prop-types";
-import { styled } from "@mui/material/styles";
-import CloseIcon from "@mui/icons-material/Close";
-
-import { API } from "../../../../../lib/endpoint";
+import React from "react";
 import { POST } from "../../../../../lib/request";
+import { API } from "../../../../../lib/endpoint";
+import { toast } from "react-hot-toast";
+import { FiTrash2 } from "react-icons/fi";
 
-//React Icons
-import { RiDeleteBin6Line } from "react-icons/ri";
-const BootstrapDialog = styled(Dialog)(({ theme }) => ({
-  "& .MuiDialogContent-root": {
-    padding: theme.spacing(2),
-  },
-  "& .MuiDialogActions-root": {
-    padding: theme.spacing(),
-  },
-}));
-
-const BootstrapDialogTitle = (props) => {
-  const { children, onClose, ...other } = props;
-
-  return (
-    <DialogTitle className="dialog-title" sx={{ m: 0, p: 1.2 }} {...other}>
-      {children}
-      <Typography className="white-typo">Delete Site </Typography>{" "}
-      {onClose ? (
-        <IconButton
-          aria-label="close"
-          onClick={onClose}
-          className="dialogcrossicon-white"
-        >
-          <CloseIcon />
-        </IconButton>
-      ) : null}
-    </DialogTitle>
-  );
-};
-
-BootstrapDialogTitle.propTypes = {
-  children: PropTypes.node,
-  onClose: PropTypes.func.isRequired,
-};
-const Alert = React.forwardRef(function Alert(props, ref) {
-  return <MuiAlert elevation={6} ref={ref} variant="filled" {...props} />;
-});
-export default function MaxWidthDialog({ sitesID, getnumberOfSite }) {
-  const [open, setOpen] = React.useState(false);
-  const [fullWidth] = React.useState(true);
-  const [maxWidth] = React.useState("sm");
-  const handleClickOpen = () => {
-    setOpen(true);
-  };
-  const handleClose = () => {
-    setOpen(false);
-  };
-
-  // SnackBar
-  const [snackopen, setSnackOpen] = useState(false);
-  const [snackmsg, setSnackMsg] = useState("");
-  const [snackErrMsg, setSnackErrMsg] = useState();
-  const [snackerropen, setSnackerropen] = useState(false);
-
-  const SnanbarClose = (event, reason) => {
-    if (reason === "clickaway") {
-      return;
-    }
-    setSnackOpen(false);
-    setSnackMsg("");
-  };
-
-  const SnackbarErrorClose = (event, reason) => {
-    if (reason === "clickaway") {
-      return;
-    }
-    setSnackerropen(false);
-    setSnackErrMsg("");
-  };
-
-  const deleteUser = async () => {
+export default function DeleteDialog({ sitesID, getnumberOfSite, onClose }) {
+  const deleteSite = async () => {
     try {
       const res = await POST(API.SITE.DELETE, {
         siteId: sitesID,
       });
 
       if (res) {
-        setSnackOpen(true);
-        setSnackMsg(res?.msg || "Site deleted successfully");
-
-        setOpen(false);
+        toast.success("Site deleted successfully");
         getnumberOfSite();
-      } else {
-        setSnackerropen(true);
-        setSnackErrMsg(res?.err || "Failed to delete site");
+        onClose();
       }
     } catch (error) {
-      console.error("deleteSite error:", error);
-
-      setSnackerropen(true);
-      setSnackErrMsg(error?.msg || "Failed to delete site");
+      console.error(error);
+      toast.error("Failed to delete site");
     }
   };
 
   return (
-    <React.Fragment>
-      <Snackbar open={snackopen} autoHideDuration={3000} onClose={SnanbarClose}>
-        <Alert onClose={SnanbarClose} severity={"success"}>
-          {snackmsg}
-        </Alert>
-      </Snackbar>
-      <Snackbar
-        open={snackerropen}
-        autoHideDuration={8000}
-        onClose={SnackbarErrorClose}
-      >
-        <Alert onClose={SnackbarErrorClose} severity={"error"}>
-          {snackErrMsg}
-        </Alert>
-      </Snackbar>
-      <Tooltip title="Delete" className="tooltipheight">
-        <IconButton className="mt-5px icons-blue" onClick={handleClickOpen}>
-          <RiDeleteBin6Line />
-        </IconButton>
-      </Tooltip>
+    <div className="fixed inset-0 z-[9999] bg-black/40 backdrop-blur-sm flex items-center justify-center">
+      <div className="bg-white w-full max-w-md rounded-xl shadow-2xl">
+        {/* Header */}
+        <div className="flex justify-between items-center px-6 py-4 border-b">
+          <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
+            <FiTrash2 className="text-red-600" />
+            Delete Site
+          </h2>
+          <button
+            onClick={onClose}
+            className="text-gray-500 hover:text-red-500 text-xl"
+          >
+            ✕
+          </button>
+        </div>
 
-      <BootstrapDialog
-        fullWidth={fullWidth}
-        maxWidth={maxWidth}
-        open={open}
-        onClose={handleClose}
-        PaperProps={{
-          className: "SmallDialog",
-        }}
-      >
-        <BootstrapDialogTitle
-          onClose={handleClose}
-          id="customized-dialog-title"
-        >
-          {" "}
-        </BootstrapDialogTitle>
-        <DialogContent className="mt-16">
-          <Typography className="greycolor505050500">
-            Are you sure you want to Delete this User?
-          </Typography>
-        </DialogContent>
-        <DialogActions className="hgt-40">
-          <Button
-            sx={{ marginRight: "10px" }}
-            className="  grey-br-button width-100  hover"
-            onClick={handleClose}
+        {/* Content */}
+        <div className="p-6 text-gray-700">
+          Are you sure you want to delete this site?
+        </div>
+
+        {/* Footer */}
+        <div className="flex justify-end gap-3 px-6 py-4 border-t bg-gray-50 rounded-b-xl">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 text-sm bg-gray-200 rounded-md hover:bg-gray-300"
           >
-            No
-          </Button>
-          <Button
-            sx={{ padding: "5px 0px" }}
-            className="red-br-button width-100  hover-shodow-red"
-            onClick={() => {
-              deleteUser();
-              setOpen(false);
-            }}
+            Cancel
+          </button>
+
+          <button
+            onClick={deleteSite}
+            className="px-4 py-2 text-sm bg-red-600 text-white rounded-md hover:bg-red-700"
           >
-            Yes
-          </Button>
-        </DialogActions>
-      </BootstrapDialog>
-    </React.Fragment>
+            Delete
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
