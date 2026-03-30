@@ -57,6 +57,8 @@ export const API = {
     LIST_BY_SITEID: (siteId) => `/device/getdeviceListbysiteId/${siteId}`,
     LIST_BY_SITES: "/device/getdeviceListbysiteIds",
 
+    GET_DATA_BY_ID: (deviceId) => `/device/getDeviceDataById/${deviceId}`,
+
     BY_SITE_AND_USER: "/device/getdeviceListbysiteIdanduserId",
 
     LATEST_DATA: "/device/latestData",

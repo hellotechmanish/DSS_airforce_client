@@ -27,6 +27,8 @@ export default function Sites() {
   const getnumberOfSite = async () => {
     try {
       const res = await GET(API.SITE.COUNT);
+      console.log("res> user", res);
+
       setSites(res?.msg || []);
     } catch (error) {
       console.error(error);
@@ -38,7 +40,7 @@ export default function Sites() {
     getnumberOfSite();
   }, []);
 
-  // 🔎 Filter
+  //  Filter
   const filteredSites = useMemo(() => {
     return sites.filter((site) =>
       `${site.uid} ${site.siteName} ${site.location}`
@@ -47,7 +49,7 @@ export default function Sites() {
     );
   }, [sites, search]);
 
-  // 📄 Pagination
+  //  Pagination
   const totalPages = Math.ceil(filteredSites.length / pageSize);
 
   const paginatedSites = useMemo(() => {
@@ -55,8 +57,19 @@ export default function Sites() {
     return filteredSites.slice(start, start + pageSize);
   }, [filteredSites, currentPage, pageSize]);
 
+  console.log("paginatedSites", paginatedSites);
+
   return (
     <div className="p-6 bg-slate-100 min-h-screen">
+      <div className="mb-4 text-sm">
+        <Link to="/dashboard" className="text-sky-500 font-medium no-underline">
+          Dashboard
+        </Link>
+
+        <span className="mx-2">›</span>
+
+        <span className="text-[#0f3057] font-semibold">Site Management</span>
+      </div>
       {/* HEADER */}
       <div className="bg-gradient-to-br from-[#0a192f] to-[#0f3057] rounded-xl p-5 mb-6 flex justify-between items-center shadow-lg">
         <h2 className="text-white text-xl font-semibold">
@@ -98,8 +111,8 @@ export default function Sites() {
           <thead className="bg-gray-50 text-gray-600">
             <tr>
               <th className="px-4 py-3 text-left">#</th>
-              <th className="px-4 py-3 text-left">UID</th>
               <th className="px-4 py-3 text-left">Site Name</th>
+              <th className="px-4 py-3 text-left">UID</th>
               <th className="px-4 py-3 text-left">Location</th>
               <th className="px-4 py-3 text-left">Devices</th>
               <th className="px-4 py-3 text-left">Added On</th>
@@ -119,14 +132,14 @@ export default function Sites() {
 
                 <td className="px-4 py-3 text-blue-600 font-medium">
                   <Link to="/sites-profile" state={site}>
-                    {site.uid}
+                    {site.siteName}
                   </Link>
                 </td>
 
-                <td className="px-4 py-3 text-blue-600 font-medium">
-                  <Link to="/sites-profile" state={site}>
-                    {site.siteName}
-                  </Link>
+                <td className="px-4 py-3 text-black font-medium">
+                  {/* <Link to="/sites-profile" state={site}> */}
+                  {site.uid}
+                  {/* </Link> */}
                 </td>
 
                 <td className="px-4 py-3">{site.location}</td>

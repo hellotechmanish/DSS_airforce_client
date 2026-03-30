@@ -1,16 +1,13 @@
 import api from "./api";
-export const GET = async (url, params = {}) => {
-  // console.log("🔥============================");
-  // console.log("🔥 GET API CALLED =>", url);
-  // console.trace("📍 Called From:");
-  // console.log("🔥============================");
 
-  const res = await api.get(url, { params });
-  return res;
-};
+// ✅ GET
+export const GET = async (url, params = {}) => api.get(url, { params });
 
+// ✅ POST
 export const POST = (url, data = {}) => api.post(url, data);
 
+// ✅ PUT
 export const PUT = (url, data = {}) => api.put(url, data);
 
+// ✅ DELETE
 export const DELETE = (url) => api.delete(url);

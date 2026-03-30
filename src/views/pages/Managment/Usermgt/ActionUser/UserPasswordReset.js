@@ -18,56 +18,51 @@ export default function ResetPasswordModal({ UserID, getnumberOfUser }) {
     confirmPassword: "",
   });
 
-  const [passwordError, setPasswordErr] = useState("");
   const [confirmPasswordError, setConfirmPasswordError] = useState("");
 
-  // const [toast, setToast] = useState(null);
+  const password = passwordInput.password;
 
+  // 🔥 Live validations
+  const validations = {
+    length: password.length >= 8,
+    upper: /[A-Z]/.test(password),
+    lower: /[a-z]/.test(password),
+    number: /\d/.test(password),
+    special: /[#?!@$%^&*-]/.test(password),
+  };
+
+  const isPasswordValid =
+    validations.length &&
+    validations.upper &&
+    validations.lower &&
+    validations.number &&
+    validations.special;
+
+  // 🔄 Handle input change
   const handlePasswordChange = (e) => {
     const { name, value } = e.target;
 
-    setPasswordInput({
+    const updated = {
       ...passwordInput,
-      [name]: value.trim(),
-    });
-  };
+      [name]: value,
+    };
 
-  const handleValidation = (e) => {
-    const { name, value } = e.target;
+    setPasswordInput(updated);
 
-    if (name === "password") {
-      const uppercase = /(?=.*?[A-Z])/;
-      const lowercase = /(?=.*?[a-z])/;
-      const digit = /(?=.*?[0-9])/;
-      const special = /(?=.*?[#?!@$%^&*-])/;
-
-      let msg = "";
-
-      if (!value) msg = "Password cannot be empty";
-      else if (!uppercase.test(value)) msg = "At least one uppercase letter";
-      else if (!lowercase.test(value)) msg = "At least one lowercase letter";
-      else if (!digit.test(value)) msg = "At least one number";
-      else if (!special.test(value)) msg = "At least one special character";
-      else if (value.length < 8) msg = "Minimum 8 characters required";
-
-      setPasswordErr(msg);
-    }
-
+    // 🔁 Confirm password live check
     if (
-      name === "confirmPassword" ||
-      (name === "password" && passwordInput.confirmPassword)
+      updated.confirmPassword &&
+      updated.password !== updated.confirmPassword
     ) {
-      if (passwordInput.password !== passwordInput.confirmPassword) {
-        setConfirmPasswordError("Passwords do not match");
-      } else {
-        setConfirmPasswordError("");
-      }
+      setConfirmPasswordError("Passwords do not match");
+    } else {
+      setConfirmPasswordError("");
     }
   };
 
   const resetPassword = async () => {
-    if (!passwordInput.password) {
-      setPasswordErr("Password required");
+    if (!isPasswordValid) {
+      toast.error("Please enter a strong password");
       return;
     }
 
@@ -79,30 +74,25 @@ export default function ResetPasswordModal({ UserID, getnumberOfUser }) {
     try {
       const res = await POST(API.USERS.RESET_PASSWORD, {
         userId: UserID,
-        password: passwordInput.confirmPassword,
+        password: passwordInput.password,
       });
 
       if (res) {
         toast.success("Password reset successfully");
-        // setToast({
-        //   type: "success",
-        //   msg: res?.msg || "Password reset successfully",
-        // });
         setOpen(false);
+        setPasswordInput({ password: "", confirmPassword: "" });
         getnumberOfUser();
       } else {
         toast.error("Failed to reset password");
-        // setToast({ type: "error", msg: "Failed to reset password" });
       }
     } catch {
       toast.error("Something went wrong");
-      // setToast({ type: "error", msg: "Something went wrong" });
     }
   };
 
   return (
     <>
-      {/* Icon Button */}
+      {/* Button */}
       <button
         onClick={() => setOpen(true)}
         className="p-2 rounded-lg text-blue-600 hover:bg-blue-100 transition"
@@ -114,6 +104,7 @@ export default function ResetPasswordModal({ UserID, getnumberOfUser }) {
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
           <div className="bg-white w-full max-w-lg rounded-xl shadow-xl p-6">
+            {/* Header */}
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-lg font-semibold text-gray-800">
                 Reset User Password
@@ -138,8 +129,7 @@ export default function ResetPasswordModal({ UserID, getnumberOfUser }) {
                     name="password"
                     value={passwordInput.password}
                     onChange={handlePasswordChange}
-                    onKeyUp={handleValidation}
-                    className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-400 focus:outline-none"
+                    className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none"
                   />
 
                   <button
@@ -155,9 +145,44 @@ export default function ResetPasswordModal({ UserID, getnumberOfUser }) {
                   </button>
                 </div>
 
-                {passwordError && (
-                  <p className="text-red-500 text-xs mt-1">{passwordError}</p>
-                )}
+                {/* 🔥 Live checklist */}
+                <div className="mt-2 space-y-1 text-xs">
+                  <p
+                    className={
+                      validations.length ? "text-green-600" : "text-gray-400"
+                    }
+                  >
+                    {validations.length ? "✔" : "✖"} At least 8 characters
+                  </p>
+                  <p
+                    className={
+                      validations.upper ? "text-green-600" : "text-gray-400"
+                    }
+                  >
+                    {validations.upper ? "✔" : "✖"} One uppercase letter
+                  </p>
+                  <p
+                    className={
+                      validations.lower ? "text-green-600" : "text-gray-400"
+                    }
+                  >
+                    {validations.lower ? "✔" : "✖"} One lowercase letter
+                  </p>
+                  <p
+                    className={
+                      validations.number ? "text-green-600" : "text-gray-400"
+                    }
+                  >
+                    {validations.number ? "✔" : "✖"} One number
+                  </p>
+                  <p
+                    className={
+                      validations.special ? "text-green-600" : "text-gray-400"
+                    }
+                  >
+                    {validations.special ? "✔" : "✖"} One special character
+                  </p>
+                </div>
               </div>
 
               {/* Confirm Password */}
@@ -172,8 +197,7 @@ export default function ResetPasswordModal({ UserID, getnumberOfUser }) {
                     name="confirmPassword"
                     value={passwordInput.confirmPassword}
                     onChange={handlePasswordChange}
-                    onKeyUp={handleValidation}
-                    className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-400 focus:outline-none"
+                    className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none"
                   />
 
                   <button
@@ -208,23 +232,17 @@ export default function ResetPasswordModal({ UserID, getnumberOfUser }) {
 
               <button
                 onClick={resetPassword}
-                className="px-4 py-2 text-white rounded-lg bg-gradient-to-br from-[#0a192f] to-[#0f3057] hover:opacity-90 transition shadow-md"
+                disabled={!isPasswordValid}
+                className={`px-4 py-2 text-white rounded-lg transition shadow-md ${
+                  isPasswordValid
+                    ? "bg-gradient-to-br from-[#0a192f] to-[#0f3057] hover:opacity-90"
+                    : "bg-gray-400 cursor-not-allowed"
+                }`}
               >
                 Submit
               </button>
             </div>
           </div>
-        </div>
-      )}
-
-      {/* Toast */}
-      {toast && (
-        <div
-          className={`fixed bottom-6 right-6 px-4 py-2 rounded-lg shadow text-white ${
-            toast.type === "success" ? "bg-green-500" : "bg-red-500"
-          }`}
-        >
-          {toast.msg}
         </div>
       )}
     </>

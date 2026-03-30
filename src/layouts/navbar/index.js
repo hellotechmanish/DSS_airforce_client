@@ -4,10 +4,9 @@ import React, { useContext, useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { FiMenu } from "react-icons/fi";
 import { VscUnmute, VscMute } from "react-icons/vsc";
-import axiosInstance from "../../api/axiosInstance";
 import routes from "../../routes/AdminRoutes";
 import { AuthContext } from "../../context/AuthContext";
-import { GET } from "../../lib/request";
+import { GET, POST } from "../../lib/request";
 import { API } from "../../lib/endpoint";
 
 import LeftLogo from "../../assets/img/Left-logo.png";
@@ -38,17 +37,21 @@ export default function Navbar() {
 
   // ================= ALARM =================
   const getGlobalAlarmStatus = async () => {
-    // try {
-    //   const response = await axiosInstance.get("/api/alarm/getAlarmStatus");
-    //   setAlarmStatus(response?.data?.data);
-    // } catch (e) {
-    //   console.log(e);
-    // }
+    try {
+      const res = await GET(API.ALARM.STATUS);
+      setAlarmStatus(res.data);
+    } catch (err) {
+      console.log("Error fetching alarm status", err);
+    }
   };
 
   const toggleAlarmStatus = async (status) => {
-    await axiosInstance.post("/api/alarm/updateStatus", { status });
-    getGlobalAlarmStatus();
+    try {
+      await POST(API.ALARM.UPDATE_STATUS, { status });
+      getGlobalAlarmStatus();
+    } catch (err) {
+      console.log("Error updating alarm status", err);
+    }
   };
 
   const getNotificationCount = async () => {
@@ -71,18 +74,18 @@ export default function Navbar() {
   // ================= REBOOT =================
   const handleReboot = async () => {
     try {
-      await axiosInstance.post(API.DEVICE.REBOOT);
+      await POST(API.DEVICE.REBOOT);
     } catch (error) {
-      console.log("Reboot failed");
+      console.log("Reboot failed", error);
     }
   };
 
   // ================= SHUTDOWN =================
   const handleShutdown = async () => {
     try {
-      await axiosInstance.post(API.DEVICE.SHUTDOWN);
+      await POST(API.DEVICE.SHUTDOWN);
     } catch (error) {
-      console.log("Shutdown failed");
+      console.log("Shutdown failed", error);
     }
   };
 
@@ -90,7 +93,8 @@ export default function Navbar() {
     <>
       {/* ================= TOP NAVBAR ================= */}
       <div
-        className="bg-gradient-to-b from-[#0a192f] to-[#0f3057] 
+        className="fixed top-0 left-0 w-full z-40
+  bg-gradient-to-b from-[#0a192f] to-[#0f3057] 
   border-b-2 border-[#4da8da] 
   shadow-md py-2"
       >

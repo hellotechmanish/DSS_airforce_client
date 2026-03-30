@@ -76,31 +76,19 @@ export default function Sites({ state }) {
 
   return (
     <>
-      <Grid container direction="row" className=" mt-8 width100">
+      <Grid container direction="row" className="mt-8 w-full">
         {deviceview ? (
           <>
-            <Grid
-              container
-              direction="row"
-              justifyContent="space-between"
-              alignItems="center"
-            >
+            {/* HEADER */}
+            <Grid container justifyContent="space-between" alignItems="center">
               <Typography
-                className="subheading-grey600 "
+                className="subheading-grey600 cursor"
                 onClick={SiteDataView}
-                alignItems="center"
-                alignSelf="center"
-                align="center"
               >
-                <span>
-                  <IoChevronBackOutline
-                    className="fs-14 cursor"
-                    onClick={SiteDataView}
-                  />
-                </span>
-                <span className="ml-8 fs-18  cursor ">Back</span>
+                ← Back
               </Typography>
-              <div className="hgt-40">
+
+              <div className="h-10">
                 <AssignDevice
                   deviceID={device}
                   UserId={state?._id}
@@ -108,88 +96,60 @@ export default function Sites({ state }) {
                   siteId={siteId}
                   selectUid={selectUid}
                   getdevicebyuserId={getdevicebyuserId}
-                />{" "}
+                />
               </div>
             </Grid>
-            <Grid container>
-              <Grid container item className="mt-16">
-                <Typography className="subheading-grey600 "> UID :</Typography>
-                <Typography className="sky-typo  ml-4"> {selectUid}</Typography>
-                <Typography className="subheading-grey600   ml-24">
-                  {" "}
-                  Site Name:
-                </Typography>
-                <Typography className="sky-typo   ml-4">
-                  {selectSite}
-                </Typography>
-              </Grid>
-            </Grid>
-            <TableContainer className="width100 table-container mt-16 mb-20">
-              <Table aria-label="simple table">
+
+            {/* SITE INFO */}
+            <div className="flex flex-wrap gap-4 mt-4 text-sm">
+              <span className="text-gray-500">
+                UID: <span className="text-blue-500">{selectUid}</span>
+              </span>
+              <span className="text-gray-500">
+                Site Name: <span className="text-blue-500">{selectSite}</span>
+              </span>
+            </div>
+
+            {/* TABLE */}
+            <div className="w-full overflow-x-auto mt-6 mb-10">
+              <Table className="min-w-[900px]">
                 <TableHead>
                   <TableRow>
-                    <TableCell
-                      align="center"
-                      className="subheading-grey600 fs-16"
-                    >
-                      UID
-                    </TableCell>
-                    <TableCell
-                      align="center"
-                      className="subheading-grey600 fs-16"
-                    >
-                      {" "}
+                    <TableCell className="text-center text-sm">UID</TableCell>
+                    <TableCell className="text-center text-sm">
                       Device Name
                     </TableCell>
-                    <TableCell
-                      align="center"
-                      className="subheading-grey600 fs-16"
-                    >
-                      {" "}
+                    <TableCell className="text-center text-sm">
                       Assigned Sensors
                     </TableCell>
-                    <TableCell
-                      align="center"
-                      className="subheading-grey600 fs-16"
-                    >
-                      {" "}
-                      Added on
+                    <TableCell className="text-center text-sm">
+                      Added On
                     </TableCell>
-                    <TableCell
-                      align="center"
-                      className="subheading-grey600 fs-16"
-                    >
-                      {" "}
-                      Updated on{" "}
+                    <TableCell className="text-center text-sm">
+                      Updated On
                     </TableCell>
-                    <TableCell
-                      align="center"
-                      className="subheading-grey600 fs-16"
-                    >
-                      {" "}
+                    <TableCell className="text-center text-sm">
                       Action
                     </TableCell>
                   </TableRow>
                 </TableHead>
+
                 <TableBody>
                   {device?.map((row) => (
-                    <TableRow key={row.name}>
-                      <TableCell
-                        align="center"
-                        className="p-0 sky-typo"
-                        component="th"
-                        scope="row"
-                      >
-                        <span className="sky-typo"> {row.nodeUid} </span>
+                    <TableRow key={row._id}>
+                      <TableCell className="text-center px-3 py-2 text-xs md:text-sm text-blue-500">
+                        {row.nodeUid}
                       </TableCell>
-                      <TableCell align="center" className="sky-typo cursor ">
+
+                      <TableCell className="text-center cursor">
                         <ViewProfile
                           sensorValue={row}
                           SiteName={selectSite}
                           selectUid={selectUid}
                         />
                       </TableCell>
-                      <TableCell align="center" className=" cursor">
+
+                      <TableCell className="text-center">
                         <SensorShow
                           user={state}
                           sensorValue={row}
@@ -198,18 +158,17 @@ export default function Sites({ state }) {
                           siteId={siteId}
                         />
                       </TableCell>
-                      <TableCell align="center" className="heading-black ">
+
+                      <TableCell className="text-center text-gray-700">
                         {dayjs(row?.createdAt).format("DD-MM-YYYY")}
                       </TableCell>
-                      <TableCell align="center" className="heading-black ">
+
+                      <TableCell className="text-center text-gray-700">
                         {dayjs(row?.updatedAt).format("DD-MM-YYYY")}
                       </TableCell>
-                      <TableCell align="center">
-                        <Grid
-                          container
-                          justifyContent="space-evenly"
-                          direction="row"
-                        >
+
+                      <TableCell>
+                        <div className="flex gap-2 justify-center flex-wrap">
                           <EditDeviceSensor
                             SiteName={selectSite}
                             selectUid={selectUid}
@@ -223,33 +182,21 @@ export default function Sites({ state }) {
                             userId={state?._id}
                             getdevicebyuserId={getdevicebyuserId}
                           />
-                        </Grid>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
-            </TableContainer>
+            </div>
+
+            {/* NO DATA */}
             {device?.length === 0 && (
-              <Grid container className=" mb-40">
-                <Grid item className="mt-32 width100">
-                  <Typography align="center">
-                    <img src={NodataFound} alt="" />{" "}
-                  </Typography>
-                </Grid>
-                <Typography
-                  className="heading-black width100 mt-42"
-                  align="center"
-                >
-                  No Device found!
-                </Typography>
-                <Typography
-                  className="heading-black width100 mt-24"
-                  align="center"
-                >
-                  Click below button to add User
-                </Typography>
-                <Typography align="center" className="width100 mt-16">
+              <div className="flex flex-col items-center justify-center mt-10">
+                <img src={NodataFound} alt="" />
+                <p className="mt-4 text-gray-700">No Device found!</p>
+
+                <div className="mt-4">
                   <AssignDevice
                     deviceID={device}
                     UserId={state?._id}
@@ -258,138 +205,96 @@ export default function Sites({ state }) {
                     selectUid={selectUid}
                     getdevicebyuserId={getdevicebyuserId}
                   />
-                </Typography>
-              </Grid>
+                </div>
+              </div>
             )}
           </>
         ) : (
           <>
-            <Grid container justifyContent="space-between" alignItems="center">
-              <Typography className="heading-black mt-12">
-                Showing
-                {useraSite?.length === 1 ? (
-                  <span> {useraSite?.length} Site </span>
-                ) : (
-                  <span> {useraSite?.length} Sites </span>
-                )}
-              </Typography>
-              <Grid item className="hgt-40">
-                <AssignSite
-                  UserId={state?._id}
-                  getnumberOfAssignSite={getnumberOfAssignSite}
-                />
-              </Grid>
-            </Grid>
+            {/* HEADER */}
+            <div className="flex justify-between items-center w-full">
+              <p className="text-gray-700 text-sm">
+                Showing {useraSite?.length} Sites
+              </p>
 
-            <TableContainer className="width100 table-container  mt-24 mb-20">
-              <Table aria-label="simple table">
+              <AssignSite
+                UserId={state?._id}
+                getnumberOfAssignSite={getnumberOfAssignSite}
+              />
+            </div>
+
+            {/* TABLE */}
+            <div className="w-full overflow-x-auto mt-6 mb-10">
+              <Table className="min-w-[800px]">
                 <TableHead>
                   <TableRow>
-                    <TableCell
-                      align="center"
-                      className="subheading-grey600 fs-16"
-                    >
-                      UID
-                    </TableCell>
-                    <TableCell
-                      align="center"
-                      className="subheading-grey600 fs-16"
-                    >
-                      Sites
-                    </TableCell>
-                    <TableCell
-                      align="center"
-                      className="subheading-grey600 fs-16"
-                    >
+                    <TableCell className="text-center text-sm">UID</TableCell>
+                    <TableCell className="text-center text-sm">Sites</TableCell>
+                    <TableCell className="text-center text-sm">
                       Devices
                     </TableCell>
-                    <TableCell
-                      align="center"
-                      className="subheading-grey600 fs-16"
-                    >
-                      Added on
+                    <TableCell className="text-center text-sm">
+                      Added On
                     </TableCell>
-                    <TableCell
-                      align="center"
-                      className="subheading-grey600 fs-16"
-                    >
+                    <TableCell className="text-center text-sm">
                       Action
                     </TableCell>
                   </TableRow>
                 </TableHead>
+
                 <TableBody>
-                  {useraSite?.map((row) => {
-                    return (
-                      <>
-                        <TableRow key={row.name}>
-                          <TableCell
-                            align="center"
-                            className="p-0 sky-typo cursor  "
-                            component="th"
-                            scope="row"
-                            onClick={() => DeviceDataView(row)}
-                          >
-                            <span className="hover"> {row.uid}</span>
-                          </TableCell>
-                          <TableCell
-                            align="center"
-                            className="sky-typo cursor "
-                            onClick={() => DeviceDataView(row)}
-                          >
-                            <span className="hover"> {row.siteName} </span>
-                          </TableCell>
-                          <TableCell align="center" className="heading-black ">
-                            {row.deviceCount}
-                          </TableCell>
-                          <TableCell align="center" className="heading-black ">
-                            {dayjs(row?.createdAt).format("DD-MM-YYYY")}
-                          </TableCell>
-                          <TableCell align="center">
-                            <Grid
-                              container
-                              justifyContent="space-evenly"
-                              direction="row"
-                            >
-                              <DeleteSite
-                                SiteID={row._id}
-                                UserId={state?._id}
-                                getnumberOfAssignSite={getnumberOfAssignSite}
-                              />
-                            </Grid>
-                          </TableCell>
-                        </TableRow>{" "}
-                      </>
-                    );
-                  })}
+                  {useraSite?.map((row) => (
+                    <TableRow key={row._id}>
+                      <TableCell
+                        className="text-center cursor text-blue-500"
+                        onClick={() => DeviceDataView(row)}
+                      >
+                        {row.uid}
+                      </TableCell>
+
+                      <TableCell
+                        className="text-center cursor text-blue-500"
+                        onClick={() => DeviceDataView(row)}
+                      >
+                        {row.siteName}
+                      </TableCell>
+
+                      <TableCell className="text-center">
+                        {row.deviceCount}
+                      </TableCell>
+
+                      <TableCell className="text-center">
+                        {dayjs(row?.createdAt).format("DD-MM-YYYY")}
+                      </TableCell>
+
+                      <TableCell>
+                        <div className="flex justify-center">
+                          <DeleteSite
+                            SiteID={row._id}
+                            UserId={state?._id}
+                            getnumberOfAssignSite={getnumberOfAssignSite}
+                          />
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
                 </TableBody>
               </Table>
-            </TableContainer>
+            </div>
+
+            {/* NO DATA */}
             {useraSite?.length === 0 && (
-              <Grid container className="mb-40">
-                <Grid item className="mt-32 width100">
-                  <Typography align="center">
-                    <img src={NodataFound} alt="" />{" "}
-                  </Typography>
-                </Grid>
-                <Typography
-                  className="heading-black width100 mt-42"
-                  align="center"
-                >
-                  No Site Assign!
-                </Typography>
-                <Typography
-                  className="heading-black width100 mt-24"
-                  align="center"
-                >
-                  Click below button to Assign Site
-                </Typography>
-                <Typography align="center" className="hgt-40 width100 mt-12">
+              <div className="flex flex-col items-center justify-center mt-10">
+                <img src={NodataFound} alt="" />
+                <p className="mt-4 text-gray-700">No Site Assign!</p>
+
+                <div className="mt-4">
                   <AssignSite
                     UserId={state?._id}
                     getnumberOfAssignSite={getnumberOfAssignSite}
                   />
-                </Typography>
-              </Grid>
+                </div>
+              </div>
             )}
           </>
         )}

@@ -25,8 +25,9 @@ import {
 } from "chart.js";
 import dayjs from "dayjs";
 import { AuthContext } from "../../../../../context/AuthContext";
-import { FETCH_URL } from "../../../../../fetchIp";
 import hondaGif from "../../../../../assets/img/hondagif.gif";
+import { POST } from "../../../../../lib/request";
+import { API } from "../../../../../lib/endpoint";
 
 let interval;
 ChartJS.register(
@@ -291,26 +292,24 @@ export default function Graph({
 
   // function get Graph data
   async function getData() {
-    if (device) {
-      try {
-        let resp = await axios.post(`${FETCH_URL}/api/device/latestData`, {
-          deviceId: device._id,
-          sensorName: sensor,
-          deviceNumber: `${phasevalue - 1}`,
-          startDate: startDate,
-          endDate: startDate,
-        });
+    if (!device) return;
 
-        // // console.log("resp from graph data ==>", resp.data.msg);
-        setLabels([...new Set(resp.data.msg.map((item) => item.time))]);
+    try {
+      const res = await POST(API.DEVICE.LATEST_DATA, {
+        deviceId: device._id,
+        sensorName: sensor,
+        deviceNumber: `${phasevalue - 1}`,
+        startDate,
+        endDate: startDate,
+      });
 
-        setGraphData(resp.data.msg);
-      } catch (error) {
-        // // console.log("error from getData () ", error);
-      }
+      // res already = response.data (interceptor ke baad)
+      setLabels([...new Set(res.msg.map((item) => item.time))]);
+      setGraphData(res.msg);
+    } catch (error) {
+      console.log("Error fetching graph data", error);
     }
   }
-
   React.useEffect(() => {
     getData();
   }, [sensor, startDate, value > 0, phasevalue]);

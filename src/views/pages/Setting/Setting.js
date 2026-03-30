@@ -46,7 +46,7 @@ export default function UserManagment() {
     setSnackerropen(false);
     setSnackErrMsg("");
   };
-  console.log("Admin Details", Admin);
+  // console.log("Admin Details", Admin);
 
   function ChangeInputState() {
     setInputState(false);

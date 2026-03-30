@@ -21,7 +21,7 @@ import PropTypes from "prop-types";
 import { styled } from "@mui/material/styles";
 import CloseIcon from "@mui/icons-material/Close";
 import { API } from "../../../../../../../../lib/endpoint";
-import { GET,POST } from "../../../../../../../../lib/request";
+import { GET, POST } from "../../../../../../../../lib/request";
 const BootstrapDialog = styled(Dialog)(({ theme }) => ({
   "& .MuiDialogContent-root": {
     padding: theme.spacing(2),
@@ -96,6 +96,9 @@ export default function MaxWidthDialog({ getnumberOfAssignSite, UserId }) {
   const handleChangeSite = (e, data) => {
     setSitesid(data._id);
   };
+
+  console.log("sites>>>>", sites);
+
   const getnumberOfSite = async () => {
     try {
       const res = await GET(API.SITE.COUNT);

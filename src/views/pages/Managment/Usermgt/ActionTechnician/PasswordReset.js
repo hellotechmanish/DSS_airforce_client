@@ -25,13 +25,29 @@ export default function ResetTechnicianPassword({
     formState: { errors },
   } = useForm();
 
-  const password = watch("password");
+  const password = watch("password") || "";
+
+  // 🔥 Live validation logic
+  const validations = {
+    length: password.length >= 8,
+    upper: /[A-Z]/.test(password),
+    lower: /[a-z]/.test(password),
+    number: /\d/.test(password),
+    special: /[#?!@$%^&*-]/.test(password),
+  };
+
+  const isPasswordValid =
+    validations.length &&
+    validations.upper &&
+    validations.lower &&
+    validations.number &&
+    validations.special;
 
   const onSubmit = async (data) => {
     try {
       const res = await POST(API.USERS.RESET_PASSWORD, {
         userId: techID,
-        password: data.confirmPassword,
+        password: data.password,
       });
 
       if (res) {
@@ -97,15 +113,11 @@ export default function ResetTechnicianPassword({
                       className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none"
                       {...register("password", {
                         required: "Password is required",
-                        minLength: {
-                          value: 8,
-                          message: "Minimum 8 characters required",
-                        },
                         pattern: {
                           value:
-                            /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[#?!@$%^&*-])/,
-                          message:
-                            "Must include uppercase, lowercase, number & special char",
+                            /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[#?!@$%^&*-]).{8,}$/,
+                          // message:
+                          //   "Min 8 chars with uppercase, lowercase, number & special character",
                         },
                       })}
                     />
@@ -128,6 +140,45 @@ export default function ResetTechnicianPassword({
                       {errors.password.message}
                     </p>
                   )}
+
+                  {/* 🔥 Live Password Checklist */}
+                  <div className="mt-2 space-y-1 text-xs">
+                    <p
+                      className={
+                        validations.length ? "text-green-600" : "text-gray-400"
+                      }
+                    >
+                      {validations.length ? "✔" : "✖"} At least 8 characters
+                    </p>
+                    <p
+                      className={
+                        validations.upper ? "text-green-600" : "text-gray-400"
+                      }
+                    >
+                      {validations.upper ? "✔" : "✖"} One uppercase letter
+                    </p>
+                    <p
+                      className={
+                        validations.lower ? "text-green-600" : "text-gray-400"
+                      }
+                    >
+                      {validations.lower ? "✔" : "✖"} One lowercase letter
+                    </p>
+                    <p
+                      className={
+                        validations.number ? "text-green-600" : "text-gray-400"
+                      }
+                    >
+                      {validations.number ? "✔" : "✖"} One number
+                    </p>
+                    <p
+                      className={
+                        validations.special ? "text-green-600" : "text-gray-400"
+                      }
+                    >
+                      {validations.special ? "✔" : "✖"} One special character
+                    </p>
+                  </div>
                 </div>
 
                 {/* Confirm Password */}
@@ -181,7 +232,12 @@ export default function ResetTechnicianPassword({
 
                 <button
                   type="submit"
-                  className="px-4 py-2 text-white rounded-lg bg-gradient-to-br from-[#0a192f] to-[#0f3057] hover:opacity-90 transition shadow-md"
+                  disabled={!isPasswordValid}
+                  className={`px-4 py-2 text-white rounded-lg transition shadow-md ${
+                    isPasswordValid
+                      ? "bg-gradient-to-br from-[#0a192f] to-[#0f3057] hover:opacity-90"
+                      : "bg-gray-400 cursor-not-allowed"
+                  }`}
                 >
                   Submit
                 </button>

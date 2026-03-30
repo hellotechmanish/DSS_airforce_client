@@ -11,7 +11,11 @@ export default function Admin() {
       {token && (
         <div>
           <Navbar />
-          <Outlet />
+
+          {/* 👇 ADD THIS */}
+          <div className="pt-16 px-4">
+            <Outlet />
+          </div>
         </div>
       )}
     </>

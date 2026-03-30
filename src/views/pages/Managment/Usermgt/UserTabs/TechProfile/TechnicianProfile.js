@@ -1,70 +1,56 @@
 import React from "react";
-import { Grid, Breadcrumbs, Typography, Container } from "@mui/material";
 import { Link, useLocation } from "react-router-dom";
 
 export default function UserManagment() {
   const { state } = useLocation();
 
   return (
-    <>
-      <Container maxWidth="xl">
-        <Grid container direction="row" className="widthLR-90 mt-24">
-          <Breadcrumbs separator="›" aria-label="breadcrumb">
-            <Link
-              to="/dashboard"
-              className="linkcolor"
-              underline="hover"
-              key="1"
-            >
-              <Typography className="sky-typo fs-16">Dashboard</Typography>
-            </Link>
-            ,
-            <Link
-              to="/user-management"
-              className="linkcolor"
-              underline="hover"
-              key="1"
-            >
-              <Typography className="heading-black  ">
-                User Management
-              </Typography>{" "}
-            </Link>
-            ,
-            <Typography className="heading-black  ">
-              {state?.fullName}
-            </Typography>
-          </Breadcrumbs>
-          <Grid container>
-            <Typography className="sky-typo fs-20 mt-24">
-              Personal Information
-            </Typography>
-            <Grid container justifyContent="space-between">
-              <Grid item md={3}>
-                <Typography className="heading-black mt-12">
-                  Full Name
-                </Typography>
-                <Typography className=" input-style-typo mt-12 ">
-                  {state?.fullName}
-                </Typography>{" "}
-              </Grid>{" "}
-              <Grid item md={3}>
-                <Typography className="heading-black mt-12">UID</Typography>
-                <Typography className=" input-style-typo  mt-12">
-                  {state?.uid}
-                </Typography>{" "}
-              </Grid>{" "}
-              <Grid item md={3}>
-                <Typography className="heading-black mt-12">
-                  Password
-                </Typography>
-                <Typography className=" input-style-typo mt-12 ">
-                  ********
-                </Typography>{" "}
-              </Grid>
-            </Grid>
-          </Grid>
-        </Grid>
-      </Container>
-    </>
+    <div className="p-6 bg-slate-100 min-h-screen">
+      {/* Breadcrumb */}
+      <nav className="text-sm mb-4">
+        <Link to="/dashboard" className="text-sky-500 font-medium">
+          Dashboard
+        </Link>
+
+        <span className="mx-2">›</span>
+
+        <Link to="/user-management" className="text-sky-500 font-medium">
+          User Management
+        </Link>
+
+        <span className="mx-2">›</span>
+
+        <span className="text-gray-700 font-semibold">{state?.fullName}</span>
+      </nav>
+
+      {/* Card */}
+      <div className="bg-white rounded-xl shadow border border-gray-200 p-6">
+        {/* Title */}
+        <h2 className="text-lg font-semibold text-[#0f3057] mb-6">
+          Personal Information
+        </h2>
+
+        {/* Info Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Full Name */}
+          <div>
+            <p className="text-sm text-gray-500 mb-1">Full Name</p>
+            <p className="text-gray-800 font-medium">{state?.fullName}</p>
+          </div>
+
+          {/* UID */}
+          <div>
+            <p className="text-sm text-gray-500 mb-1">UID</p>
+            <p className="text-gray-800 font-medium">{state?.uid}</p>
+          </div>
+
+          {/* Password */}
+          <div>
+            <p className="text-sm text-gray-500 mb-1">Password</p>
+            <p className="text-gray-800 font-medium">********</p>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }

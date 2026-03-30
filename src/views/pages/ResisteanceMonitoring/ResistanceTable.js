@@ -1,16 +1,21 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useContext } from "react";
 import { Link } from "react-router-dom";
 
 import { API } from "../../../lib/endpoint";
 import { GET } from "../../../lib/request";
 import NodataFound from "../../../assets/img/nodatafound.png";
+import { AuthContext } from "../../../context/AuthContext";
+import toast from "react-hot-toast";
+import { HiOutlineDownload } from "react-icons/hi";
+import { FiBell, FiCheckCircle } from "react-icons/fi";
 
 export default function Resistance() {
   const [resistance, setResistance] = useState([]);
   const [search, setSearch] = useState("");
-
+  const auth = useContext(AuthContext);
+  const [openModal, setOpenModal] = useState(false);
   // ================= FETCH =================
   const getAllSiteResistance = async () => {
     try {
@@ -38,6 +43,53 @@ export default function Resistance() {
     );
   }, [resistance, search]);
 
+  const downloadCSV = () => {
+    try {
+      const data = resistance; // table wala data
+
+      if (!data.length) {
+        toast.error("No data to download");
+        return;
+      }
+
+      const headers = [
+        "siteUid",
+        "siteName",
+        "nodeUid",
+        "deviceName",
+        "resistanceNumber",
+        "resistanceValue",
+      ];
+
+      const rows = data.map((item) =>
+        [
+          item.siteUid,
+          item.siteName,
+          item.nodeUid,
+          item.deviceName,
+          item.resistanceNumber,
+          item.resistanceValue,
+        ].join(","),
+      );
+
+      const csvContent = [headers.join(","), ...rows].join("\n");
+
+      const blob = new Blob([csvContent], { type: "text/csv" });
+      const url = window.URL.createObjectURL(blob);
+
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", "resistance_report.csv");
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+
+      toast.success("Downloaded");
+    } catch (err) {
+      toast.error("Download failed");
+    }
+  };
+
   return (
     <div className="p-6 bg-slate-100 min-h-screen">
       {/* Breadcrumb */}
@@ -62,18 +114,32 @@ export default function Resistance() {
       </div>
 
       {/* SEARCH */}
-      <div className="mb-4 flex justify-between items-center">
+      <div className="mb-4 flex items-center justify-between">
+        {/* LEFT */}
         <h3 className="text-xl font-semibold text-[#0f3057]">
           Active Resistance Devices
         </h3>
 
-        <input
-          type="text"
-          placeholder="Search..."
-          className="border border-gray-300 rounded-lg px-3 py-2 text-sm w-64 focus:ring-2 focus:ring-blue-500"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
+        {/* RIGHT SIDE WRAPPER */}
+        <div className="flex items-center gap-4 ml-auto">
+          {/* Search */}
+          <input
+            type="text"
+            placeholder="Search..."
+            className="border border-gray-300 rounded-lg px-3 py-2 text-sm w-64 focus:ring-2 focus:ring-blue-500 outline-none"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+
+          {/* Download Button (Extreme Right) */}
+          <button
+            onClick={downloadCSV}
+            className="flex items-center gap-2 px-4 py-2 bg-[#0f3057] text-white text-sm font-medium rounded-lg shadow hover:bg-[#163e6b] transition"
+          >
+            <HiOutlineDownload size={16} />
+            Download
+          </button>
+        </div>
       </div>
 
       {/* TABLE */}
@@ -82,12 +148,16 @@ export default function Resistance() {
           <thead className="bg-gray-50 text-gray-600">
             <tr>
               <th className="px-4 py-3 text-left">#</th>
-              <th className="px-4 py-3 text-left">Site UID</th>
+
               <th className="px-4 py-3 text-left">Site Name</th>
+              {auth?.user?.role !== "user" && (
+                <th className="px-4 py-3 text-left">Site UID</th>
+              )}
               <th className="px-4 py-3 text-left">Device UID</th>
               <th className="px-4 py-3 text-left">Device Name</th>
               <th className="px-4 py-3 text-left">Resistance UID</th>
               <th className="px-4 py-3 text-left">Resistance Value</th>
+              <th className="px-4 py-3 text-left">Alert</th>
             </tr>
           </thead>
 
@@ -101,18 +171,20 @@ export default function Resistance() {
                   <td className="px-4 py-3">{index + 1}</td>
 
                   <td className="px-4 py-3 text-blue-600 font-medium">
-                    {row?.siteId?.[0]?.uid || "-"}
+                    {row?.siteName || "-"}
                   </td>
 
-                  <td className="px-4 py-3 text-blue-600 font-medium">
-                    {row?.siteId?.[0]?.siteName || "-"}
-                  </td>
+                  {auth?.user?.role !== "user" && (
+                    <td className="px-4 py-3 ">{row?.siteUid || "-"}</td>
+                  )}
 
-                  <td className="px-4 py-3">{row?.nodeUid}</td>
+                  <td className="px-4 py-3">{row?.nodeUid} </td>
 
                   <td className="px-4 py-3">{row?.deviceName}</td>
 
-                  <td className="px-4 py-3">{row?.resistanceNumber}</td>
+                  <td className="px-4 py-3">
+                    {row?.resistanceNumber || "offline"}{" "}
+                  </td>
 
                   {/* 🔥 Highlight Logic */}
                   <td
@@ -124,6 +196,36 @@ export default function Resistance() {
                   >
                     {value}
                   </td>
+                  <td className="px-4 py-3 text-center">
+                    <div className="relative group flex justify-center items-center">
+                      {value > threshold ? (
+                        //  ALERT
+                        <button onClick={() => setOpenModal(true)}>
+                          <FiBell className="text-red-500 text-lg animate-pulse cursor-pointer" />
+                        </button>
+                      ) : (
+                        //  SAFE
+                        <FiCheckCircle className="text-green-500 text-lg cursor-pointer" />
+                      )}
+
+                      {/*  TOOLTIP LEFT SIDE */}
+                      <div className="absolute right-16 opacity-0 group-hover:opacity-100 transition-all duration-200 bg-white text-red-500 text-xs rounded px-3 py-1 shadow-lg whitespace-nowrap z-10 flex items-center gap-1 border">
+                        {/* icon inside tooltip */}
+                        {value > threshold ? (
+                          <FiBell className="text-red-500 text-xs" />
+                        ) : (
+                          <FiCheckCircle className="text-green-500 text-xs" />
+                        )}
+
+                        {/* text */}
+                        <span>
+                          {value > threshold
+                            ? "Value exceeded threshold"
+                            : "All values normal"}
+                        </span>
+                      </div>
+                    </div>
+                  </td>
                 </tr>
               );
             })}
@@ -133,11 +235,58 @@ export default function Resistance() {
         {/* NO DATA */}
         {filteredData.length === 0 && (
           <div className="flex flex-col items-center justify-center h-[50vh]">
-            <img src={NodataFound} className="w-40 opacity-80" />
+            <img
+              alt="nodafound"
+              src={NodataFound}
+              className="w-40 opacity-80"
+            />
             <p className="mt-4 text-blue-500 font-medium">No Device Found</p>
           </div>
         )}
       </div>
+
+      {openModal && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
+          {/* Modal Card */}
+          <div className="bg-white rounded-2xl p-6 w-[360px] shadow-xl animate-fadeIn">
+            {/* Header */}
+            <div className="flex items-center gap-2 mb-4">
+              <div className="bg-red-100 p-2 rounded-full">
+                <FiBell className="text-red-500 text-lg" />
+              </div>
+              <h2 className="text-lg font-semibold text-gray-800">
+                Alert Warning
+              </h2>
+            </div>
+
+            {/* Message */}
+            <p className="text-gray-600 text-sm leading-relaxed">
+              Resistance value is higher than the defined threshold. Please
+              inspect the system and improve grounding to ensure safety.
+            </p>
+
+            {/* Divider */}
+            <div className="border-t my-4"></div>
+
+            {/* Actions */}
+            <div className="flex justify-end gap-2">
+              {/* <button
+                onClick={() => setOpenModal(false)}
+                className="px-3 py-1.5 text-sm rounded-lg border text-gray-600 hover:bg-gray-100"
+              >
+                Cancel
+              </button> */}
+
+              <button
+                onClick={() => setOpenModal(false)}
+                className="px-3 py-1.5 text-sm rounded-lg bg-red-500 text-white hover:bg-red-600"
+              >
+                Acknowledge
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

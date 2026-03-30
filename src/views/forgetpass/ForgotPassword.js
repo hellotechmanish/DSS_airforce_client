@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import {
   TextField,
@@ -12,7 +12,6 @@ import {
 import { useNavigate } from "react-router-dom";
 import { POST } from "../../lib/request.js";
 import { API } from "../../lib/endpoint.js";
-import { useState } from "react";
 import CircularProgress from "@mui/material/CircularProgress";
 
 const ForgotPassword = () => {
@@ -26,34 +25,44 @@ const ForgotPassword = () => {
     formState: { errors },
   } = useForm();
 
-  const newPassword = watch("newPassword");
+  const password = watch("newPassword") || "";
+
+  // 🔥 Live validations
+  const validations = {
+    length: password.length >= 8,
+    upper: /[A-Z]/.test(password),
+    lower: /[a-z]/.test(password),
+    number: /\d/.test(password),
+    special: /[#?!@$%^&*-]/.test(password),
+  };
+
+  const isPasswordValid =
+    validations.length &&
+    validations.upper &&
+    validations.lower &&
+    validations.number &&
+    validations.special;
+
+  const newPassword = password;
 
   const handleForgotPassword = async (data) => {
-    if (loading) return; // prevent double click
+    if (loading) return;
 
-    const payload = {
-      uid: data.uid,
-      secretKey: data.secretKey,
-      newPassword: data.newPassword,
-      confirmPassword: data.confirmPassword,
-    };
+    if (!isPasswordValid) return;
 
     try {
       setLoading(true);
 
-      const response = await POST(API.AUTH.FORGOTPASSWORD, payload);
+      const response = await POST(API.AUTH.FORGOTPASSWORD, {
+        uid: data.uid,
+        secretKey: data.secretKey,
+        newPassword: data.newPassword,
+        confirmPassword: data.confirmPassword,
+      });
 
       if (response?.msg === "Password reset successful") {
-        // setSnackmsg(response.msg);
-        // setSnackopen(true);
-
-        setTimeout(() => {
-          navigate("/signIn");
-        }, 1500);
+        navigate("/signIn");
       }
-    } catch (error) {
-      //   setSnackErrMsg(error?.msg || "Something went wrong");
-      //   setSnackerropen(true);
     } finally {
       setLoading(false);
     }
@@ -66,7 +75,6 @@ const ForgotPassword = () => {
       alignItems="center"
       style={{
         minHeight: "100vh",
-        // background: "#f4f6f9",
         background: "linear-gradient(to bottom, #001f3f, #003366)",
       }}
     >
@@ -79,15 +87,10 @@ const ForgotPassword = () => {
             borderTop: "6px solid #ff9933",
           }}
         >
-          {/* Header */}
           <Typography
             variant="h5"
             align="center"
-            style={{
-              fontWeight: 600,
-              color: "#003366",
-              marginBottom: "10px",
-            }}
+            style={{ fontWeight: 600, color: "#003366", marginBottom: "10px" }}
           >
             Reset Password
           </Typography>
@@ -108,9 +111,7 @@ const ForgotPassword = () => {
               fullWidth
               label="Previous UID"
               margin="normal"
-              {...register("uid", {
-                required: "UID is required",
-              })}
+              {...register("uid", { required: "UID is required" })}
               error={!!errors.uid}
               helperText={errors.uid?.message}
             />
@@ -136,14 +137,46 @@ const ForgotPassword = () => {
               type="password"
               {...register("newPassword", {
                 required: "New password is required",
-                minLength: {
-                  value: 6,
-                  message: "Minimum 6 characters required",
+                pattern: {
+                  value:
+                    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[#?!@$%^&*-]).{8,}$/,
+                  message: "Password does not meet requirements",
                 },
               })}
               error={!!errors.newPassword}
               helperText={errors.newPassword?.message}
             />
+
+            {/* 🔥 Live Checklist */}
+            <Box mt={1} mb={2}>
+              <Grid container spacing={1} fontSize="2px">
+                {/* LEFT SIDE (3 items) */}
+                <Grid item xs={6}>
+                  <Typography color={validations.length ? "green" : "gray"}>
+                    {validations.length ? "✔" : "✖"} At least 8 characters
+                  </Typography>
+
+                  <Typography color={validations.upper ? "green" : "gray"}>
+                    {validations.upper ? "✔" : "✖"} One uppercase letter
+                  </Typography>
+
+                  <Typography color={validations.lower ? "green" : "gray"}>
+                    {validations.lower ? "✔" : "✖"} One lowercase letter
+                  </Typography>
+                </Grid>
+
+                {/* RIGHT SIDE (2 items) */}
+                <Grid item xs={6}>
+                  <Typography color={validations.number ? "green" : "gray"}>
+                    {validations.number ? "✔" : "✖"} One number
+                  </Typography>
+
+                  <Typography color={validations.special ? "green" : "gray"}>
+                    {validations.special ? "✔" : "✖"} One special character
+                  </Typography>
+                </Grid>
+              </Grid>
+            </Box>
 
             {/* Confirm Password */}
             <TextField
@@ -164,13 +197,12 @@ const ForgotPassword = () => {
               type="submit"
               fullWidth
               variant="contained"
-              disabled={loading}
+              disabled={loading || !isPasswordValid}
               style={{
                 marginTop: "30px",
-                backgroundColor: "#003366",
+                backgroundColor: isPasswordValid ? "#003366" : "gray",
                 padding: "12px",
                 fontWeight: 700,
-                letterSpacing: "1px",
               }}
             >
               {loading ? (
@@ -186,7 +218,6 @@ const ForgotPassword = () => {
               )}
             </Button>
 
-            {/* Back to Login */}
             <Typography
               align="center"
               style={{

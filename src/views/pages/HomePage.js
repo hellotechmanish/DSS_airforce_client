@@ -12,7 +12,6 @@ import { GET } from "../../lib/request";
 import { API } from "../../lib/endpoint";
 
 function App() {
-
   const [, setLoading] = useState(false);
 
   const [value, setValue] = useState(0);
@@ -28,58 +27,51 @@ function App() {
 
   const user = getUser();
 
-  console.log("deviceID", deviceID);
+  // console.log("sites", sites[0]);
+
+  // console.log("deviceID", deviceID);
 
   // ================= SITE FETCH =================
 
   const getnumberOfSite = async () => {
     try {
-
       setLoading(true);
 
       const resp = await GET(API.SITE.COUNT);
 
       if (Array.isArray(resp?.msg) && resp.msg.length > 0) {
-
         setSites(resp.msg);
 
         // 🔹 first site with devices
         const firstActiveSite =
           resp.msg.find((site) => site.deviceCount > 0) || resp.msg[0];
+        console.log("firstActiveSite?._id", firstActiveSite?._id);
 
         setSitesID(firstActiveSite?._id);
         setSiteZero(firstActiveSite);
         setSelectSiteData(firstActiveSite);
 
         const index = resp.msg.findIndex(
-          (site) => site._id === firstActiveSite._id
+          (site) => site._id === firstActiveSite._id,
         );
 
         setValue(index);
-
       }
-
     } catch (err) {
-
       console.error(err);
-
     } finally {
-
       setLoading(false);
-
     }
   };
 
   // ================= DEVICE FETCH =================
 
   const getdeviceListbysite = async (siteId) => {
-
     if (!siteId) return;
 
     console.log("siteId from getdeviceListbysite", siteId);
 
     try {
-
       setLoading(true);
 
       const resp = await GET(API.DEVICE.LIST_BY_SITEID(siteId));
@@ -87,17 +79,11 @@ function App() {
       console.log("resp from getdeviceListbysite", resp);
 
       setDevice(Array.isArray(resp?.msg) ? resp.msg : []);
-
     } catch (err) {
-
       console.error(err);
-
     } finally {
-
       setLoading(false);
-
     }
-
   };
 
   // ================= EFFECTS =================
@@ -107,13 +93,11 @@ function App() {
   }, []);
 
   useEffect(() => {
-
-    console.log("sitesID from useEffect", sitesID);
+    // console.log("sitesID from useEffect", sitesID);
 
     if (sitesID) {
       getdeviceListbysite(sitesID);
     }
-
   }, [sitesID]);
 
   useEffect(() => {
@@ -123,7 +107,6 @@ function App() {
   // ================= TAB CHANGE =================
 
   const TabChange = (index) => {
-
     setValue(index);
 
     const selectedSite = sites[index];
@@ -131,19 +114,14 @@ function App() {
     setSelectSiteData(selectedSite);
 
     setSitesID(selectedSite?._id);
-
   };
 
   // ================= UI =================
 
   return (
-
     <div className="mx-auto px-4 py-6">
-
       {sites?.length > 0 ? (
-
         <>
-
           {/* ================= SITE SECTION ================= */}
 
           <div
@@ -151,13 +129,9 @@ function App() {
             bg-gradient-to-r from-[#0a192f] to-[#0f3057] 
             shadow-lg border border-[#1f4068]"
           >
-
             <div className="flex justify-between items-center">
-
               <div className="flex overflow-x-auto gap-4 scrollbar-hide">
-
                 {sites.map((site, index) => (
-
                   <button
                     key={site._id}
                     onClick={() => TabChange(index)}
@@ -169,7 +143,6 @@ function App() {
                         : "bg-[#1f4068] text-white hover:bg-[#274c77]"
                     }`}
                   >
-
                     <span>{site.siteName}</span>
 
                     <span
@@ -180,19 +153,13 @@ function App() {
                           : "bg-white text-[#0f3057]"
                       }`}
                     >
-
                       {site.deviceCount}
-
                     </span>
-
                   </button>
-
                 ))}
-
               </div>
 
-              {(user?.role !== "user" && user?.role !== "technician") && (
-
+              {user?.role !== "user" && user?.role !== "technician" && (
                 <AddSiteDialog
                   getnumberOfSite={getnumberOfSite}
                   buttonClass="px-5 py-2 
@@ -203,27 +170,17 @@ function App() {
                   transition-all duration-200
                   hover:bg-blue-900 hover:text-white"
                 />
-
               )}
-
             </div>
-
           </div>
 
           {/* ================= DEVICE SECTION ================= */}
 
           <div className="bg-white rounded-xl shadow border p-5">
-
             <div className="flex justify-between items-center">
+              <h2 className="text-lg font-bold text-[#0f3057]">Devices</h2>
 
-              <h2 className="text-lg font-bold text-[#0f3057]">
-
-                Devices
-
-              </h2>
-
-              {(user?.role !== "user" && user?.role !== "technician") && (
-
+              {user?.role !== "user" && user?.role !== "technician" && (
                 <AddDevice
                   getnumberOfSite={getnumberOfSite}
                   getdeviceListbysite={getdeviceListbysite}
@@ -231,41 +188,30 @@ function App() {
                   sitezero={sitezero}
                   value={value}
                 />
-
               )}
-
             </div>
 
             {/* Device List */}
 
             {deviceID?.length > 0 ? (
-
               <DeviceTab
                 deviceID={deviceID}
                 value1={value1}
                 setValue1={setValue1}
               />
-
             ) : (
-
+              // <div></div>
               <div className="flex flex-col items-center justify-center py-16">
-
                 <img
                   src={NodataFound}
                   alt="No Device"
                   className="w-48 opacity-70"
                 />
 
-                <p className="mt-4 text-gray-600">
+                <p className="mt-4 text-gray-600">No Device found</p>
 
-                  No Device found
-
-                </p>
-
-                {(user?.role !== "user" && user?.role !== "technician") && (
-
+                {user?.role !== "user" && user?.role !== "technician" && (
                   <div className="mt-4">
-
                     <AddDevice
                       getnumberOfSite={getnumberOfSite}
                       getdeviceListbysite={getdeviceListbysite}
@@ -273,39 +219,20 @@ function App() {
                       sitezero={sitezero}
                       value={value}
                     />
-
                   </div>
-
                 )}
-
               </div>
-
             )}
-
           </div>
-
         </>
-
       ) : (
-
         <div className="flex flex-col items-center justify-center h-[80vh]">
+          <img src={NodataFound} alt="No Site" className="w-52 opacity-70" />
 
-          <img
-            src={NodataFound}
-            alt="No Site"
-            className="w-52 opacity-70"
-          />
+          <p className="mt-4 text-gray-600">No Site found</p>
 
-          <p className="mt-4 text-gray-600">
-
-            No Site found
-
-          </p>
-
-          {(user?.role !== "user" && user?.role !== "technician") && (
-
+          {user?.role !== "user" && user?.role !== "technician" && (
             <div className="mt-4">
-
               <AddSiteDialog
                 getnumberOfSite={getnumberOfSite}
                 buttonClass="px-5 py-2 
@@ -316,17 +243,11 @@ function App() {
                 transition-all duration-200
                 hover:bg-blue-900 hover:text-white"
               />
-
             </div>
-
           )}
-
         </div>
-
       )}
-
     </div>
-
   );
 }
 

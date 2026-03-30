@@ -43,44 +43,62 @@ function App({ deviceID, value1, setValue1, value }) {
   const intervalId = React.useRef(sensor);
 
   const getDeviceById = async (deviceID) => {
+    if (!deviceID) {
+      console.warn("Skipped API call, invalid deviceID:", deviceID);
+      return;
+    }
     try {
       const res = await GET(API.DEVICE.GET_BY_ID(deviceID));
 
-      console.log("res from getDeviceById", res);
-
-      if (res) {
-        setSensorValue(res?.msg || {});
+      if (!res || res.msg === "deviceID not found") {
+        console.warn("Device not found:", deviceID);
+        setSensorValue({});
+        return;
       }
+
+      setSensorValue(res?.msg || {});
     } catch (error) {
-      console.error("Error in getDeviceById:", error);
+      console.error("API call failed:", error);
       setSensorValue({});
     }
   };
 
   const handleChange2 = (event, newValue) => {
     setValue1(newValue);
-    getDeviceById(deviceID[newValue]?._id);
-    setDeviceID2(deviceID[newValue]?._id);
+
+    const selectedId = deviceID[newValue]?._id;
+
+    if (!selectedId) {
+      console.warn("Invalid selection:", newValue);
+      return;
+    }
+
+    setDeviceID2(selectedId);
+    getDeviceById(selectedId); // optional (can rely on useEffect)
     setSensor("RES");
   };
+
   useEffect(() => {
-    // //("deviceId  ===>", deviceID);
-    setDeviceID2(deviceID[0]?._id);
+    if (deviceID?.length > 0) {
+      setDeviceID2(deviceID[0]._id);
+    }
   }, [deviceID]);
 
   useEffect(() => {
-    getDeviceById(deviceID2);
+    if (deviceID2) {
+      getDeviceById(deviceID2);
+    }
   }, [deviceID2]);
 
   useEffect(() => {
-    let interval = setInterval(() => {
+    if (!deviceID2) return;
+
+    const interval = setInterval(() => {
       getDeviceById(deviceID2);
     }, 10000);
 
-    return () => {
-      clearInterval(interval);
-    };
-  }, [deviceID2, value1]);
+    return () => clearInterval(interval);
+  }, [deviceID2]);
 
   const SensorTypeChange = (newValue) => {
     setSensor(newValue);
@@ -224,27 +242,29 @@ function App({ deviceID, value1, setValue1, value }) {
                       className="table-freecell"
                       sx={{ borderLeft: "2px solid #dddddd" }}
                     ></Typography>
-                    <Grid item>
-                      {sensorValue?.ResValues?.DATASTREAMS?.map(
-                        (item, index) => {
-                          return (
-                            <>
+                    <Grid item xs={12}>
+                      <div style={{ textAlign: "center" }}>
+                        {sensorValue?.ResValues?.DATASTREAMS?.map(
+                          (item, index) => {
+                            return (
                               <Typography
+                                key={index}
                                 align="center"
+                                style={{ display: "block" }}
                                 className={
                                   sensorValue.resSensorsThreshold <
                                   Object.values(item)[1]
-                                    ? "width100 table-cell table-cellbg fw-500 fs-14 "
-                                    : "width100  table-cell fw-500 fs-14 "
+                                    ? "width100 table-cell table-cellbg fw-500 fs-14"
+                                    : "width100 table-cell fw-500 fs-14"
                                 }
                               >
                                 R{index + 1} :
-                                <span>{Object.values(item)[1]} Ω</span>
+                                <span> {Object.values(item)[1]} Ω</span>
                               </Typography>
-                            </>
-                          );
-                        },
-                      )}
+                            );
+                          },
+                        )}
+                      </div>
                     </Grid>
                   </Grid>
                 ) : null}
@@ -299,26 +319,35 @@ function App({ deviceID, value1, setValue1, value }) {
                       className="table-freecell"
                       sx={{ borderLeft: "2px solid #dddddd" }}
                     ></Typography>
-                    <Grid item>
+                    <Grid
+                      item
+                      xs={12}
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
                       {sensorValue?.NerValues?.DATASTREAMS?.map(
                         (item, index) => {
                           return (
-                            <>
-                              <Typography
-                                align="center"
-                                className={
-                                  sensorValue.nerSensorsThreshold <
-                                  Object.values(item)[1]
-                                    ? "width100 table-cell table-cellbg fw-500  fs-14"
-                                    : "width100  table-cell fw-500  fs-14"
-                                }
-                              >
-                                GN{index + 1} :
-                                <span className="width100    fw-500">
-                                  {Object.values(item)[1]} V
-                                </span>
-                              </Typography>
-                            </>
+                            <Typography
+                              key={index}
+                              align="center"
+                              className={
+                                sensorValue.nerSensorsThreshold <
+                                Object.values(item)[1]
+                                  ? "width100 table-cell table-cellbg fw-500 fs-14"
+                                  : "width100 table-cell fw-500 fs-14"
+                              }
+                            >
+                              GN{index + 1} :
+                              <span className="fw-500">
+                                {" "}
+                                {Object.values(item)[1]} V
+                              </span>
+                            </Typography>
                           );
                         },
                       )}

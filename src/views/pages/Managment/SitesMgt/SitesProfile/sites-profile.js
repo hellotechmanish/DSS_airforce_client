@@ -1,838 +1,449 @@
-import React, { useCallback, useEffect, useState } from "react";
-import PropTypes from "prop-types";
-import {
-  Typography,
-  Breadcrumbs,
-  Grid,
-  Container,
-  Tabs,
-  Tab,
-} from "@mui/material";
-import { Link, useLocation } from "react-router-dom";
-import AddDeviceDialog from "../../DeviceMgt/AddDevice/AddDevice";
-import Viewprofile from "../../DeviceMgt/DeviceProfile/DeviceprofielDiialog";
-import NodataFound from "../../../../../assets/img/nodatafound.png";
-import DeviceGraph from "./DeviceGraph";
-import { AuthContext } from "../../../../../context/AuthContext";
+import React, { useEffect, useState, useCallback } from "react";
+import { useLocation } from "react-router-dom";
+import { useForm } from "react-hook-form";
 import { API } from "../../../../../lib/endpoint";
-import { GET } from "../../../../../lib/request";
-function TabPanel(props) {
-  const { children, value, index, ...other } = props;
+import { GET, POST } from "../../../../../lib/request";
+import AddDevice from "../../../HomePageTab/AddDevice/AddDevice";
 
-  return (
-    <div
-      role="tabpanel"
-      hidden={value !== index}
-      id={`simple-tabpanel-${index}`}
-      aria-labelledby={`simple-tab-${index}`}
-      {...other}
-    >
-      {value === index && <Typography>{children}</Typography>}
-    </div>
-  );
-}
-
-TabPanel.propTypes = {
-  children: PropTypes.node,
-  index: PropTypes.number.isRequired,
-  value: PropTypes.number.isRequired,
-};
-function a11yProps(index) {
-  return {
-    id: `simple-tab-${index}`,
-    "aria-controls": `simple-tabpanel-${index}`,
-  };
-}
 export default function Sites() {
   const { state } = useLocation();
-  const [value, setValue] = React.useState(0);
 
-  const [device, setDevice] = useState(null);
-  const [deviceID2, setDeviceID2] = useState(null);
-  const [sensor, setSensor] = useState("RES");
-  const [sensorValue, setSensorValue] = useState(null);
+  const [devices, setDevices] = useState([]);
+  const [selectedDevice, setSelectedDevice] = useState(null);
+  const [activeDeviceId, setActiveDeviceId] = useState(null);
+  const [loading, setLoading] = useState(false);
 
-  const intervalId = React.useRef(sensor);
+  // 🔹 Pagination States
+  const [currentPage, setCurrentPage] = useState(1);
+  const devicesPerPage = 12;
 
-  const auth = React.useContext(AuthContext);
+  const { register, handleSubmit, reset } = useForm();
+
+  // 🔹 Fetch devices
   const getdeviceListbysite = useCallback(async () => {
     try {
       if (!state?._id) return;
 
       const res = await GET(API.DEVICE.LIST_BY_SITEID(state._id));
-
-      const newDevices = res?.msg || [];
-
-      setDevice(newDevices);
-    } catch (error) {
-      console.error("Error fetching device list:", error);
-      setDevice([]);
+      setDevices(Array.isArray(res?.msg) ? res.msg : []);
+      setCurrentPage(1); // Reset page on new site load
+    } catch (err) {
+      console.error(err);
+      setDevices([]);
     }
   }, [state?._id]);
 
-  const getnumberOfDevice = async (deviceID) => {
+  useEffect(() => {
+    getdeviceListbysite();
+  }, [getdeviceListbysite]);
+
+  // 🔹 Pagination Logic
+  const indexOfLastDevice = currentPage * devicesPerPage;
+  const indexOfFirstDevice = indexOfLastDevice - devicesPerPage;
+  const currentDevices = devices.slice(indexOfFirstDevice, indexOfLastDevice);
+  const totalPages = Math.ceil(devices.length / devicesPerPage);
+
+  console.log("selectedDevice", selectedDevice);
+
+  const handlePrevPage = () => {
+    if (currentPage > 1) setCurrentPage(currentPage - 1);
+  };
+
+  const handleNextPage = () => {
+    if (currentPage < totalPages) setCurrentPage(currentPage + 1);
+  };
+
+  // 🔹 Click device
+  const handleDeviceClick = async (device) => {
     try {
-      const res = await GET(API.DEVICE.GET_BY_ID(deviceID));
+      setActiveDeviceId(device._id);
+      setLoading(true);
+      setSelectedDevice(null);
 
-      const newDevices = res?.msg;
+      const res = await GET(API.DEVICE.GET_BY_ID(device._id));
+      const data = res?.msg;
 
-      if (newDevices) {
-        console.log(newDevices);
+      setSelectedDevice(data);
 
-        setSensorValue(newDevices);
-        setDeviceID2(newDevices?._id);
-      }
-    } catch (error) {
-      console.error("Error fetching device:", error);
-      setSensorValue(null);
+      // ✅ Prefill form
+      // ✅ Prefill form
+      reset({
+        deviceName: data.deviceName,
+        nodeUid: data.nodeUid,
+        temp: data.temp,
+        humidity: data.humidity,
+        resSensors: data.resSensors,
+        nerSensors: data.nerSensors,
+        vmrSensors: data.vmrSensors,
+        spdSensors: data.spdSensors,
+
+        // Thresholds
+        resSensorsThreshold: data.resSensorsThreshold,
+        nerSensorsThreshold: data.nerSensorsThreshold,
+        spdSensorsThreshold: data.spdSensorsThreshold,
+
+        // 🟢 Nested Phase Thresholds (vmrSensorsThreshold)
+        vmrSensorsThreshold: {
+          r: data.vmrSensorsThreshold?.r || 0,
+          y: data.vmrSensorsThreshold?.y || 0,
+          b: data.vmrSensorsThreshold?.b || 0,
+          ry: data.vmrSensorsThreshold?.ry || 0,
+          yb: data.vmrSensorsThreshold?.yb || 0,
+          rb: data.vmrSensorsThreshold?.rb || 0,
+        },
+      });
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const TabChange = (event, newValue) => {
-    setValue(newValue);
-    setSensor("RES");
-    if (device) {
-      getnumberOfDevice(device[newValue]?._id);
-      setDeviceID2(device[newValue]?._id);
-    }
-  };
+  // 🔹 Submit update
+  const onSubmit = async (formData) => {
+    console.log("formate", formData);
 
-  useEffect(() => {
-    if (state) {
+    try {
+      await POST(API.DEVICE.EDIT, {
+        deviceId: selectedDevice._id,
+        ...formData,
+      });
+
+      alert("Device Updated ✅");
       getdeviceListbysite();
+    } catch (err) {
+      console.error(err);
     }
-  }, [state, getdeviceListbysite]);
-
-  useEffect(() => {
-    if (device) {
-      setDeviceID2(device[0]?._id);
-    }
-  }, [device, state]);
-
-  useEffect(() => {
-    if (deviceID2) {
-      getnumberOfDevice(deviceID2);
-    }
-  }, [deviceID2]);
-
-  useEffect(() => {
-    let interval = setInterval(() => {
-      getnumberOfDevice(deviceID2);
-    }, 10000);
-    return () => {
-      clearInterval(interval);
-    };
-  }, [deviceID2]);
-
-  const SensorTypeChange = (newValue) => {
-    setSensor(newValue);
   };
+
+  if (!state) return <div className="p-6">No Site</div>;
 
   return (
-    <>
-      <Container maxWidth="xl">
-        <Grid container direction="row" className="widthLR-90 mt-24">
-          <Breadcrumbs separator="›" aria-label="breadcrumb">
-            <Link
-              to="/dashboard"
-              className="linkcolor"
-              underline="hover"
-              key="1"
-            >
-              <Typography className="sky-typo fs-16">Dashboard</Typography>
-            </Link>
-            ,
-            <Link
-              to="/sites-mgt"
-              className="linkcolor"
-              underline="hover"
-              key="2"
-            >
-              <Typography className="heading-black  ">
-                Site Management
-              </Typography>
-            </Link>
-            ,
-            <Typography className="heading-black">{state?.siteName}</Typography>
-          </Breadcrumbs>
-        </Grid>
-      </Container>
-      <div className="sites-profilehead mt-16">
-        <Container maxWidth="xl">
-          <Grid
-            container
-            justifyContent="space-between"
-            direction="row"
-            className="widthLR-90"
-          >
-            <Grid item>
-              <Typography className="white-typo mt-12 fs-20 ">
-                {state?.siteName}
-              </Typography>
-              <Typography className="white-typo mt-12 ">
-                {state?.location}
-              </Typography>
-              <Typography className="white-typo mb-10 ">
-                {state?.pincode},
-                <span className="white-typo mt-12 ml-4">{state?.country}</span>
-              </Typography>
-            </Grid>
-            <Grid item>
-              <Grid container justifyContent="flex-end" alignItems="flex-end">
-                <Typography className="white-typo mt-16">
-                  Last Modified :
-                  <span className="white-typo">
-                    {new Date(state?.createdAt)
-                      .toLocaleDateString("en-US", {
-                        year: "numeric",
-                        month: "2-digit",
-                        day: "2-digit",
-                      })
-                      .replace(/\./g, "/")}
-                  </span>
-                </Typography>
-              </Grid>
-            </Grid>
-          </Grid>
-        </Container>
-      </div>
-      <Container maxWidth="xl">
-        <div className="widthLR-90">
-          {auth.user.role === "user" ||
-          auth.user.role === "technician" ? null : (
-            <Grid
-              container
-              direction="row"
-              justifyContent="space-between"
-              alignItems="center"
-            >
-              <Typography className="heading-black mt-12">
-                Showing{" "}
-                <span>
-                  {device?.length} {device?.length === 1 ? "Device" : "Devices"}
-                </span>
-              </Typography>
-              <Grid item className="mt-16 hgt-40">
-                <AddDeviceDialog
-                  state={state}
-                  getdeviceListbysite={getdeviceListbysite}
-                />
-              </Grid>
-            </Grid>
-          )}
-
-          <Grid container direction="row">
-            <Grid container item sx={{ width: "100%" }}>
-              <Tabs
-                value={value}
-                onChange={TabChange}
-                className="Tabs-dashboard2"
-                variant={value === 0 ? null : "scrollable"}
-                scrollButtons={value === 0 ? null : "auto"}
-              >
-                {device && device?.length > 0
-                  ? device?.map((data, index) => {
-                      return (
-                        <Tab
-                          className="Tab-dashboardlabel2 fs-16 mr-20 hover hgt-40"
-                          {...a11yProps(index)}
-                          label={
-                            <>
-                              <Typography className="sitesname">
-                                {data.deviceName}
-                              </Typography>
-                            </>
-                          }
-                        />
-                      );
-                    })
-                  : null}
-              </Tabs>
-            </Grid>
-          </Grid>
-          {device && device?.length > 0 ? (
-            <Grid container className="mt-16 mb-40" sx={{ height: "100vh" }}>
-              <TabPanel value={value} index={value} className="width100">
-                <Grid container className="border-grey mt-16">
-                  <Grid item md={1.5}>
-                    <Typography
-                      align="center"
-                      className="width100 table-head table-head fw-500"
-                    >
-                      DEVICE NAME
-                    </Typography>
-                    <Typography className="table-freecell"> </Typography>
-
-                    <Grid
-                      container
-                      direction="row"
-                      alignItems="center"
-                      sx={{
-                        borderRight: "1px solid #dddddd",
-                        paddingBottom: "20px",
-                      }}
-                    >
-                      <Grid item className="width100">
-                        <Typography
-                          align="center"
-                          className="width100  heading-black  "
-                        >
-                          {sensorValue?.deviceName}
-                        </Typography>
-                        <Typography
-                          align="center"
-                          className="width100 blue-typo cursor "
-                        >
-                          <Viewprofile
-                            sensorValue={sensorValue}
-                            deviceID2={deviceID2}
-                            getdeviceListbysite={getdeviceListbysite}
-                            getnumberOfDevice={getnumberOfDevice}
-                          />
-                        </Typography>
-                      </Grid>
-                    </Grid>
-                  </Grid>
-                  {sensorValue?.resSensors ? (
-                    <Grid
-                      item
-                      md={
-                        sensorValue?.nerSensors &&
-                        sensorValue?.resSensors &&
-                        sensorValue?.spdSensors &&
-                        sensorValue.vmrSensors
-                          ? 1.3
-                          : 0 ||
-                              (sensorValue?.nerSensors &&
-                                sensorValue?.resSensors &&
-                                sensorValue?.spdSensors)
-                            ? 3.5
-                            : 0 ||
-                                (sensorValue?.nerSensors &&
-                                  sensorValue?.resSensors &&
-                                  sensorValue?.vmrSensors)
-                              ? 1.5
-                              : 0 ||
-                                  (sensorValue?.spdSensors &&
-                                    sensorValue?.resSensors &&
-                                    sensorValue?.vmrSensors)
-                                ? 1.7
-                                : 0 ||
-                                    (sensorValue?.nerSensors &&
-                                      sensorValue?.resSensors)
-                                  ? 5.25
-                                  : 0 ||
-                                      (sensorValue?.spdSensors &&
-                                        sensorValue?.resSensors)
-                                    ? 5.25
-                                    : 0 ||
-                                        (sensorValue?.vmrSensors &&
-                                          sensorValue?.resSensors)
-                                      ? 1.5
-                                      : 0 || sensorValue?.resSensors
-                                        ? 10.5
-                                        : 0
-                      }
-                    >
-                      <Typography
-                        align="center"
-                        className="width100  table-head  fw-500"
-                      >
-                        RESISTANCE
-                      </Typography>
-                      <Typography
-                        className="table-freecell"
-                        sx={{ borderLeft: "2px solid #dddddd" }}
-                      ></Typography>
-                      <Grid item>
-                        {sensorValue.ResValues &&
-                          sensorValue?.ResValues?.DATASTREAMS?.map(
-                            (item, index) => {
-                              return (
-                                <>
-                                  <Typography
-                                    align="center"
-                                    className={
-                                      sensorValue.resSensorsThreshold <
-                                      Object.values(item)[1]
-                                        ? "width100 table-cell table-cellbg fw-500 fs-14 "
-                                        : "width100  table-cell fw-500 fs-14 "
-                                    }
-                                  >
-                                    R{index + 1} :
-                                    <span>{Object.values(item)[1]} Ω</span>
-                                  </Typography>
-                                </>
-                              );
-                            },
-                          )}
-                      </Grid>
-                    </Grid>
-                  ) : null}
-                  {sensorValue && sensorValue?.nerSensors ? (
-                    <Grid
-                      item
-                      md={
-                        sensorValue?.nerSensors &&
-                        sensorValue?.resSensors &&
-                        sensorValue?.spdSensors &&
-                        sensorValue.vmrSensors
-                          ? 1.3
-                          : 0 ||
-                              (sensorValue?.nerSensors &&
-                                sensorValue?.resSensors &&
-                                sensorValue?.spdSensors)
-                            ? 3.5
-                            : 0 ||
-                                (sensorValue?.nerSensors &&
-                                  sensorValue?.resSensors &&
-                                  sensorValue?.vmrSensors)
-                              ? 1.5
-                              : 0 ||
-                                  (sensorValue?.nerSensors &&
-                                    sensorValue?.spdSensors &&
-                                    sensorValue?.vmrSensors)
-                                ? 1.5
-                                : 0 ||
-                                    (sensorValue?.nerSensors &&
-                                      sensorValue?.resSensors)
-                                  ? 5.25
-                                  : 0 ||
-                                      (sensorValue?.nerSensors &&
-                                        sensorValue?.spdSensors)
-                                    ? 5.25
-                                    : 0 ||
-                                        (sensorValue?.nerSensors &&
-                                          sensorValue?.vmrSensors)
-                                      ? 1.5
-                                      : 0 || sensorValue?.nerSensors
-                                        ? 10.5
-                                        : 0
-                      }
-                    >
-                      <Typography
-                        align="center"
-                        className="width100 table-head  fw-500"
-                      >
-                        GN
-                      </Typography>
-                      <Typography
-                        className="table-freecell"
-                        sx={{ borderLeft: "2px solid #dddddd" }}
-                      ></Typography>
-                      <Grid item>
-                        {sensorValue?.NerValues &&
-                          sensorValue?.NerValues?.DATASTREAMS?.map(
-                            (item, index) => {
-                              return (
-                                <>
-                                  <Typography
-                                    align="center"
-                                    className={
-                                      sensorValue.nerSensorsThreshold <
-                                      Object.values(item)[1]
-                                        ? "width100 table-cell table-cellbg fw-500  fs-14"
-                                        : "width100  table-cell fw-500  fs-14"
-                                    }
-                                  >
-                                    GN{index + 1} :
-                                    <span className="width100    fw-500">
-                                      {Object.values(item)[1]} V
-                                    </span>
-                                  </Typography>
-                                </>
-                              );
-                            },
-                          )}
-                      </Grid>
-                    </Grid>
-                  ) : null}
-
-                  {sensorValue && sensorValue?.vmrSensors ? (
-                    <Grid
-                      item
-                      md={
-                        sensorValue?.nerSensors &&
-                        sensorValue?.resSensors &&
-                        sensorValue?.spdSensors &&
-                        sensorValue.vmrSensors
-                          ? 6.4
-                          : 0 ||
-                              (sensorValue?.nerSensors &&
-                                sensorValue?.resSensors &&
-                                sensorValue?.spdSensors)
-                            ? 3.3
-                            : 0 ||
-                                (sensorValue?.nerSensors &&
-                                  sensorValue?.resSensors &&
-                                  sensorValue?.vmrSensors)
-                              ? 7.5
-                              : 0 ||
-                                  (sensorValue?.nerSensors &&
-                                    sensorValue?.spdSensors &&
-                                    sensorValue?.vmrSensors)
-                                ? 7.5
-                                : 0 ||
-                                    (sensorValue?.spdSensors &&
-                                      sensorValue?.resSensors &&
-                                      sensorValue?.vmrSensors)
-                                  ? 7
-                                  : 0 ||
-                                      (sensorValue?.vmrSensors &&
-                                        sensorValue?.resSensors)
-                                    ? 9
-                                    : 0 ||
-                                        (sensorValue?.vmrSensors &&
-                                          sensorValue?.spdSensors)
-                                      ? 8
-                                      : 0 ||
-                                          (sensorValue?.vmrSensors &&
-                                            sensorValue?.nerSensors)
-                                        ? 9
-                                        : 0 || sensorValue?.vmrSensors
-                                          ? 10.5
-                                          : 0
-                      }
-                    >
-                      <Typography
-                        align="center"
-                        className="width100 table-head table-head-child fw-500"
-                      >
-                        PHASE
-                      </Typography>
-                      <Grid container>
-                        <Grid item md={2}>
-                          <Typography
-                            align="center"
-                            className="table-head  fw-600 table-head-child "
-                          >
-                            R
-                          </Typography>
-
-                          <Grid item>
-                            {sensorValue?.VmrValues &&
-                              sensorValue?.VmrValues?.DATASTREAMS?.map(
-                                (item, index) => {
-                                  return (
-                                    <>
-                                      <Grid item>
-                                        <Typography
-                                          align="center"
-                                          className={
-                                            sensorValue.vmrSensorsThreshold.r <
-                                            item?.value[0]?.value
-                                              ? "width100 table-cell table-cellbg fw-500 fs-14 "
-                                              : "width100  table-cell fw-500  fs-14"
-                                          }
-                                        >
-                                          R{index + 1}:
-                                          <span className="width100    fw-500 fs-14">
-                                            {item?.value[0]?.value} V
-                                          </span>
-                                        </Typography>
-                                      </Grid>{" "}
-                                    </>
-                                  );
-                                },
-                              )}
-                          </Grid>
-                        </Grid>
-                        <Grid item md={2}>
-                          <Typography
-                            align="center"
-                            className="table-head fw-600 table-head-child"
-                          >
-                            Y
-                          </Typography>{" "}
-                          <Grid item>
-                            {sensorValue?.VmrValues &&
-                              sensorValue?.VmrValues?.DATASTREAMS?.map(
-                                (item, index) => {
-                                  return (
-                                    <>
-                                      <Grid item>
-                                        <Typography
-                                          align="center"
-                                          className={
-                                            sensorValue.vmrSensorsThreshold.y <
-                                            item?.value[1]?.value
-                                              ? "width100 table-cell table-cellbg fw-500  fs-14"
-                                              : "width100  table-cell fw-500  fs-14"
-                                          }
-                                        >
-                                          Y{index + 1} :
-                                          <span className="width100    fw-500">
-                                            {item?.value[1]?.value} V
-                                          </span>
-                                        </Typography>
-                                      </Grid>{" "}
-                                    </>
-                                  );
-                                },
-                              )}
-                          </Grid>
-                        </Grid>
-                        <Grid item md={2}>
-                          <Typography
-                            align="center"
-                            className="table-head fw-600 table-head-child"
-                          >
-                            B
-                          </Typography>{" "}
-                          <Grid item>
-                            {sensorValue?.VmrValues &&
-                              sensorValue?.VmrValues?.DATASTREAMS?.map(
-                                (item, index) => {
-                                  return (
-                                    <>
-                                      <Grid item>
-                                        <Typography
-                                          align="center"
-                                          className={
-                                            sensorValue.vmrSensorsThreshold.b <
-                                            item?.value[2]?.value
-                                              ? "width100 table-cell table-cellbg fw-500  fs-14"
-                                              : "width100  table-cell fw-500  fs-14"
-                                          }
-                                        >
-                                          B{index + 1} :
-                                          <span className="width100    fw-500">
-                                            {item?.value[2]?.value} V
-                                          </span>
-                                        </Typography>
-                                      </Grid>{" "}
-                                    </>
-                                  );
-                                },
-                              )}
-                          </Grid>
-                        </Grid>
-                        <Grid item md={2}>
-                          <Typography
-                            align="center"
-                            className="table-head  fw-600 table-head-child "
-                          >
-                            RY
-                          </Typography>{" "}
-                          <Grid item>
-                            {sensorValue?.VmrValues &&
-                              sensorValue?.VmrValues?.DATASTREAMS?.map(
-                                (item, index) => {
-                                  return (
-                                    <>
-                                      <Grid item>
-                                        <Typography
-                                          align="center"
-                                          className={
-                                            sensorValue.vmrSensorsThreshold.ry <
-                                            item?.value[3]?.value
-                                              ? "width100 table-cell table-cellbg fw-500  fs-14"
-                                              : "width100  table-cell fw-500  fs-14"
-                                          }
-                                        >
-                                          RY{index + 1} :
-                                          <span className="width100    fw-500">
-                                            {item?.value[3]?.value} V
-                                          </span>
-                                        </Typography>
-                                      </Grid>{" "}
-                                    </>
-                                  );
-                                },
-                              )}
-                          </Grid>
-                        </Grid>
-                        <Grid item md={2}>
-                          <Typography
-                            align="center"
-                            className="table-head fw-600 table-head-child"
-                          >
-                            YB
-                          </Typography>{" "}
-                          <Grid item>
-                            {sensorValue?.VmrValues &&
-                              sensorValue?.VmrValues?.DATASTREAMS?.map(
-                                (item, index) => {
-                                  return (
-                                    <>
-                                      <Grid item>
-                                        <Typography
-                                          align="center"
-                                          className={
-                                            sensorValue.vmrSensorsThreshold.yb <
-                                            item?.value[4]?.value
-                                              ? "width100 table-cell table-cellbg fw-500 fs-14 "
-                                              : "width100  table-cell fw-500 fs-14 "
-                                          }
-                                        >
-                                          YB{index + 1} :
-                                          <span className="width100    fw-500">
-                                            {item?.value[4]?.value} V
-                                          </span>
-                                        </Typography>
-                                      </Grid>{" "}
-                                    </>
-                                  );
-                                },
-                              )}
-                          </Grid>
-                        </Grid>
-                        <Grid item md={2}>
-                          <Typography
-                            align="center"
-                            className="table-head fw-600  table-head-child"
-                          >
-                            RB
-                          </Typography>{" "}
-                          <Grid item>
-                            {sensorValue?.VmrValues &&
-                              sensorValue?.VmrValues?.DATASTREAMS?.map(
-                                (item, index) => {
-                                  return (
-                                    <>
-                                      <Grid item>
-                                        <Typography
-                                          align="center"
-                                          className={
-                                            sensorValue.vmrSensorsThreshold.rb <
-                                            item?.value[5]?.value
-                                              ? "width100 table-cell table-cellbg fw-500  fs-14"
-                                              : "width100  table-cell fw-500  fs-14"
-                                          }
-                                        >
-                                          RB{index + 1} :
-                                          <span className="width100    fw-500">
-                                            {item?.value[5]?.value} V
-                                          </span>
-                                        </Typography>
-                                      </Grid>{" "}
-                                    </>
-                                  );
-                                },
-                              )}
-                          </Grid>
-                        </Grid>
-                      </Grid>
-                    </Grid>
-                  ) : null}
-
-                  {sensorValue?.spdSensors ? (
-                    <Grid
-                      item
-                      md={
-                        sensorValue?.nerSensors &&
-                        sensorValue?.resSensors &&
-                        sensorValue?.spdSensors &&
-                        sensorValue.vmrSensors
-                          ? 1.5
-                          : 0 ||
-                              (sensorValue?.nerSensors &&
-                                sensorValue?.resSensors &&
-                                sensorValue?.spdSensors)
-                            ? 3.5
-                            : 0 ||
-                                (sensorValue?.spdSensors &&
-                                  sensorValue?.resSensors &&
-                                  sensorValue?.vmrSensors)
-                              ? 1.8
-                              : 0 ||
-                                  (sensorValue?.nerSensors &&
-                                    sensorValue?.spdSensors &&
-                                    sensorValue?.vmrSensors)
-                                ? 1.5
-                                : 0 ||
-                                    (sensorValue?.spdSensors &&
-                                      sensorValue?.resSensors)
-                                  ? 5.25
-                                  : 0 ||
-                                      (sensorValue?.nerSensors &&
-                                        sensorValue?.spdSensors)
-                                    ? 5.25
-                                    : 0 ||
-                                        (sensorValue?.vmrSensors &&
-                                          sensorValue?.spdSensors)
-                                      ? 2.5
-                                      : 0 || sensorValue?.spdSensors
-                                        ? 10.5
-                                        : 0
-                      }
-                    >
-                      <Typography align="center" className=" table-head fw-500">
-                        SPD
-                      </Typography>{" "}
-                      <Typography className="table-freecell"> </Typography>
-                      <Grid item>
-                        {sensorValue?.SpdValues &&
-                          sensorValue?.SpdValues?.DATASTREAMS?.map(
-                            (item, index) => {
-                              return (
-                                <>
-                                  <Typography
-                                    align="center"
-                                    className={
-                                      sensorValue?.spdSensorsThreshold <
-                                      item.value
-                                        ? "width100 table-cell table-cellbg fw-500  fs-14"
-                                        : "width100  table-cell fw-500 fs-14"
-                                    }
-                                  >
-                                    SPD{index + 1} :
-                                    <span className="width100    fw-500">
-                                      {item.value} KA
-                                    </span>
-                                  </Typography>
-                                </>
-                              );
-                            },
-                          )}
-                      </Grid>
-                    </Grid>
-                  ) : null}
-                </Grid>
-                {sensorValue && sensor && deviceID2 === sensorValue._id && (
-                  <DeviceGraph
-                    device={sensorValue}
-                    deviceID2={deviceID2}
-                    sensor={sensor}
-                    setSensor={setSensor}
-                    SensorTypeChange={SensorTypeChange}
-                    intervalId={intervalId}
-                  />
-                )}
-              </TabPanel>
-            </Grid>
-          ) : (
-            <Grid
-              container
-              direction="row"
-              justifyContent="center"
-              alignItems="center"
-              sx={{ height: "50vh" }}
-            >
-              <Grid item>
-                <img alt="NodataFound" src={NodataFound} />
-                <Typography align="center" className="mt-16 blue-typo">
-                  No Device found! <br />
-                  Click below button to add Device
-                </Typography>
-                <Grid
-                  container
-                  direction="row"
-                  justifyContent="center"
-                  alignItems="center"
-                >
-                  <Grid item className="mt-16">
-                    <AddDeviceDialog
-                      state={state}
-                      getdeviceListbysite={getdeviceListbysite}
-                    />
-                  </Grid>
-                </Grid>
-              </Grid>
-            </Grid>
-          )}
+    <div className="w-full px-4 md:px-6 py-4 space-y-6 bg-[#f3f4f6] min-h-screen">
+      {/* 🔵 HEADER */}
+      <div className="w-full bg-gradient-to-r from-[#0a192f] to-[#0f3057] text-white px-5 py-4 rounded-xl shadow-lg flex flex-col md:flex-row justify-between items-start md:items-center gap-3 border border-[#1f4068]">
+        <div>
+          <h2 className="text-lg md:text-xl font-bold tracking-wide">
+            {state.siteName}
+          </h2>
+          <p className="text-xs md:text-sm text-gray-300 mt-1">
+            {state.location}
+          </p>
         </div>
-      </Container>
-    </>
+
+        <div className="text-left md:text-right text-xs md:text-sm text-gray-200">
+          <p>
+            {state.pincode}, {state.country}
+          </p>
+          <p className="mt-1 font-medium text-white">
+            {new Date(state.createdAt).toLocaleDateString()}
+          </p>
+        </div>
+      </div>
+
+      {/* 🔵 DEVICE SECTION */}
+      <div className="bg-white rounded-xl shadow-md border border-gray-200 p-5">
+        <div className="flex justify-between items-center mb-5">
+          <h2 className="text-lg md:text-xl font-bold text-[#0f3057]">
+            Devices ({devices.length})
+          </h2>
+
+          <AddDevice
+            getdeviceListbysite={getdeviceListbysite}
+            state={state}
+            sitezero={state}
+            value={1}
+          />
+        </div>
+
+        {/* 🔥 TABS (Wrapped with Pagination) */}
+        <div className="flex flex-wrap gap-2 md:gap-3 pb-2">
+          {currentDevices.map((d) => (
+            <button
+              key={d._id}
+              onClick={() => handleDeviceClick(d)}
+              className={`px-4 py-2 rounded-lg text-xs md:text-sm font-semibold whitespace-nowrap transition-all duration-200 shadow-sm ${
+                activeDeviceId === d._id
+                  ? "bg-[#0f3057] text-white ring-2 ring-[#0f3057] ring-offset-1 md:ring-offset-2"
+                  : "bg-gray-50 text-[#0f3057] border border-gray-300 hover:bg-gray-100"
+              }`}
+            >
+              {d.deviceName}
+            </button>
+          ))}
+        </div>
+
+        {/* 🔥 PAGINATION CONTROLS */}
+        {totalPages > 1 && (
+          <div className="flex flex-col sm:flex-row items-center justify-between border-t border-gray-100 pt-4 mt-2 gap-3">
+            <span className="text-xs text-gray-500">
+              Showing{" "}
+              <span className="font-semibold text-[#0f3057]">
+                {indexOfFirstDevice + 1}
+              </span>{" "}
+              to{" "}
+              <span className="font-semibold text-[#0f3057]">
+                {Math.min(indexOfLastDevice, devices.length)}
+              </span>{" "}
+              of{" "}
+              <span className="font-semibold text-[#0f3057]">
+                {devices.length}
+              </span>{" "}
+              devices
+            </span>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handlePrevPage}
+                disabled={currentPage === 1}
+                className={`px-3 py-1.5 text-xs font-medium rounded-md border transition-all ${
+                  currentPage === 1
+                    ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed"
+                    : "bg-white text-[#0f3057] border-gray-300 hover:bg-gray-50"
+                }`}
+              >
+                Prev
+              </button>
+
+              <div className="px-3 py-1.5 text-xs font-semibold text-[#0f3057] bg-gray-50 border border-gray-200 rounded-md">
+                {currentPage} / {totalPages}
+              </div>
+
+              <button
+                onClick={handleNextPage}
+                disabled={currentPage === totalPages}
+                className={`px-3 py-1.5 text-xs font-medium rounded-md border transition-all ${
+                  currentPage === totalPages
+                    ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed"
+                    : "bg-white text-[#0f3057] border-gray-300 hover:bg-gray-50"
+                }`}
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* 🔵 DEVICE DETAILS PANEL (Compact & Responsive) */}
+      {selectedDevice && (
+        <div className="flex justify-center pb-10">
+          <div className="w-full md:w-[85%] lg:w-[65%] xl:w-[55%] bg-white rounded-xl shadow-lg border border-[#1f4068] p-4 md:p-6 transition-all duration-300">
+            {/* HEADER */}
+            <div className="flex justify-between items-center border-b pb-3 mb-4">
+              <h2 className="text-lg md:text-xl font-bold text-[#0f3057]">
+                Device Details
+              </h2>
+
+              <button
+                onClick={() => {
+                  setSelectedDevice(null);
+                  setActiveDeviceId(null);
+                }}
+                className="text-gray-400 hover:text-[#0f3057] bg-gray-100 hover:bg-gray-200 rounded-full w-7 h-7 flex items-center justify-center transition-colors text-xs"
+                title="Close"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* LOADER */}
+            {loading && (
+              <div className="flex justify-center items-center h-32">
+                <div className="animate-spin h-8 w-8 border-b-4 border-[#0f3057] rounded-full"></div>
+              </div>
+            )}
+
+            {/* 🔥 FORM */}
+            {!loading && selectedDevice && (
+              <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+                {/* 🔵 TITLE */}
+                <h3 className="text-sm font-bold text-[#1f4068] bg-[#f8fafc] p-2.5 rounded-lg border border-gray-200">
+                  {selectedDevice.deviceName}
+                </h3>
+
+                {/* 🔷 BASIC INFO */}
+                <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm space-y-3">
+                  <h4 className="font-semibold text-[#0f3057] text-sm border-b pb-1.5">
+                    Basic Information
+                  </h4>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                    <div className="flex flex-col gap-1">
+                      <label className="text-xs font-medium text-gray-600">
+                        Device Name
+                      </label>
+                      <input
+                        {...register("deviceName")}
+                        className="border border-gray-300 p-2 text-sm rounded-md outline-none focus:ring-1 focus:ring-[#0f3057] bg-gray-50 focus:bg-white transition-all"
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <label className="text-xs font-medium text-gray-600">
+                        Node UID
+                      </label>
+                      <input
+                        {...register("nodeUid")}
+                        className="border border-gray-300 p-2 text-sm rounded-md outline-none focus:ring-1 focus:ring-[#0f3057] bg-gray-50 focus:bg-white transition-all"
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <label className="text-xs font-medium text-gray-600">
+                        Temperature
+                      </label>
+                      <input
+                        {...register("temp")}
+                        className="border border-gray-300 p-2 text-sm rounded-md outline-none focus:ring-1 focus:ring-[#0f3057] bg-gray-50 focus:bg-white transition-all"
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <label className="text-xs font-medium text-gray-600">
+                        Humidity
+                      </label>
+                      <input
+                        {...register("humidity")}
+                        className="border border-gray-300 p-2 text-sm rounded-md outline-none focus:ring-1 focus:ring-[#0f3057] bg-gray-50 focus:bg-white transition-all"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* 🔷 SENSOR CONFIG */}
+                <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm space-y-3">
+                  <h4 className="font-semibold text-[#0f3057] text-sm border-b pb-1.5">
+                    Sensor Configuration
+                  </h4>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                    <div className="flex flex-col gap-1">
+                      <label className="text-xs font-medium text-gray-600">
+                        RES Sensors
+                      </label>
+                      <input
+                        {...register("resSensors")}
+                        className="border border-gray-300 p-2 text-sm rounded-md outline-none focus:ring-1 focus:ring-[#0f3057] bg-gray-50 focus:bg-white transition-all"
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <label className="text-xs font-medium text-gray-600">
+                        GN Sensors
+                      </label>
+                      <input
+                        {...register("nerSensors")}
+                        className="border border-gray-300 p-2 text-sm rounded-md outline-none focus:ring-1 focus:ring-[#0f3057] bg-gray-50 focus:bg-white transition-all"
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <label className="text-xs font-medium text-gray-600">
+                        VMR Sensors
+                      </label>
+                      <input
+                        {...register("vmrSensors")}
+                        className="border border-gray-300 p-2 text-sm rounded-md outline-none focus:ring-1 focus:ring-[#0f3057] bg-gray-50 focus:bg-white transition-all"
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <label className="text-xs font-medium text-gray-600">
+                        SPD Sensors
+                      </label>
+                      <input
+                        {...register("spdSensors")}
+                        className="border border-gray-300 p-2 text-sm rounded-md outline-none focus:ring-1 focus:ring-[#0f3057] bg-gray-50 focus:bg-white transition-all"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* 🔷 THRESHOLDS */}
+                <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm space-y-3">
+                  <h4 className="font-semibold text-[#0f3057] text-sm border-b pb-1.5">
+                    Threshold Configuration
+                  </h4>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                    <div className="flex flex-col gap-1">
+                      <label className="text-xs font-medium text-gray-600">
+                        RES Threshold
+                      </label>
+                      <input
+                        {...register("resSensorsThreshold")}
+                        className="border border-gray-300 p-2 text-sm rounded-md outline-none focus:ring-1 focus:ring-[#0f3057] bg-gray-50 focus:bg-white transition-all"
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <label className="text-xs font-medium text-gray-600">
+                        GN Threshold
+                      </label>
+                      <input
+                        {...register("nerSensorsThreshold")}
+                        className="border border-gray-300 p-2 text-sm rounded-md outline-none focus:ring-1 focus:ring-[#0f3057] bg-gray-50 focus:bg-white transition-all"
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <label className="text-xs font-medium text-gray-600">
+                        SPD Threshold
+                      </label>
+                      <input
+                        {...register("spdSensorsThreshold")}
+                        className="border border-gray-300 p-2 text-sm rounded-md outline-none focus:ring-1 focus:ring-[#0f3057] bg-gray-50 focus:bg-white transition-all"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Phase Threshold */}
+                  <div className="pt-2">
+                    <label className="text-xs font-medium text-gray-600 mb-1.5 block">
+                      Phase Threshold
+                    </label>
+                    <div className="grid grid-cols-3 gap-2">
+                      <input
+                        {...register("vmrSensorsThreshold.r")}
+                        placeholder="R"
+                        className="border border-gray-300 p-2 text-sm rounded-md text-center outline-none focus:ring-1 focus:ring-[#0f3057] bg-gray-50 focus:bg-white"
+                      />
+                      <input
+                        {...register("vmrSensorsThreshold.y")}
+                        placeholder="Y"
+                        className="border border-gray-300 p-2 text-sm rounded-md text-center outline-none focus:ring-1 focus:ring-[#0f3057] bg-gray-50 focus:bg-white"
+                      />
+                      <input
+                        {...register("vmrSensorsThreshold.b")}
+                        placeholder="B"
+                        className="border border-gray-300 p-2 text-sm rounded-md text-center outline-none focus:ring-1 focus:ring-[#0f3057] bg-gray-50 focus:bg-white"
+                      />
+                      <input
+                        {...register("vmrSensorsThreshold.ry")}
+                        placeholder="RY"
+                        className="border border-gray-300 p-2 text-sm rounded-md text-center outline-none focus:ring-1 focus:ring-[#0f3057] bg-gray-50 focus:bg-white"
+                      />
+                      <input
+                        {...register("vmrSensorsThreshold.yb")}
+                        placeholder="YB"
+                        className="border border-gray-300 p-2 text-sm rounded-md text-center outline-none focus:ring-1 focus:ring-[#0f3057] bg-gray-50 focus:bg-white"
+                      />
+                      <input
+                        {...register("vmrSensorsThreshold.rb")}
+                        placeholder="RB"
+                        className="border border-gray-300 p-2 text-sm rounded-md text-center outline-none focus:ring-1 focus:ring-[#0f3057] bg-gray-50 focus:bg-white"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* 🔷 SUBMIT */}
+                <div className="flex justify-end pt-2">
+                  <button
+                    type="submit"
+                    className="px-6 py-2.5 bg-[#0f3057] text-white text-sm font-medium rounded-lg hover:bg-[#1f4068] transition-all shadow-md active:scale-95"
+                  >
+                    Save Changes
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
   );
 }

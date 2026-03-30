@@ -137,9 +137,19 @@ export default function Graph({
 
   useEffect(() => {
     const ds = auth?.user?.deviceSensors;
-    if (!Array.isArray(ds) || !device?._id) return;
-    const found = ds.find((item) => item.deviceId === device._id);
-    setUserDevice(found);
+
+    if (!Array.isArray(ds) || !device?._id) {
+      setUserDevice(null);
+      return;
+    }
+
+    const found = ds.find(
+      (item) => item?.sensorId?.toString() === device._id?.toString(),
+    );
+
+    console.log("Matched userDevice =>", found); //  debug
+
+    setUserDevice(found || null);
   }, [auth, device?._id]);
 
   const computedDataSets = useMemo(() => {
@@ -147,20 +157,32 @@ export default function Graph({
 
     const role = auth?.user?.role;
 
+    //  RES (Resistance)
     if (sensor === "RES") {
       const count =
         role === "user"
-          ? userDevice?.resistanceNumber?.length || 0
+          ? userDevice?.resistanceNumber?.length ||
+            Number(device?.resSensors || 0)
           : Number(device?.resSensors || 0);
 
       return Array.from({ length: count }, (_, i) => ({
         label: `R${i + 1}`,
-        data: graphData.map((item) => item?.msg?.DATASTREAMS?.[i]?.value),
+
+        //  safe value + no undefined
+        data: graphData.map((item) => {
+          const val = item?.msg?.DATASTREAMS?.[i]?.value;
+          return val !== undefined && val !== null ? Number(val) : null;
+        }),
+
         borderColor: BORDER_COLORS[i],
         backgroundColor: BG_COLORS[i],
+
+        spanGaps: true, //  no line break
+        tension: 0.1, //  smooth curve
       }));
     }
 
+    //  SPD
     if (sensor === "SPD") {
       const count =
         role === "user"
@@ -169,74 +191,140 @@ export default function Graph({
 
       return Array.from({ length: count }, (_, i) => ({
         label: `SPD${i + 1}`,
-        data: graphData.map((item) => item?.msg?.DATASTREAMS?.[i]?.value),
+
+        data: graphData.map((item) => {
+          const val = item?.msg?.DATASTREAMS?.[i]?.value;
+          return val !== undefined && val !== null ? Number(val) : null;
+        }),
+
         borderColor: BORDER_COLORS[i],
         backgroundColor: BG_COLORS[i],
+
+        spanGaps: true, //  fix break
+        tension: 0.1,
       }));
     }
 
+    //  NER (GN)
     if (sensor === "NER") {
       const count =
         role === "user"
-          ? userDevice?.gnNumber?.length || 0
+          ? userDevice?.gnNumber?.length || Number(device?.nerSensors || 0)
           : Number(device?.nerSensors || 0);
 
       return Array.from({ length: count }, (_, i) => ({
         label: `GN${i + 1}`,
-        data: graphData.map((item) => item?.msg?.DATASTREAMS?.[i]?.value),
+
+        data: graphData.map((item) => {
+          const val = item?.msg?.DATASTREAMS?.[i]?.value;
+          return val !== undefined && val !== null ? Number(val) : null;
+        }),
+
         borderColor: BORDER_COLORS[i],
         backgroundColor: BG_COLORS[i],
+
+        spanGaps: true, //  fix break
+        tension: 0.1,
       }));
     }
 
+    //  VMR (Phase)
     if (sensor === "VMR") {
       const phaseList =
-        auth?.user?.role === "user" && Array.isArray(userDevice?.phaseNumber)
+        role === "user" && Array.isArray(userDevice?.phaseNumber)
           ? PHASE_LABELS.slice(0, userDevice.phaseNumber.length)
           : PHASE_LABELS;
 
       return phaseList.map((phase, i) => ({
         label: phase,
+
         data: graphData
           .filter((item) => item?.phaseNumber === phase.toLowerCase())
-          .map((item) => item?.value),
+          .map((item) => {
+            const val = item?.value;
+            return val !== undefined && val !== null ? Number(val) : null;
+          }),
+
         borderColor: BORDER_COLORS[i],
         backgroundColor: BG_COLORS[i],
+
+        spanGaps: true,
+        tension: 0.1,
       }));
     }
 
+    //  TEMP
     if (sensor === "TEMP") {
       return [
         {
           label: "T1",
-          data: graphData.map((item) => getTempValue(item)),
+
+          data: graphData.map((item) => {
+            const val = getTempValue(item);
+            return val !== undefined && val !== null ? Number(val) : null;
+          }),
+
           borderColor: BORDER_COLORS[0],
           backgroundColor: BG_COLORS[0],
+
+          spanGaps: true,
+          tension: 0.1,
         },
       ];
     }
 
+    //  HUM
     if (sensor === "HUM") {
       return [
         {
           label: "H1",
-          data: graphData.map((item) => getHumValue(item)),
+
+          data: graphData.map((item) => {
+            const val = getHumValue(item);
+            return val !== undefined && val !== null ? Number(val) : null;
+          }),
+
           borderColor: BORDER_COLORS[0],
           backgroundColor: BG_COLORS[0],
+
+          spanGaps: true,
+        tension: 0.1,
         },
       ];
     }
 
     return [];
   }, [auth?.user?.role, device, graphData, sensor, userDevice]);
-
   useEffect(() => {
     setDataSets(computedDataSets);
   }, [computedDataSets]);
 
+  // const fetchdevidata = useCallback(async () => {
+  //   try {
+  //     if (!device?._id) return;
+  //     const resp = await POST(API.DEVICE.LATEST_DATA, {
+  //       deviceId: device._id,
+  //       sensorName: sensor,
+  //       deviceNumber: `${phasevalue - 1}`,
+  //       startDate,
+  //       endDate: startDate,
+  //     });
+
+  //     console.log("Graph API resp =>", resp);
+
+  //     const data = resp?.msg || [];
+
+  //     setLabels([...new Set(data.map((item) => item.time))]);
+  //     setGraphData(data);
+  //   } catch (error) {
+  //     console.error("Error fetching graph data:", error);
+  //   }
+  // }, [device?._id, phasevalue, sensor, startDate]);
+
   const fetchdevidata = useCallback(async () => {
     try {
       if (!device?._id) return;
+
       const resp = await POST(API.DEVICE.LATEST_DATA, {
         deviceId: device._id,
         sensorName: sensor,
@@ -245,17 +333,31 @@ export default function Graph({
         endDate: startDate,
       });
 
-      console.log("Graph API resp =>", resp);
+      const data = Array.isArray(resp?.msg) ? resp.msg : [];
 
-      const data = resp?.msg || [];
+      console.log("Parsed Graph Data : ", data);
 
-      setLabels([...new Set(data.map((item) => item.time))]);
-      setGraphData(data);
+      //  STEP 1: SORT DATA (MOST IMPORTANT)
+      const sortedData = [...data].sort(
+        (a, b) =>
+          new Date(`${a.date} ${a.time}`) - new Date(`${b.date} ${b.time}`),
+      );
+
+      //  STEP 2: LABELS FIX (NO RANDOM ORDER)
+      const labels = sortedData.map((item) =>
+        moment(`${item.date} ${item.time}`).format("HH:mm:ss"),
+      );
+
+      console.log("labels>>>", labels);
+
+      //  STEP 3: SET STATE
+      setLabels(labels);
+      setGraphData(sortedData);
     } catch (error) {
       console.error("Error fetching graph data:", error);
+      setGraphData([]);
     }
   }, [device?._id, phasevalue, sensor, startDate]);
-
   useEffect(() => {
     fetchdevidata();
   }, [fetchdevidata]);
@@ -362,12 +464,14 @@ export default function Graph({
                     color: "#000",
                   },
                 }}
-                MenuProps={{
-                  PaperProps: {
-                    sx: {
-                      backgroundColor: "#fff",
-                      "& .MuiMenuItem-root": {
-                        color: "#000",
+                SelectProps={{
+                  MenuProps: {
+                    PaperProps: {
+                      sx: {
+                        backgroundColor: "#fff",
+                        "& .MuiMenuItem-root": {
+                          color: "#000",
+                        },
                       },
                     },
                   },
@@ -399,12 +503,14 @@ export default function Graph({
                       color: "#000",
                     },
                   }}
-                  MenuProps={{
-                    PaperProps: {
-                      sx: {
-                        backgroundColor: "#fff",
-                        "& .MuiMenuItem-root": {
-                          color: "#000",
+                  SelectProps={{
+                    MenuProps: {
+                      PaperProps: {
+                        sx: {
+                          backgroundColor: "#fff",
+                          "& .MuiMenuItem-root": {
+                            color: "#000",
+                          },
                         },
                       },
                     },

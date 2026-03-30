@@ -20,8 +20,7 @@ import { styled } from "@mui/material/styles";
 import CloseIcon from "@mui/icons-material/Close";
 //React Icons
 import { AuthContext } from "../../../../../context/AuthContext";
-import axiosInstance from "../../../../../api/axiosInstance";
-import { POST } from "../../../../../lib/request";
+import { POST, GET } from "../../../../../lib/request";
 import { API } from "../../../../../lib/endpoint";
 const BootstrapDialog = styled(Dialog)(({ theme }) => ({
   "& .MuiDialogContent-root": {
@@ -129,13 +128,13 @@ export default function MaxWidthDialog({
     setSnackerropen(false);
     setSnackErrMsg("");
   };
+
   const getSingleDeviceData = useCallback(async () => {
     if (!deviceID2) return;
+
     try {
-      const response = await axiosInstance.get(
-        `/api/device/getDeviceDataById/${deviceID2}`,
-      );
-      setSingleDeviceData(response.data.msg);
+      const res = await GET(API.DEVICE.GET_DATA_BY_ID(deviceID2));
+      setSingleDeviceData(res.msg);
     } catch (error) {
       console.error("Error fetching data:", error);
     }

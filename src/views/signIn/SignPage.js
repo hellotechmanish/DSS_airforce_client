@@ -12,7 +12,7 @@ import { Link } from "react-router-dom";
 // import { useAuth } from "../../context/useAuth.js";
 import { useAuth } from "../../context/AuthContext.js";
 import { toast } from "react-hot-toast";
-
+import { AiOutlineLoading3Quarters } from "react-icons/ai";
 const Alert = React.forwardRef(function Alert(props, ref) {
   return <MuiAlert elevation={6} ref={ref} variant="filled" {...props} />;
 });
@@ -34,6 +34,7 @@ function App() {
   const [snackerropen, setSnackerropen] = useState(false);
   const [show, setShow] = React.useState(false);
   const { login } = useAuth();
+  const [loading, setloading] = useState();
 
   console.log(">>login", login);
 
@@ -59,10 +60,13 @@ function App() {
       password: password,
     };
 
+    setloading(true);
+
     try {
       console.log("Request body =>", body);
 
       const resp = await POST(API.AUTH.LOGIN, body);
+
       if (resp.token) {
         localStorage.setItem("token", resp.token);
 
@@ -74,15 +78,16 @@ function App() {
           }),
         );
       }
-      // login(resp.user, resp.token);
-      console.log("Full response =>", resp);
+
       toast.success("Login successfully");
 
       navigate("/dashboard");
       window.location.reload();
     } catch (err) {
       console.error("Login error =>", err);
-      toast.error(err?.response?.data?.message || "Login failed");
+      toast.error(err?.response?.data?.msg || "Login failed");
+    } finally {
+      setloading(false); //  ALWAYS stop loader
     }
   };
 
@@ -339,6 +344,7 @@ function App() {
                 type="submit"
                 fullWidth
                 variant="contained"
+                disabled={loading}
                 sx={{
                   mt: 3,
                   backgroundColor: "#003366",
@@ -349,7 +355,17 @@ function App() {
                   },
                 }}
               >
-                LOGIN
+                {loading ? (
+                  <>
+                    <AiOutlineLoading3Quarters
+                      className="spin"
+                      style={{ marginRight: 8 }}
+                    />
+                    Logging in...
+                  </>
+                ) : (
+                  "LOGIN"
+                )}
               </Button>
             </Grid>
           </form>
