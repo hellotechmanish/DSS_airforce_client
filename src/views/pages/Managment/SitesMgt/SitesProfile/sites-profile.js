@@ -1,126 +1,450 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, {
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useLocation } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { API } from "../../../../../lib/endpoint";
 import { GET, POST } from "../../../../../lib/request";
 import AddDevice from "../../../HomePageTab/AddDevice/AddDevice";
+import toast from "react-hot-toast";
+import { AuthContext } from "../../../../../context/AuthContext";
+
+const DEVICES_PER_PAGE = 12;
+const DEVICE_STORAGE_PREFIX = "site-profile-active-device";
+
+const EMPTY_DEVICE_FORM = {
+  deviceName: "",
+  nodeUid: "",
+  temp: "",
+  humidity: "",
+  resSensors: "",
+  nerSensors: "",
+  vmrSensors: "",
+  spdSensors: "",
+  resSensorsThreshold: "",
+  nerSensorsThreshold: "",
+  spdSensorsThreshold: "",
+  vmrSensorsThreshold: {
+    r: 0,
+    y: 0,
+    b: 0,
+    ry: 0,
+    yb: 0,
+    rb: 0,
+  },
+};
+
+const siteDevicesCache = new Map();
+const pendingSiteDeviceRequests = new Map();
+
+const getDeviceStorageKey = (siteId) =>
+  `${DEVICE_STORAGE_PREFIX}:${siteId ?? "unknown"}`;
+
+const getPageForIndex = (index) => Math.floor(index / DEVICES_PER_PAGE) + 1;
+
+const normalizeDeviceFormValues = (device = {}) => ({
+  deviceName: device.deviceName ?? "",
+  nodeUid: device.nodeUid ?? "",
+  temp: device.temp ?? "",
+  humidity: device.humidity ?? "",
+  resSensors: device.resSensors ?? "",
+  nerSensors: device.nerSensors ?? "",
+  vmrSensors: device.vmrSensors ?? "",
+  spdSensors: device.spdSensors ?? "",
+  resSensorsThreshold: device.resSensorsThreshold ?? "",
+  nerSensorsThreshold: device.nerSensorsThreshold ?? "",
+  spdSensorsThreshold: device.spdSensorsThreshold ?? "",
+  vmrSensorsThreshold: {
+    ...EMPTY_DEVICE_FORM.vmrSensorsThreshold,
+    ...(device.vmrSensorsThreshold ?? {}),
+  },
+});
+
+const hasDeviceDetails = (device) =>
+  Boolean(
+    device &&
+      ("nodeUid" in device ||
+        "temp" in device ||
+        "humidity" in device ||
+        "resSensors" in device ||
+        "vmrSensorsThreshold" in device),
+  );
+
+const mergeDeviceData = (baseDevice = {}, nextDevice = {}) => ({
+  ...baseDevice,
+  ...nextDevice,
+  vmrSensorsThreshold: {
+    ...(baseDevice.vmrSensorsThreshold ?? {}),
+    ...(nextDevice.vmrSensorsThreshold ?? {}),
+  },
+});
+
+const mergeDeviceIntoList = (deviceList, deviceData) =>
+  deviceList.map((device) =>
+    device._id === deviceData._id ? mergeDeviceData(device, deviceData) : device,
+  );
+
+const fetchDevicesBySiteId = async (siteId, { force = false } = {}) => {
+  if (!siteId) {
+    return [];
+  }
+
+  if (!force && pendingSiteDeviceRequests.has(siteId)) {
+    return pendingSiteDeviceRequests.get(siteId);
+  }
+
+  if (!force && siteDevicesCache.has(siteId)) {
+    return siteDevicesCache.get(siteId);
+  }
+
+  const request = GET(API.DEVICE.LIST_BY_SITEID(siteId))
+    .then((res) => {
+      const nextDevices = Array.isArray(res?.msg) ? res.msg : [];
+      siteDevicesCache.set(siteId, nextDevices);
+      return nextDevices;
+    })
+    .finally(() => {
+      pendingSiteDeviceRequests.delete(siteId);
+    });
+
+  pendingSiteDeviceRequests.set(siteId, request);
+  return request;
+};
+
+const fetchDeviceDetails = async (deviceId) => {
+  const res = await GET(API.DEVICE.GET_BY_ID(deviceId));
+  return res?.msg ?? null;
+};
 
 export default function Sites() {
   const { state } = useLocation();
+  const auth = useContext(AuthContext);
+  const role = auth?.user?.role;
+  const siteId = state?._id;
+  const storageKey = getDeviceStorageKey(siteId);
 
   const [devices, setDevices] = useState([]);
   const [selectedDevice, setSelectedDevice] = useState(null);
   const [activeDeviceId, setActiveDeviceId] = useState(null);
   const [loading, setLoading] = useState(false);
-
-  // 🔹 Pagination States
   const [currentPage, setCurrentPage] = useState(1);
-  const devicesPerPage = 12;
+  const detailRequestIdRef = useRef(0);
 
-  const { register, handleSubmit, reset } = useForm();
+  const { register, handleSubmit, reset } = useForm({
+    defaultValues: EMPTY_DEVICE_FORM,
+  });
 
-  // 🔹 Fetch devices
-  const getdeviceListbysite = useCallback(async () => {
-    try {
-      if (!state?._id) return;
+  const setDeviceData = useCallback(
+    (deviceData) => {
+      if (!deviceData) {
+        setSelectedDevice(null);
+        setActiveDeviceId(null);
+        reset(EMPTY_DEVICE_FORM);
+        return;
+      }
 
-      const res = await GET(API.DEVICE.LIST_BY_SITEID(state._id));
-      setDevices(Array.isArray(res?.msg) ? res.msg : []);
-      setCurrentPage(1); // Reset page on new site load
-    } catch (err) {
-      console.error(err);
-      setDevices([]);
+      setSelectedDevice(deviceData);
+      setActiveDeviceId(deviceData._id ?? null);
+      reset(normalizeDeviceFormValues(deviceData));
+    },
+    [reset],
+  );
+
+  const clearDeviceSelection = useCallback(() => {
+    detailRequestIdRef.current += 1;
+    localStorage.removeItem(storageKey);
+    setDeviceData(null);
+  }, [setDeviceData, storageKey]);
+
+  const syncSelectedDevicePage = useCallback((deviceList, deviceId) => {
+    const deviceIndex = deviceList.findIndex((device) => device._id === deviceId);
+
+    if (deviceIndex >= 0) {
+      setCurrentPage(getPageForIndex(deviceIndex));
     }
-  }, [state?._id]);
+  }, []);
+
+  const refreshDevices = useCallback(
+    async ({ force = true, restoreSelection = true } = {}) => {
+      if (!siteId) {
+        setDevices([]);
+        setCurrentPage(1);
+        setDeviceData(null);
+        return [];
+      }
+
+      const nextDevices = await fetchDevicesBySiteId(siteId, { force });
+      setDevices(nextDevices);
+
+      if (!restoreSelection) {
+        return nextDevices;
+      }
+
+      const storedDeviceId = localStorage.getItem(storageKey);
+
+      if (!storedDeviceId) {
+        setDeviceData(null);
+        setCurrentPage(1);
+        return nextDevices;
+      }
+
+      const restoredDevice = nextDevices.find(
+        (device) => device._id === storedDeviceId,
+      );
+
+      if (!restoredDevice) {
+        clearDeviceSelection();
+        setCurrentPage(1);
+        return nextDevices;
+      }
+
+      syncSelectedDevicePage(nextDevices, restoredDevice._id);
+
+      if (hasDeviceDetails(restoredDevice)) {
+        setDeviceData(restoredDevice);
+        return nextDevices;
+      }
+
+      setLoading(true);
+      const requestId = ++detailRequestIdRef.current;
+
+      try {
+        const fullDeviceData = await fetchDeviceDetails(restoredDevice._id);
+
+        if (requestId !== detailRequestIdRef.current) {
+          return nextDevices;
+        }
+
+        if (fullDeviceData) {
+          const mergedDevices = mergeDeviceIntoList(nextDevices, fullDeviceData);
+          siteDevicesCache.set(siteId, mergedDevices);
+          setDevices(mergedDevices);
+          setDeviceData(fullDeviceData);
+        } else {
+          setDeviceData(restoredDevice);
+        }
+      } finally {
+        setLoading(false);
+      }
+
+      return nextDevices;
+    },
+    [
+      clearDeviceSelection,
+      setDeviceData,
+      siteId,
+      storageKey,
+      syncSelectedDevicePage,
+    ],
+  );
 
   useEffect(() => {
-    getdeviceListbysite();
-  }, [getdeviceListbysite]);
+    let isMounted = true;
 
-  // 🔹 Pagination Logic
-  const indexOfLastDevice = currentPage * devicesPerPage;
-  const indexOfFirstDevice = indexOfLastDevice - devicesPerPage;
-  const currentDevices = devices.slice(indexOfFirstDevice, indexOfLastDevice);
-  const totalPages = Math.ceil(devices.length / devicesPerPage);
+    const loadSiteDevices = async () => {
+      if (!siteId) {
+        setDevices([]);
+        setCurrentPage(1);
+        setDeviceData(null);
+        return;
+      }
 
-  console.log("selectedDevice", selectedDevice);
+      try {
+        const nextDevices = await fetchDevicesBySiteId(siteId);
 
-  const handlePrevPage = () => {
-    if (currentPage > 1) setCurrentPage(currentPage - 1);
-  };
+        if (!isMounted) {
+          return;
+        }
 
-  const handleNextPage = () => {
-    if (currentPage < totalPages) setCurrentPage(currentPage + 1);
-  };
+        setDevices(nextDevices);
 
-  // 🔹 Click device
-  const handleDeviceClick = async (device) => {
-    try {
+        const storedDeviceId = localStorage.getItem(storageKey);
+
+        if (!storedDeviceId) {
+          setCurrentPage(1);
+          setDeviceData(null);
+          return;
+        }
+
+        const restoredDevice = nextDevices.find(
+          (device) => device._id === storedDeviceId,
+        );
+
+        if (!restoredDevice) {
+          localStorage.removeItem(storageKey);
+          setCurrentPage(1);
+          setDeviceData(null);
+          return;
+        }
+
+        syncSelectedDevicePage(nextDevices, restoredDevice._id);
+
+        if (hasDeviceDetails(restoredDevice)) {
+          setDeviceData(restoredDevice);
+          return;
+        }
+
+        setLoading(true);
+        const requestId = ++detailRequestIdRef.current;
+
+        try {
+          const fullDeviceData = await fetchDeviceDetails(restoredDevice._id);
+
+          if (!isMounted || requestId !== detailRequestIdRef.current) {
+            return;
+          }
+
+          if (fullDeviceData) {
+            const mergedDevices = mergeDeviceIntoList(nextDevices, fullDeviceData);
+            siteDevicesCache.set(siteId, mergedDevices);
+            setDevices(mergedDevices);
+            setDeviceData(fullDeviceData);
+          } else {
+            setDeviceData(restoredDevice);
+          }
+        } finally {
+          if (isMounted) {
+            setLoading(false);
+          }
+        }
+      } catch (err) {
+        if (!isMounted) {
+          return;
+        }
+
+        console.error(err);
+        setDevices([]);
+        setCurrentPage(1);
+        setDeviceData(null);
+      }
+    };
+
+    loadSiteDevices();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [setDeviceData, siteId, storageKey, syncSelectedDevicePage]);
+
+  const handlePrevPage = useCallback(() => {
+    setCurrentPage((prevPage) => Math.max(prevPage - 1, 1));
+  }, []);
+
+  const totalPages = useMemo(
+    () => Math.ceil(devices.length / DEVICES_PER_PAGE),
+    [devices.length],
+  );
+
+  const currentDevices = useMemo(() => {
+    const indexOfLastDevice = currentPage * DEVICES_PER_PAGE;
+    const indexOfFirstDevice = indexOfLastDevice - DEVICES_PER_PAGE;
+    return devices.slice(indexOfFirstDevice, indexOfLastDevice);
+  }, [currentPage, devices]);
+
+  const handleNextPage = useCallback(() => {
+    setCurrentPage((prevPage) => Math.min(prevPage + 1, totalPages || 1));
+  }, [totalPages]);
+
+  const handleDeviceClick = useCallback(
+    async (device) => {
+      if (!device?._id) {
+        return;
+      }
+
+      localStorage.setItem(storageKey, device._id);
+      syncSelectedDevicePage(devices, device._id);
+
+      if (hasDeviceDetails(device)) {
+        setLoading(false);
+        setDeviceData(device);
+        return;
+      }
+
       setActiveDeviceId(device._id);
       setLoading(true);
-      setSelectedDevice(null);
+      const requestId = ++detailRequestIdRef.current;
 
-      const res = await GET(API.DEVICE.GET_BY_ID(device._id));
-      const data = res?.msg;
+      try {
+        const fullDeviceData = await fetchDeviceDetails(device._id);
 
-      setSelectedDevice(data);
+        if (requestId !== detailRequestIdRef.current) {
+          return;
+        }
 
-      // ✅ Prefill form
-      // ✅ Prefill form
-      reset({
-        deviceName: data.deviceName,
-        nodeUid: data.nodeUid,
-        temp: data.temp,
-        humidity: data.humidity,
-        resSensors: data.resSensors,
-        nerSensors: data.nerSensors,
-        vmrSensors: data.vmrSensors,
-        spdSensors: data.spdSensors,
+        if (!fullDeviceData) {
+          setDeviceData(device);
+          return;
+        }
 
-        // Thresholds
-        resSensorsThreshold: data.resSensorsThreshold,
-        nerSensorsThreshold: data.nerSensorsThreshold,
-        spdSensorsThreshold: data.spdSensorsThreshold,
+        setDevices((prevDevices) => {
+          const mergedDevices = mergeDeviceIntoList(prevDevices, fullDeviceData);
+          siteDevicesCache.set(siteId, mergedDevices);
+          return mergedDevices;
+        });
 
-        // 🟢 Nested Phase Thresholds (vmrSensorsThreshold)
-        vmrSensorsThreshold: {
-          r: data.vmrSensorsThreshold?.r || 0,
-          y: data.vmrSensorsThreshold?.y || 0,
-          b: data.vmrSensorsThreshold?.b || 0,
-          ry: data.vmrSensorsThreshold?.ry || 0,
-          yb: data.vmrSensorsThreshold?.yb || 0,
-          rb: data.vmrSensorsThreshold?.rb || 0,
-        },
-      });
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
+        setDeviceData(fullDeviceData);
+      } catch (err) {
+        console.error(err);
+        toast.error("Failed to load device details");
+      } finally {
+        setLoading(false);
+      }
+    },
+    [devices, setDeviceData, siteId, storageKey, syncSelectedDevicePage],
+  );
 
-  // 🔹 Submit update
-  const onSubmit = async (formData) => {
-    console.log("formate", formData);
+  const onSubmit = useCallback(
+    async (formData) => {
+      if (!selectedDevice?._id) {
+        return;
+      }
 
-    try {
-      await POST(API.DEVICE.EDIT, {
-        deviceId: selectedDevice._id,
-        ...formData,
-      });
+      try {
+        const updatedDevice = mergeDeviceData(selectedDevice, formData);
 
-      alert("Device Updated ✅");
-      getdeviceListbysite();
-    } catch (err) {
-      console.error(err);
-    }
-  };
+        const updateResponse = await POST(API.DEVICE.EDIT, {
+          deviceID: selectedDevice._id,
+          ...formData,
+        });
+
+        setDeviceData(updatedDevice);
+        setDevices((prevDevices) => {
+          const mergedDevices = mergeDeviceIntoList(prevDevices, updatedDevice);
+          siteDevicesCache.set(siteId, mergedDevices);
+          return mergedDevices;
+        });
+
+        toast.success("Device Updated");
+
+        try {
+          await refreshDevices({ force: true, restoreSelection: true });
+        } catch (refreshError) {
+          console.error(refreshError);
+          toast.error("Device updated, but latest data could not be refreshed");
+        }
+
+        return updateResponse;
+      } catch (err) {
+        console.error(err);
+        toast.error("Failed to update device");
+      }
+    },
+    [refreshDevices, selectedDevice, setDeviceData, siteId],
+  );
 
   if (!state) return <div className="p-6">No Site</div>;
 
+  const indexOfLastDevice = currentPage * DEVICES_PER_PAGE;
+  const indexOfFirstDevice = indexOfLastDevice - DEVICES_PER_PAGE;
+
   return (
     <div className="w-full px-4 md:px-6 py-4 space-y-6 bg-[#f3f4f6] min-h-screen">
-      {/* 🔵 HEADER */}
+      {/* Site header remains unchanged */}
       <div className="w-full bg-gradient-to-r from-[#0a192f] to-[#0f3057] text-white px-5 py-4 rounded-xl shadow-lg flex flex-col md:flex-row justify-between items-start md:items-center gap-3 border border-[#1f4068]">
         <div>
           <h2 className="text-lg md:text-xl font-bold tracking-wide">
@@ -141,39 +465,38 @@ export default function Sites() {
         </div>
       </div>
 
-      {/* 🔵 DEVICE SECTION */}
       <div className="bg-white rounded-xl shadow-md border border-gray-200 p-5">
         <div className="flex justify-between items-center mb-5">
           <h2 className="text-lg md:text-xl font-bold text-[#0f3057]">
             Devices ({devices.length})
           </h2>
 
-          <AddDevice
-            getdeviceListbysite={getdeviceListbysite}
-            state={state}
-            sitezero={state}
-            value={1}
-          />
+          {role === "admin" && (
+            <AddDevice
+              getdeviceListbysite={refreshDevices}
+              state={state}
+              sitezero={state}
+              value={1}
+            />
+          )}
         </div>
 
-        {/* 🔥 TABS (Wrapped with Pagination) */}
         <div className="flex flex-wrap gap-2 md:gap-3 pb-2">
-          {currentDevices.map((d) => (
+          {currentDevices.map((device) => (
             <button
-              key={d._id}
-              onClick={() => handleDeviceClick(d)}
+              key={device._id}
+              onClick={() => handleDeviceClick(device)}
               className={`px-4 py-2 rounded-lg text-xs md:text-sm font-semibold whitespace-nowrap transition-all duration-200 shadow-sm ${
-                activeDeviceId === d._id
+                activeDeviceId === device._id
                   ? "bg-[#0f3057] text-white ring-2 ring-[#0f3057] ring-offset-1 md:ring-offset-2"
                   : "bg-gray-50 text-[#0f3057] border border-gray-300 hover:bg-gray-100"
               }`}
             >
-              {d.deviceName}
+              {device.deviceName}
             </button>
           ))}
         </div>
 
-        {/* 🔥 PAGINATION CONTROLS */}
         {totalPages > 1 && (
           <div className="flex flex-col sm:flex-row items-center justify-between border-t border-gray-100 pt-4 mt-2 gap-3">
             <span className="text-xs text-gray-500">
@@ -225,44 +548,35 @@ export default function Sites() {
         )}
       </div>
 
-      {/* 🔵 DEVICE DETAILS PANEL (Compact & Responsive) */}
       {selectedDevice && (
         <div className="flex justify-center pb-10">
           <div className="w-full md:w-[85%] lg:w-[65%] xl:w-[55%] bg-white rounded-xl shadow-lg border border-[#1f4068] p-4 md:p-6 transition-all duration-300">
-            {/* HEADER */}
             <div className="flex justify-between items-center border-b pb-3 mb-4">
               <h2 className="text-lg md:text-xl font-bold text-[#0f3057]">
                 Device Details
               </h2>
 
               <button
-                onClick={() => {
-                  setSelectedDevice(null);
-                  setActiveDeviceId(null);
-                }}
+                onClick={clearDeviceSelection}
                 className="text-gray-400 hover:text-[#0f3057] bg-gray-100 hover:bg-gray-200 rounded-full w-7 h-7 flex items-center justify-center transition-colors text-xs"
                 title="Close"
               >
-                ✕
+                x
               </button>
             </div>
 
-            {/* LOADER */}
             {loading && (
               <div className="flex justify-center items-center h-32">
                 <div className="animate-spin h-8 w-8 border-b-4 border-[#0f3057] rounded-full"></div>
               </div>
             )}
 
-            {/* 🔥 FORM */}
             {!loading && selectedDevice && (
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-                {/* 🔵 TITLE */}
                 <h3 className="text-sm font-bold text-[#1f4068] bg-[#f8fafc] p-2.5 rounded-lg border border-gray-200">
                   {selectedDevice.deviceName}
                 </h3>
 
-                {/* 🔷 BASIC INFO */}
                 <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm space-y-3">
                   <h4 className="font-semibold text-[#0f3057] text-sm border-b pb-1.5">
                     Basic Information
@@ -308,7 +622,6 @@ export default function Sites() {
                   </div>
                 </div>
 
-                {/* 🔷 SENSOR CONFIG */}
                 <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm space-y-3">
                   <h4 className="font-semibold text-[#0f3057] text-sm border-b pb-1.5">
                     Sensor Configuration
@@ -354,7 +667,6 @@ export default function Sites() {
                   </div>
                 </div>
 
-                {/* 🔷 THRESHOLDS */}
                 <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm space-y-3">
                   <h4 className="font-semibold text-[#0f3057] text-sm border-b pb-1.5">
                     Threshold Configuration
@@ -390,7 +702,6 @@ export default function Sites() {
                     </div>
                   </div>
 
-                  {/* Phase Threshold */}
                   <div className="pt-2">
                     <label className="text-xs font-medium text-gray-600 mb-1.5 block">
                       Phase Threshold
@@ -430,15 +741,16 @@ export default function Sites() {
                   </div>
                 </div>
 
-                {/* 🔷 SUBMIT */}
-                <div className="flex justify-end pt-2">
-                  <button
-                    type="submit"
-                    className="px-6 py-2.5 bg-[#0f3057] text-white text-sm font-medium rounded-lg hover:bg-[#1f4068] transition-all shadow-md active:scale-95"
-                  >
-                    Save Changes
-                  </button>
-                </div>
+                {role === "admin" && (
+                  <div className="flex justify-end pt-2">
+                    <button
+                      type="submit"
+                      className="px-6 py-2.5 bg-[#0f3057] text-white text-sm font-medium rounded-lg hover:bg-[#1f4068] transition-all shadow-md active:scale-95"
+                    >
+                      Save Changes
+                    </button>
+                  </div>
+                )}
               </form>
             )}
           </div>

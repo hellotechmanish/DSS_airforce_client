@@ -288,7 +288,7 @@ export default function Graph({
           backgroundColor: BG_COLORS[0],
 
           spanGaps: true,
-        tension: 0.1,
+          tension: 0.1,
         },
       ];
     }
@@ -335,7 +335,7 @@ export default function Graph({
 
       const data = Array.isArray(resp?.msg) ? resp.msg : [];
 
-      console.log("Parsed Graph Data : ", data);
+      // console.log("Parsed Graph Data : ", data);
 
       //  STEP 1: SORT DATA (MOST IMPORTANT)
       const sortedData = [...data].sort(
@@ -348,7 +348,7 @@ export default function Graph({
         moment(`${item.date} ${item.time}`).format("HH:mm:ss"),
       );
 
-      console.log("labels>>>", labels);
+      // console.log("labels>>>", labels);
 
       //  STEP 3: SET STATE
       setLabels(labels);

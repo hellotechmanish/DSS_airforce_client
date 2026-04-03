@@ -15,7 +15,7 @@ export default function Alarm() {
   const [total, setTotal] = useState(0);
   const [searchTerm, setSearchTerm] = useState("");
 
-  console.log("total", total.length);
+  console.log("total", total);
 
   // ================= FETCH =================
   const getAllAlarm = useCallback(async () => {
@@ -24,6 +24,10 @@ export default function Alarm() {
         search: searchTerm || null,
         startDate: dayjs("2023-01-01").format("YYYY-MM-DD"),
         endDate: dayjs("2030-01-01").format("YYYY-MM-DD"),
+        page: 1,
+        limit: 1000,
+        sortBy: "createdAt",
+        sortType: -1,
       });
 
       setAlarm(response?.data?.data || []);
@@ -43,13 +47,10 @@ export default function Alarm() {
   }, [getAllAlarm]);
 
   // ================= FILTER =================
+  // Backend already performs search via `searchTerm`. Keep client display consistent.
   const filteredData = useMemo(() => {
-    return alarm.filter((row) =>
-      `${row?.deviceId?.deviceName} ${row?.deviceId?.nodeUid}`
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase()),
-    );
-  }, [alarm, searchTerm]);
+    return alarm;
+  }, [alarm]);
 
   return (
     <div className="w-full min-h-screen bg-slate-100 p-4 md:p-6">
@@ -114,8 +115,8 @@ export default function Alarm() {
 
             <tbody>
               {filteredData.map((row, index) => {
-                const value = row?.alarmValue;
-                const threshold = row?.thresholdValue;
+                const value = Number(row?.alarmValue) || 0;
+                const threshold = Number(row?.thresholdValue) || 0;
 
                 return (
                   <tr key={row._id} className="border-t hover:bg-gray-50">
@@ -137,7 +138,7 @@ export default function Alarm() {
 
                     <td className="px-4 py-3">{threshold}</td>
 
-                    {/* 🔥 Highlight */}
+                    {/*  Highlight */}
                     <td
                       className={`px-4 py-3 ${
                         value > threshold

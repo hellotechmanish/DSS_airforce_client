@@ -15,50 +15,64 @@ import { GET } from "../../../../lib/request";
 
 export default function UserManagement() {
   const auth = useContext(AuthContext);
-
   const role = auth?.user?.role;
 
-  const [activeTab, setActiveTab] = useState(
-    role === "admin" ? "technician" : "user",
-  );
+  // ✅ LOAD FROM LOCALSTORAGE
+  const [activeTab, setActiveTab] = useState(() => {
+    const savedTab = localStorage.getItem("user_mgmt_tab");
+    if (savedTab) return savedTab;
+
+    return role === "admin" ? "technician" : "user";
+  });
 
   const [technician, setTechnician] = useState([]);
   const [user, setUser] = useState([]);
 
   // ===============================
-  // Fetch Technician
+  // FETCH TECHNICIAN
   // ===============================
   const getTechnicians = useCallback(async () => {
     try {
       const res = await GET(API.USERS.LIST_BY_ROLE("technician"));
-
       setTechnician(res?.msg || []);
     } catch (err) {
       console.error(err);
-
       toast.error("Failed to fetch technicians");
     }
   }, []);
 
   // ===============================
-  // Fetch Users
+  // FETCH USERS
   // ===============================
   const getUsers = useCallback(async () => {
     try {
       const res = await GET(API.USERS.LIST_BY_ROLE("user"));
-
       setUser(res?.msg || []);
     } catch (err) {
       console.error(err);
-
       toast.error("Failed to fetch users");
     }
   }, []);
 
   // ===============================
-  // Effects
+  // SAVE TAB TO LOCALSTORAGE
   // ===============================
+  useEffect(() => {
+    localStorage.setItem("user_mgmt_tab", activeTab);
+  }, [activeTab]);
 
+  // ===============================
+  // ROLE SAFETY CHECK
+  // ===============================
+  useEffect(() => {
+    if (role !== "admin" && activeTab === "technician") {
+      setActiveTab("user");
+    }
+  }, [role, activeTab]);
+
+  // ===============================
+  // FETCH DATA BASED ON TAB
+  // ===============================
   useEffect(() => {
     if (activeTab === "technician" && role === "admin") {
       getTechnicians();
@@ -73,8 +87,7 @@ export default function UserManagement() {
 
   return (
     <div className="p-6 bg-slate-100 min-h-screen">
-      {/* Breadcrumb */}
-
+      {/* 🔹 Breadcrumb */}
       <div className="mb-4 text-sm">
         <Link to="/dashboard" className="text-sky-500 font-medium no-underline">
           Dashboard
@@ -85,25 +98,21 @@ export default function UserManagement() {
         <span className="text-[#0f3057] font-semibold">User Management</span>
       </div>
 
-      {/* Header */}
-
+      {/* 🔹 Header */}
       <div className="bg-gradient-to-br from-[#0a192f] to-[#0f3057] rounded-xl p-5 mb-5 flex justify-between items-center shadow-lg">
         <h2 className="text-white text-xl font-semibold">USER MANAGEMENT</h2>
 
         {/* Admin → Add Technician */}
-
         {role === "admin" && activeTab === "technician" && (
           <CraeteTechnician getnumberOftechnician={getTechnicians} />
         )}
 
         {/* Admin + Technician → Add User */}
-
         {(role === "admin" || role === "technician") &&
           activeTab === "user" && <CreateUser getnumberOfUser={getUsers} />}
       </div>
 
-      {/* Tabs (Only Admin) */}
-
+      {/* 🔹 Tabs (Admin Only) */}
       {role === "admin" && (
         <div className="flex gap-6 border-b border-gray-300 mb-6">
           <button
@@ -111,7 +120,7 @@ export default function UserManagement() {
             className={`pb-2 font-medium transition ${
               activeTab === "technician"
                 ? "border-b-2 border-indigo-500 text-indigo-600"
-                : "text-gray-500"
+                : "text-gray-500 hover:text-indigo-600"
             }`}
           >
             Technician
@@ -122,7 +131,7 @@ export default function UserManagement() {
             className={`pb-2 font-medium transition ${
               activeTab === "user"
                 ? "border-b-2 border-indigo-500 text-indigo-600"
-                : "text-gray-500"
+                : "text-gray-500 hover:text-indigo-600"
             }`}
           >
             Users
@@ -130,10 +139,9 @@ export default function UserManagement() {
         </div>
       )}
 
-      {/* Content */}
+      {/* 🔹 Content */}
 
       {/* Technician Table */}
-
       {activeTab === "technician" && role === "admin" && (
         <TechnicianTab
           technician={technician}
@@ -142,7 +150,6 @@ export default function UserManagement() {
       )}
 
       {/* User Table */}
-
       {activeTab === "user" && (
         <UserTab user={user} getnumberOfUser={getUsers} />
       )}

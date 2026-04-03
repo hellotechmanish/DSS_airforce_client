@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { POST } from "../../../../../../../../lib/request";
 import { API } from "../../../../../../../../lib/endpoint";
 import { CiEdit } from "react-icons/ci";
+import toast from "react-hot-toast";
 
 export default function EditSensorDialog({
   getdevicebyuserId,
@@ -69,7 +70,7 @@ export default function EditSensorDialog({
       });
 
       console.log("API RESPONSE:", res);
-
+      toast.success("Sensor data fetched successfully");
       // ✅ FIX: always array
       setGetSelectSensor(Array.isArray(res?.msg) ? res.msg : []);
     } catch (err) {
@@ -114,8 +115,10 @@ export default function EditSensorDialog({
 
       setOpen(false);
       getdevicebyuserId();
+      toast.success("Device sensors updated successfully");
     } catch (err) {
       console.log("UPDATE ERROR:", err);
+      toast.error("Failed to update device sensors");
     }
   };
 

@@ -1,262 +1,279 @@
-import React, { useState, useEffect } from "react";
+"use client";
+import React, { useState, useEffect, useCallback } from "react";
 import {
-  Grid,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
   Button,
-  IconButton,
-  Typography,
-  Snackbar,
-  RadioGroup,
-  FormLabel,
-  ListItemButton,
-  FormControlLabel,
-  Radio,
+  Checkbox,
 } from "@mui/material";
-import MuiAlert from "@mui/material/Alert";
-import SiteAdd from "../../../../../SitesMgt/AddSite/SitesAddDialog";
-import PropTypes from "prop-types";
-import { styled } from "@mui/material/styles";
 import CloseIcon from "@mui/icons-material/Close";
 import { API } from "../../../../../../../../lib/endpoint";
 import { GET, POST } from "../../../../../../../../lib/request";
-const BootstrapDialog = styled(Dialog)(({ theme }) => ({
-  "& .MuiDialogContent-root": {
-    padding: theme.spacing(2),
-  },
-  "& .MuiDialogActions-root": {
-    padding: theme.spacing(),
-  },
-}));
+import toast from "react-hot-toast";
 
-const BootstrapDialogTitle = (props) => {
-  const { children, onClose, ...other } = props;
-
-  return (
-    <DialogTitle className="dialog-title-add" sx={{ m: 0, p: 1.2 }} {...other}>
-      {children}
-      <Typography className="white-typo">Assign Site </Typography>{" "}
-      {onClose ? (
-        <IconButton
-          aria-label="close"
-          onClick={onClose}
-          className="dialogcrossicon-white"
-        >
-          <CloseIcon className="fs-20" />
-        </IconButton>
-      ) : null}
-    </DialogTitle>
-  );
-};
-
-BootstrapDialogTitle.propTypes = {
-  children: PropTypes.node,
-  onClose: PropTypes.func.isRequired,
-};
-const Alert = React.forwardRef(function Alert(props, ref) {
-  return <MuiAlert elevation={6} ref={ref} variant="filled" {...props} />;
-});
 export default function MaxWidthDialog({ getnumberOfAssignSite, UserId }) {
-  const [open, setOpen] = React.useState(false);
-  const [fullWidth] = React.useState(true);
-  const [maxWidth] = React.useState("md");
-  const handleClickOpen = () => {
-    setOpen(true);
-  };
+  const [open, setOpen] = useState(false);
 
+  const [step, setStep] = useState(1);
+
+  const [sites, setSites] = useState([]);
+  const [devices, setDevices] = useState([]);
+
+  const [selectedSites, setSelectedSites] = useState([]);
+  const [selectedDevices, setSelectedDevices] = useState([]);
+
+  // 🔥 PAGINATION STATES
+  const [sitePage, setSitePage] = useState(1);
+  const [siteTotalPages, setSiteTotalPages] = useState(1);
+
+  const [devicePage, setDevicePage] = useState(1);
+  const [deviceTotalPages, setDeviceTotalPages] = useState(1);
+
+  // ================= CLOSE =================
   const handleClose = () => {
     setOpen(false);
+    setStep(1);
+    setSelectedSites([]);
+    setSelectedDevices([]);
+    setDevices([]);
+    setSitePage(1);
+    setDevicePage(1);
   };
 
-  // SnackBar
-  const [snackopen, setSnackOpen] = useState(false);
-  const [snackmsg, setSnackMsg] = useState("");
-  const [snackErrMsg, setSnackErrMsg] = useState();
-  const [snackerropen, setSnackerropen] = useState(false);
-
-  const SnanbarClose = (event, reason) => {
-    if (reason === "clickaway") {
-      return;
-    }
-    setSnackOpen(false);
-    setSnackMsg("");
-  };
-
-  const SnackbarErrorClose = (event, reason) => {
-    if (reason === "clickaway") {
-      return;
-    }
-    setSnackerropen(false);
-    setSnackErrMsg("");
-  };
-  const [sites, setSites] = useState(null);
-  const [siteid, setSitesid] = useState(null);
-  const handleChangeSite = (e, data) => {
-    setSitesid(data._id);
-  };
-
-  console.log("sites>>>>", sites);
-
-  const getnumberOfSite = async () => {
+  // ================= GET SITES =================
+  const getSites = useCallback(async () => {
     try {
-      const res = await GET(API.SITE.COUNT);
+      const res = await GET(`${API.SITE.COUNT}?page=${sitePage}&limit=6`);
 
-      if (res) {
-        setSites(res?.msg || []);
-      }
-    } catch (error) {
-      console.error("getnumberOfSite error:", error);
+      setSites(res?.msg || []);
+      setSiteTotalPages(res?.pagination?.totalPages || 1);
+
+      console.log("🔥 Sites API:", res);
+    } catch (err) {
+      console.error(err);
       setSites([]);
     }
+  }, [sitePage]);
+
+  // ================= GET DEVICES =================
+  const getDevicesBySites = useCallback(async () => {
+    try {
+      if (!selectedSites.length) return;
+
+      const res = await POST(
+        `${API.DEVICE.LIST_BY_SITES}?page=${devicePage}&limit=6`,
+        { siteIds: selectedSites },
+      );
+
+      setDevices(res?.msg || []);
+      setDeviceTotalPages(res?.pagination?.totalPages || 1);
+
+      console.log("🔥 Devices API:", res);
+    } catch (err) {
+      console.error(err);
+      setDevices([]);
+    }
+  }, [selectedSites, devicePage]);
+
+  // ================= SELECT HANDLERS =================
+  const handleSiteSelect = (id) => {
+    setSelectedSites((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+    );
   };
 
-  const AssignSiteToUser = async () => {
+  const handleDeviceSelect = (id) => {
+    setSelectedDevices((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+    );
+  };
+
+  // ================= SUBMIT =================
+  const handleSubmit = async () => {
+    const payload = {
+      userId: UserId,
+      siteIds: selectedSites,
+      deviceIds: selectedDevices,
+    };
+
+    console.log("🚀 FINAL PAYLOAD:", payload);
+
     try {
-      const res = await POST(API.USERS.ASSIGN_SITE, {
-        userId: UserId,
-        siteId: siteid,
-      });
+      const res = await POST(API.USERS.ASSIGN_SITE, payload);
 
-      if (res) {
-        setSnackOpen(true);
-        setSnackMsg(res?.msg || "Site assigned successfully");
+      toast.success(res?.msg || "Assigned successfully");
 
-        setOpen(false);
-        getnumberOfAssignSite();
-      } else {
-        setSnackerropen(true);
-        setSnackErrMsg(res?.err || "Failed to assign site");
-      }
+      handleClose();
+      getnumberOfAssignSite();
     } catch (error) {
-      console.error("AssignSiteToUser error:", error);
-
-      setSnackerropen(true);
-      setSnackErrMsg(error?.msg || "Failed to assign site");
+      console.error("❌ ERROR:", error);
+      toast.error("Assignment failed");
     }
   };
 
+  // ================= EFFECTS =================
   useEffect(() => {
-    getnumberOfSite();
-  }, []);
+    if (open) getSites();
+  }, [open, getSites]);
+
+  useEffect(() => {
+    if (step === 2) getDevicesBySites();
+  }, [step, getDevicesBySites]);
+
   return (
-    <React.Fragment>
-      <Snackbar open={snackopen} autoHideDuration={3000} onClose={SnanbarClose}>
-        <Alert onClose={SnanbarClose} severity={"success"}>
-          {snackmsg}
-        </Alert>
-      </Snackbar>
-      <Snackbar
-        open={snackerropen}
-        autoHideDuration={8000}
-        onClose={SnackbarErrorClose}
-      >
-        <Alert onClose={SnackbarErrorClose} severity={"error"}>
-          {snackErrMsg}
-        </Alert>
-      </Snackbar>
+    <>
       <Button
-        className=" skyblue-bg-button fs-16 width-150  hover"
-        onClick={handleClickOpen}
+        className="skyblue-bg-button fs-16 width-150 hover"
+        onClick={() => setOpen(true)}
       >
         Assign Site
       </Button>
-      <BootstrapDialog
-        fullWidth={fullWidth}
-        maxWidth={maxWidth}
-        open={open}
-        onClose={handleClose}
-        PaperProps={{
-          className: "SmallDialog",
-        }}
-      >
-        <BootstrapDialogTitle
-          id="customized-dialog-title"
-          onClose={handleClose}
-        ></BootstrapDialogTitle>{" "}
-        <DialogContent sx={{ m: 0 }}>
-          {sites ? (
-            <div className="admin-content">
-              <Grid container>
-                <RadioGroup
-                  row
-                  aria-labelledby="demo-radio-buttons-group-label"
-                  name="radio-buttons-group"
-                  className="width100 mt-32"
+
+      <Dialog open={open} fullWidth maxWidth="md">
+        <DialogTitle className="flex justify-between items-center">
+          Assign Site & Device
+          <button onClick={handleClose}>
+            <CloseIcon />
+          </button>
+        </DialogTitle>
+
+        <DialogContent>
+          {/* ================= STEP 1 ================= */}
+          {step === 1 && (
+            <>
+              <h2 className="text-lg font-semibold mb-3">Select Sites</h2>
+
+              <div className="grid grid-cols-2 gap-2">
+                {sites.map((site) => (
+                  <div
+                    key={site._id}
+                    onClick={() => handleSiteSelect(site._id)}
+                    className="border rounded-md px-2 py-2 flex justify-between items-center cursor-pointer hover:bg-gray-50 text-sm"
+                  >
+                    <div>
+                      <p className="font-medium text-sm">{site.siteName}</p>
+                      <p className="text-[10px] text-gray-500">{site.uid}</p>
+                    </div>
+
+                    <Checkbox
+                      size="small"
+                      checked={selectedSites.includes(site._id)}
+                    />
+                  </div>
+                ))}
+              </div>
+
+              {/* PAGINATION */}
+              <div className="flex justify-center gap-3 mt-4 text-sm">
+                <button
+                  onClick={() => setSitePage(sitePage - 1)}
+                  disabled={sitePage === 1}
                 >
-                  {sites.map((data) => {
-                    return (
-                      <Grid
-                        item
-                        sx={{
-                          border: "1px solid #dddddd",
-                          marginLeft: "20px",
-                        }}
-                        className="access-radio-grid-no-mt"
-                      >
-                        <Grid container justifyContent="space-between">
-                          <FormLabel>
-                            <ListItemButton>
-                              <Typography className=" greycolor505050400">
-                                {data.siteName}
-                                <Typography className="lightgreycolortypo">
-                                  {data.uid}{" "}
-                                </Typography>
-                              </Typography>
-                            </ListItemButton>
-                          </FormLabel>
-                          <FormControlLabel
-                            value={data._id}
-                            className="radiostyle access-radio-formcontrolabel"
-                            control={<Radio />}
-                            style={{ justifyContent: "space-between" }}
-                            onChange={(e) => handleChangeSite(e, data)}
-                            key={data._id}
-                          />
-                        </Grid>
-                      </Grid>
-                    );
-                  })}
-                </RadioGroup>
-              </Grid>
-            </div>
-          ) : (
-            <Grid container sx={{ height: "70vh" }}>
-              <Typography
-                align="center"
-                alignItems="center"
-                alignSelf="center"
-                className="width100 blackcolortypo fs25px"
-              >
-                No Site Found! <br />
-                Please Add Site. <br />
-                <SiteAdd getnumberOfSite={getnumberOfSite} />
-              </Typography>
-            </Grid>
+                  ‹
+                </button>
+
+                <span>
+                  {sitePage} / {siteTotalPages}
+                </span>
+
+                <button
+                  onClick={() => setSitePage(sitePage + 1)}
+                  disabled={sitePage === siteTotalPages}
+                >
+                  ›
+                </button>
+              </div>
+            </>
+          )}
+
+          {/* ================= STEP 2 ================= */}
+          {step === 2 && (
+            <>
+              <h2 className="text-lg font-semibold mb-2">Select Devices</h2>
+
+              <p className="text-xs mb-2 text-gray-500">
+                Selected Sites: {selectedSites.length}
+              </p>
+
+              <div className="grid grid-cols-2 gap-2">
+                {devices.map((device) => (
+                  <div
+                    key={device._id}
+                    onClick={() => handleDeviceSelect(device._id)}
+                    className="border rounded-md px-2 py-2 flex justify-between items-center cursor-pointer hover:bg-gray-50 text-sm"
+                  >
+                    <div>
+                      <p className="font-medium text-sm">{device.deviceName}</p>
+                      <p className="text-[10px] text-gray-500">
+                        {device.nodeUid}
+                      </p>
+                    </div>
+
+                    <Checkbox
+                      size="small"
+                      checked={selectedDevices.includes(device._id)}
+                    />
+                  </div>
+                ))}
+              </div>
+
+              {/* PAGINATION */}
+              <div className="flex justify-center gap-3 mt-4 text-sm">
+                <button
+                  onClick={() => setDevicePage(devicePage - 1)}
+                  disabled={devicePage === 1}
+                >
+                  ‹
+                </button>
+
+                <span>
+                  {devicePage} / {deviceTotalPages}
+                </span>
+
+                <button
+                  onClick={() => setDevicePage(devicePage + 1)}
+                  disabled={devicePage === deviceTotalPages}
+                >
+                  ›
+                </button>
+              </div>
+            </>
           )}
         </DialogContent>
-        <DialogActions sx={{ marginBottom: "10px" }}>
-          <Button
-            sx={{ marginRight: "10px" }}
-            className="  grey-br-button width-100 hover "
-            onClick={handleClose}
-          >
-            Cancel
-          </Button>
-          <Button
-            sx={{ padding: "3px 0px" }}
-            type="submit"
-            className="skyblue-br-button  width-100 hover"
-            onClick={() => {
-              AssignSiteToUser();
-              //   setOpen(false);
-            }}
-          >
-            Submit
-          </Button>
-        </DialogActions>{" "}
-      </BootstrapDialog>
-    </React.Fragment>
+
+        <DialogActions>
+          <Button onClick={handleClose}>Cancel</Button>
+
+          {step === 1 && (
+            <Button
+              disabled={!selectedSites.length}
+              onClick={() => {
+                console.log("Selected Sites:", selectedSites);
+                setStep(2);
+              }}
+              variant="contained"
+            >
+              Next
+            </Button>
+          )}
+
+          {step === 2 && (
+            <>
+              <Button onClick={() => setStep(1)}>Back</Button>
+
+              <Button
+                disabled={!selectedDevices.length}
+                onClick={handleSubmit}
+                variant="contained"
+              >
+                Submit
+              </Button>
+            </>
+          )}
+        </DialogActions>
+      </Dialog>
+    </>
   );
 }

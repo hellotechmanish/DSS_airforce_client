@@ -10,52 +10,62 @@ export default function UserManagment() {
 
   return (
     <div className="p-6 bg-slate-100 min-h-screen">
-      {/* Breadcrumb */}
-      <nav className="text-sm mb-4">
-        <Link to="/dashboard" className="text-sky-500 font-medium">
-          Dashboard
-        </Link>
+      {/* 🔥 HEADER */}
+      <div className="bg-gradient-to-br from-[#0a192f] to-[#0f3057] rounded-xl p-5 mb-5 shadow">
+        <div className="flex justify-between items-center">
+          {/* Breadcrumb */}
+          <nav className="text-sm text-white/80">
+            <Link to="/dashboard" className="hover:text-white">
+              Dashboard
+            </Link>
 
-        <span className="mx-2">›</span>
+            <span className="mx-2">›</span>
 
-        <Link to="/user-management" className="text-sky-500 font-medium">
-          User Management
-        </Link>
+            <Link to="/user-management" className="hover:text-white">
+              User Management
+            </Link>
 
-        <span className="mx-2">›</span>
+            <span className="mx-2">›</span>
 
-        <span className="text-gray-700 font-semibold">{state?.fullName}</span>
-      </nav>
+            <span className="font-semibold text-white">
+              {state?.fullName} ( {state?.uid} )
+            </span>
+          </nav>
 
-      {/* Card */}
+          {/* Title */}
+          <h2 className="text-white text-lg font-semibold">User Details</h2>
+        </div>
+      </div>
+
+      {/* 🔥 MAIN CARD */}
       <div className="bg-white rounded-xl shadow border border-gray-200 p-6">
-        {/* Tabs */}
-        <div className="border-b border-gray-200 mb-4 flex gap-6">
+        {/* 🔥 TABS */}
+        <div className="flex gap-3 mb-6">
           <button
             onClick={() => setActiveTab(0)}
-            className={`pb-2 text-sm font-medium transition ${
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
               activeTab === 0
-                ? "border-b-2 border-blue-600 text-blue-600"
-                : "text-gray-500 hover:text-blue-600"
+                ? "bg-gray-700 text-white shadow"
+                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
             }`}
           >
-            Personal Information
+            User Information
           </button>
 
           <button
             onClick={() => setActiveTab(1)}
-            className={`pb-2 text-sm font-medium transition ${
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
               activeTab === 1
-                ? "border-b-2 border-blue-600 text-blue-600"
-                : "text-gray-500 hover:text-blue-600"
+                ? "bg-gray-700 text-white shadow"
+                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
             }`}
           >
             Assigned
           </button>
         </div>
 
-        {/* Tab Content */}
-        <div>
+        {/* 🔥 CONTENT */}
+        <div className="bg-slate-50 rounded-lg p-4 border">
           {activeTab === 0 && <PersonalTab state={state} />}
           {activeTab === 1 && <AssignedTab state={state} />}
         </div>

@@ -4,7 +4,7 @@ import { POST } from "../../../../../lib/request";
 import { API } from "../../../../../lib/endpoint";
 import toast from "react-hot-toast";
 
-export default function AddSiteDialog({ getnumberOfSite ,buttonClass = "" }) {
+export default function AddSiteDialog({ getnumberOfSite, buttonClass = "" }) {
   const [open, setOpen] = useState(false);
   const [uidMatch, setUidMatch] = useState(true);
 
@@ -58,16 +58,16 @@ export default function AddSiteDialog({ getnumberOfSite ,buttonClass = "" }) {
     <>
       {/* Add Site Button */}
       <button
-  onClick={() => setOpen(true)}
-  className={`
+        onClick={() => setOpen(true)}
+        className={`
     px-5 py-2
     rounded-lg
     transition-all duration-200
     ${buttonClass}
   `}
->
-  + Add Site
-</button>
+      >
+        + Add Site
+      </button>
 
       {/* Modal */}
       {open && (

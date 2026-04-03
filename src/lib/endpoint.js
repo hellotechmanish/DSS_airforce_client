@@ -10,6 +10,7 @@ export const API = {
   USERS: {
     LIST: "/users",
     CREATE: "/user/addUser",
+    CREATE_SAFE: "/user/addUserSafe",
     EDIT: "/user/editUser",
     DELETE: "/user/deleteUser",
 

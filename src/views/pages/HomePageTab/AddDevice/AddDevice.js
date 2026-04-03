@@ -11,6 +11,7 @@ export default function AddDeviceDialog({
   sitezero,
   value,
   getdeviceListbysite,
+  getnumberOfSite,
 }) {
   const [open, setOpen] = useState(false);
   const [uidMatch, setUidMatch] = useState(true);
@@ -43,6 +44,11 @@ export default function AddDeviceDialog({
 
   // ================= SUBMIT =================
   const onSubmit = async (data) => {
+    if (!uidMatch) {
+      toast.error("Node UID already exists");
+      return;
+    }
+
     try {
       const body = {
         siteId: value === 0 ? sitezero?._id : state?._id,
@@ -68,10 +74,13 @@ export default function AddDeviceDialog({
       await POST(API.DEVICE.CREATE, body);
 
       toast.success("Device created successfully");
-      window.location.reload();
       reset();
       setOpen(false);
-      getdeviceListbysite();
+
+      //  FIX
+      const siteId = value === 0 ? sitezero?._id : state?._id;
+      getdeviceListbysite(siteId);
+      getnumberOfSite();
     } catch (error) {
       toast.error("Failed to create device");
     }
@@ -323,6 +332,7 @@ export default function AddDeviceDialog({
 
                   <button
                     type="submit"
+                    disabled={!uidMatch}
                     className="px-6 py-2 bg-[#0f3057] text-white rounded hover:bg-[#163e6b] transition"
                   >
                     Submit

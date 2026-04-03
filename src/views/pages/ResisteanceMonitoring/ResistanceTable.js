@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState, useContext } from "react";
+import React, { useEffect, useState, useContext } from "react";
 import { Link } from "react-router-dom";
 
 import { API } from "../../../lib/endpoint";
@@ -14,13 +14,26 @@ import { FiBell, FiCheckCircle } from "react-icons/fi";
 export default function Resistance() {
   const [resistance, setResistance] = useState([]);
   const [search, setSearch] = useState("");
+
+  // ✅ pagination states
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
+
   const auth = useContext(AuthContext);
   const [openModal, setOpenModal] = useState(false);
+
   // ================= FETCH =================
   const getAllSiteResistance = async () => {
     try {
-      const res = await GET(API.SITE.ALL_RESISTANCE);
+      const res = await GET(
+        `${API.SITE.ALL_RESISTANCE}?page=${page}&limit=${limit}&search=${search}`,
+      );
+
       setResistance(res?.msg || []);
+      setTotalPages(res?.pagination?.totalPages || 1);
+      setTotal(res?.pagination?.total || 0);
     } catch (err) {
       console.error(err);
       setResistance([]);
@@ -32,199 +45,149 @@ export default function Resistance() {
 
     const interval = setInterval(getAllSiteResistance, 20000);
     return () => clearInterval(interval);
-  }, []);
+  }, [page, limit, search]);
 
-  // ================= FILTER =================
-  const filteredData = useMemo(() => {
-    return resistance.filter((row) =>
-      `${row?.deviceName} ${row?.nodeUid}`
-        .toLowerCase()
-        .includes(search.toLowerCase()),
-    );
-  }, [resistance, search]);
-
+  // ================= DOWNLOAD =================
   const downloadCSV = () => {
-    try {
-      const data = resistance; // table wala data
-
-      if (!data.length) {
-        toast.error("No data to download");
-        return;
-      }
-
-      const headers = [
-        "siteUid",
-        "siteName",
-        "nodeUid",
-        "deviceName",
-        "resistanceNumber",
-        "resistanceValue",
-      ];
-
-      const rows = data.map((item) =>
-        [
-          item.siteUid,
-          item.siteName,
-          item.nodeUid,
-          item.deviceName,
-          item.resistanceNumber,
-          item.resistanceValue,
-        ].join(","),
-      );
-
-      const csvContent = [headers.join(","), ...rows].join("\n");
-
-      const blob = new Blob([csvContent], { type: "text/csv" });
-      const url = window.URL.createObjectURL(blob);
-
-      const link = document.createElement("a");
-      link.href = url;
-      link.setAttribute("download", "resistance_report.csv");
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-
-      toast.success("Downloaded");
-    } catch (err) {
-      toast.error("Download failed");
+    if (!resistance.length) {
+      toast.error("No data to download");
+      return;
     }
+
+    const headers = [
+      "siteUid",
+      "siteName",
+      "nodeUid",
+      "deviceName",
+      "resistanceNumber",
+      "resistanceValue",
+    ];
+
+    const rows = resistance.map((item) =>
+      [
+        item.siteUid,
+        item.siteName,
+        item.nodeUid,
+        item.deviceName,
+        item.resistanceNumber,
+        item.resistanceValue,
+      ].join(","),
+    );
+
+    const csvContent = [headers.join(","), ...rows].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv" });
+    const url = window.URL.createObjectURL(blob);
+
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", "resistance_report.csv");
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+
+    toast.success("Downloaded");
   };
+
+  // ================= PAGINATION =================
+  const visiblePages = Array.from(
+    { length: Math.min(5, totalPages) },
+    (_, i) => i + Math.max(page - 2, 1),
+  ).filter((p) => p <= totalPages);
+
+  const start = (page - 1) * limit + 1;
+  const end = Math.min(page * limit, total);
 
   return (
     <div className="p-6 bg-slate-100 min-h-screen">
-      {/* Breadcrumb */}
-      <nav className="mb-4 text-sm">
-        <Link to="/dashboard" className="text-sky-500 font-medium no-underline">
-          Dashboard
-        </Link>
-        <span className="mx-2">›</span>
-        <span className="text-[#0f3057] font-semibold">
-          Resistance Monitoring
-        </span>
-      </nav>
-
       {/* HEADER */}
-      <div className="bg-gradient-to-br from-[#0a192f] to-[#0f3057] rounded-xl p-5 mb-5 flex justify-between items-center shadow-lg">
+      <div className="bg-gradient-to-br from-[#0a192f] to-[#0f3057] rounded-xl p-5 mb-5 flex justify-between items-center">
         <h2 className="text-white text-xl font-semibold">
           RESISTANCE MONITORING
         </h2>
-        <span className="text-white font-medium">
-          {filteredData.length} Sensors
-        </span>
+        <span className="text-white font-medium">{total} Sensors</span>
       </div>
 
-      {/* SEARCH */}
-      <div className="mb-4 flex items-center justify-between">
-        {/* LEFT */}
-        <h3 className="text-xl font-semibold text-[#0f3057]">
-          Active Resistance Devices
-        </h3>
+      {/* SEARCH + DOWNLOAD */}
+      <div className="mb-4 flex justify-between items-center">
+        <input
+          type="text"
+          placeholder="Search..."
+          className="border px-3 py-2 rounded-lg text-sm w-64"
+          value={search}
+          onChange={(e) => {
+            setSearch(e.target.value);
+            setPage(1);
+          }}
+        />
 
-        {/* RIGHT SIDE WRAPPER */}
-        <div className="flex items-center gap-4 ml-auto">
-          {/* Search */}
-          <input
-            type="text"
-            placeholder="Search..."
-            className="border border-gray-300 rounded-lg px-3 py-2 text-sm w-64 focus:ring-2 focus:ring-blue-500 outline-none"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-
-          {/* Download Button (Extreme Right) */}
-          <button
-            onClick={downloadCSV}
-            className="flex items-center gap-2 px-4 py-2 bg-[#0f3057] text-white text-sm font-medium rounded-lg shadow hover:bg-[#163e6b] transition"
-          >
-            <HiOutlineDownload size={16} />
-            Download
-          </button>
-        </div>
+        <button
+          onClick={downloadCSV}
+          className="flex items-center gap-2 px-4 py-2 bg-[#0f3057] text-white rounded"
+        >
+          <HiOutlineDownload /> Download
+        </button>
       </div>
 
       {/* TABLE */}
-      <div className="bg-white rounded-xl shadow border border-gray-200 overflow-x-auto">
+      <div className="bg-white rounded-xl shadow border overflow-x-auto">
         <table className="w-full text-sm">
-          <thead className="bg-gray-50 text-gray-600">
+          <thead className="bg-gray-50">
             <tr>
-              <th className="px-4 py-3 text-left">#</th>
-
-              <th className="px-4 py-3 text-left">Site Name</th>
+              <th className="px-4 py-3">#</th>
+              <th className="px-4 py-3">Site Name</th>
               {auth?.user?.role !== "user" && (
-                <th className="px-4 py-3 text-left">Site UID</th>
+                <th className="px-4 py-3">Site UID</th>
               )}
-              <th className="px-4 py-3 text-left">Device UID</th>
-              <th className="px-4 py-3 text-left">Device Name</th>
-              <th className="px-4 py-3 text-left">Resistance UID</th>
-              <th className="px-4 py-3 text-left">Resistance Value</th>
-              <th className="px-4 py-3 text-left">Alert</th>
+              <th className="px-4 py-3">Device UID</th>
+              <th className="px-4 py-3">Device Name</th>
+              <th className="px-4 py-3">Resistance UID</th>
+              <th className="px-4 py-3">Value</th>
+              <th className="px-4 py-3">Alert</th>
             </tr>
           </thead>
 
           <tbody>
-            {filteredData.map((row, index) => {
+            {resistance.map((row, index) => {
               const value = row?.resistanceValue || 0;
               const threshold = row?.resSensorsThreshold || 0;
 
               return (
-                <tr key={index} className="border-t hover:bg-gray-50">
-                  <td className="px-4 py-3">{index + 1}</td>
-
-                  <td className="px-4 py-3 text-blue-600 font-medium">
-                    {row?.siteName || "-"}
+                <tr key={index} className="border-t">
+                  <td className="px-4 py-3">
+                    {(page - 1) * limit + index + 1}
                   </td>
+
+                  <td className="px-4 py-3">{row?.siteName}</td>
 
                   {auth?.user?.role !== "user" && (
-                    <td className="px-4 py-3 ">{row?.siteUid || "-"}</td>
+                    <td className="px-4 py-3">{row?.siteUid}</td>
                   )}
 
-                  <td className="px-4 py-3">{row?.nodeUid} </td>
-
+                  <td className="px-4 py-3">{row?.nodeUid}</td>
                   <td className="px-4 py-3">{row?.deviceName}</td>
+                  <td className="px-4 py-3">{row?.resistanceNumber}</td>
 
-                  <td className="px-4 py-3">
-                    {row?.resistanceNumber || "offline"}{" "}
-                  </td>
-
-                  {/* 🔥 Highlight Logic */}
                   <td
                     className={`px-4 py-3 ${
-                      value > threshold
-                        ? "bg-red-200 text-red-700 font-semibold rounded"
-                        : ""
+                      value > threshold ? "bg-red-200 text-red-700" : ""
                     }`}
                   >
                     {value}
                   </td>
+
                   <td className="px-4 py-3 text-center">
-                    <div className="relative group flex justify-center items-center">
-                      {value > threshold ? (
-                        //  ALERT
-                        <button onClick={() => setOpenModal(true)}>
-                          <FiBell className="text-red-500 text-lg animate-pulse cursor-pointer" />
-                        </button>
-                      ) : (
-                        //  SAFE
-                        <FiCheckCircle className="text-green-500 text-lg cursor-pointer" />
-                      )}
-
-                      {/*  TOOLTIP LEFT SIDE */}
-                      <div className="absolute right-16 opacity-0 group-hover:opacity-100 transition-all duration-200 bg-white text-red-500 text-xs rounded px-3 py-1 shadow-lg whitespace-nowrap z-10 flex items-center gap-1 border">
-                        {/* icon inside tooltip */}
-                        {value > threshold ? (
-                          <FiBell className="text-red-500 text-xs" />
-                        ) : (
-                          <FiCheckCircle className="text-green-500 text-xs" />
-                        )}
-
-                        {/* text */}
-                        <span>
-                          {value > threshold
-                            ? "Value exceeded threshold"
-                            : "All values normal"}
-                        </span>
-                      </div>
-                    </div>
+                    {value > threshold ? (
+                      <FiBell
+                        className="text-red-500 animate-pulse"
+                        title="Alert: Resistance is higher than the safe limit."
+                      />
+                    ) : (
+                      <FiCheckCircle
+                        className="text-green-500"
+                        title="Resistance is within the safe range."
+                      />
+                    )}
                   </td>
                 </tr>
               );
@@ -233,60 +196,67 @@ export default function Resistance() {
         </table>
 
         {/* NO DATA */}
-        {filteredData.length === 0 && (
+        {resistance.length === 0 && (
           <div className="flex flex-col items-center justify-center h-[50vh]">
-            <img
-              alt="nodafound"
-              src={NodataFound}
-              className="w-40 opacity-80"
-            />
-            <p className="mt-4 text-blue-500 font-medium">No Device Found</p>
+            <img alt="no data found" src={NodataFound} className="w-40" />
+            <p>No Device Found</p>
           </div>
         )}
-      </div>
 
-      {openModal && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
-          {/* Modal Card */}
-          <div className="bg-white rounded-2xl p-6 w-[360px] shadow-xl animate-fadeIn">
-            {/* Header */}
-            <div className="flex items-center gap-2 mb-4">
-              <div className="bg-red-100 p-2 rounded-full">
-                <FiBell className="text-red-500 text-lg" />
-              </div>
-              <h2 className="text-lg font-semibold text-gray-800">
-                Alert Warning
-              </h2>
-            </div>
+        {/* PAGINATION */}
+        <div className="flex justify-between items-center p-4 border-t">
+          <div>
+            Showing {start} - {end} of {total}
+          </div>
 
-            {/* Message */}
-            <p className="text-gray-600 text-sm leading-relaxed">
-              Resistance value is higher than the defined threshold. Please
-              inspect the system and improve grounding to ensure safety.
-            </p>
+          <div className="flex gap-1">
+            <button
+              disabled={page === 1}
+              onClick={() => setPage(page - 1)}
+              className="px-3 py-1 border rounded"
+            >
+              Prev
+            </button>
 
-            {/* Divider */}
-            <div className="border-t my-4"></div>
-
-            {/* Actions */}
-            <div className="flex justify-end gap-2">
-              {/* <button
-                onClick={() => setOpenModal(false)}
-                className="px-3 py-1.5 text-sm rounded-lg border text-gray-600 hover:bg-gray-100"
-              >
-                Cancel
-              </button> */}
-
+            {visiblePages.map((p) => (
               <button
-                onClick={() => setOpenModal(false)}
-                className="px-3 py-1.5 text-sm rounded-lg bg-red-500 text-white hover:bg-red-600"
+                key={p}
+                onClick={() => setPage(p)}
+                className={`px-3 py-1 border rounded ${
+                  page === p ? "bg-blue-600 text-white" : ""
+                }`}
               >
-                Acknowledge
+                {p}
               </button>
-            </div>
+            ))}
+
+            <button
+              disabled={page === totalPages}
+              onClick={() => setPage(page + 1)}
+              className="px-3 py-1 border rounded"
+            >
+              Next
+            </button>
+          </div>
+
+          <div>
+            <select
+              value={limit}
+              onChange={(e) => {
+                setLimit(Number(e.target.value));
+                setPage(1);
+              }}
+              className="border px-2 py-1"
+            >
+              <option value={5}>5</option>
+              <option value={10}>10</option>
+              <option value={20}>20</option>
+              <option value={50}>50</option>
+              <option value={100}>100</option>
+            </select>
           </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }
