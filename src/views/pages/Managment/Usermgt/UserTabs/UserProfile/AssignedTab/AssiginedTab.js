@@ -136,7 +136,9 @@ export default function Sites({ state }) {
 
   const handleSelectAllDevices = useCallback(() => {
     setSelectedDeviceIds((prev) =>
-      prev.length === allDevices.length ? [] : allDevices.map((item) => item._id),
+      prev.length === allDevices.length
+        ? []
+        : allDevices.map((item) => item._id),
     );
   }, [allDevices]);
 
@@ -186,7 +188,8 @@ export default function Sites({ state }) {
   const allDevicesSelected =
     allDevices.length > 0 && selectedDeviceIds.length === allDevices.length;
   const someDevicesSelected =
-    selectedDeviceIds.length > 0 && selectedDeviceIds.length < allDevices.length;
+    selectedDeviceIds.length > 0 &&
+    selectedDeviceIds.length < allDevices.length;
   const selectedDeviceCount = useMemo(
     () => selectedDeviceIds.length,
     [selectedDeviceIds],
@@ -232,12 +235,12 @@ export default function Sites({ state }) {
                 <TableCell align="center">
                   <div className="flex items-center justify-center gap-2">
                     <span className="font-medium">{row.deviceCount}</span>
-                    <FaEye
+                    {/* <FaEye
                       onClick={(e) => {
                         e.stopPropagation();
                         DeviceDataView(row, "total");
                       }}
-                    />
+                    /> */}
                   </div>
                 </TableCell>
 
@@ -398,7 +401,9 @@ export default function Sites({ state }) {
           <div className="bg-white w-[92%] max-w-4xl max-h-[90vh] rounded-xl shadow-lg p-6 flex flex-col">
             <div className="flex justify-between items-center mb-4">
               <div>
-                <h2 className="text-lg font-semibold">Edit Device Assignment</h2>
+                <h2 className="text-lg font-semibold">
+                  Edit Device Assignment
+                </h2>
                 <p className="mt-1 text-sm text-gray-500">
                   {selectedRow?.siteName} ({selectedRow?.uid})
                 </p>

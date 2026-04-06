@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, useContext } from "react";
+import React, { useState, useEffect, useMemo, useContext,useCallback } from "react";
 import { Link } from "react-router-dom";
 import { API } from "../../../lib/endpoint";
 import { GET } from "../../../lib/request";
@@ -22,7 +22,7 @@ export default function TemperatureTable() {
   const role = auth?.user?.role;
 
   // ================= FETCH =================
-  const getAllSiteTemperature = async () => {
+  const getAllSiteTemperature = useCallback(async () => {
     try {
       const res = await GET(
         `${API.SITE.GET_ALL_SITE_TEMP}?page=${page}&limit=${limit}`,
@@ -51,14 +51,14 @@ export default function TemperatureTable() {
       console.error(error);
       setData([]);
     }
-  };
+  }, [page, limit]);
 
   useEffect(() => {
     getAllSiteTemperature();
 
     const interval = setInterval(getAllSiteTemperature, 20000);
     return () => clearInterval(interval);
-  }, [page, limit]);
+  }, [getAllSiteTemperature]);
 
   // ================= FILTER =================
   const filteredData = useMemo(() => {
@@ -163,7 +163,11 @@ export default function TemperatureTable() {
         {/* NO DATA */}
         {filteredData.length === 0 && (
           <div className="flex flex-col items-center justify-center h-[60vh]">
-            <img alt="nodatafound" src={NodataFound} className="w-40 opacity-80" />
+            <img
+              alt="nodatafound"
+              src={NodataFound}
+              className="w-40 opacity-80"
+            />
             <p className="mt-4 text-blue-500 font-medium">No Device Found</p>
           </div>
         )}

@@ -1,13 +1,14 @@
 // Import Server Component
-import React, { useState, useEffect } from "react";
+import React, { Suspense, lazy, useEffect, useState } from "react";
 import PropTypes from "prop-types";
 import { Tabs, Tab, Typography, Grid } from "@mui/material";
 
 // Import Custom Component
-import DeviceGraph from "./DeviceGraph";
 import Viewprofile from "../viewprofielDiialog";
 import { API } from "../../../../lib/endpoint";
 import { GET } from "../../../../lib/request";
+
+const DeviceGraph = lazy(() => import("./DeviceGraph"));
 
 function TabPanel(props) {
   const { children, value, index, ...other } = props;
@@ -40,6 +41,7 @@ function App({ deviceID, value1, setValue1, value }) {
   const [deviceID2, setDeviceID2] = useState(null);
   const [sensor, setSensor] = useState("RES");
   const [sensorValue, setSensorValue] = useState(null);
+  const [showGraph, setShowGraph] = useState(false);
   const intervalId = React.useRef(sensor);
 
   const getDeviceById = async (deviceID) => {
@@ -91,6 +93,28 @@ function App({ deviceID, value1, setValue1, value }) {
   }, [deviceID2]);
 
   useEffect(() => {
+    setShowGraph(false);
+
+    if (!sensorValue?._id || deviceID2 !== sensorValue._id) {
+      return undefined;
+    }
+
+    if ("requestIdleCallback" in window) {
+      const idleId = window.requestIdleCallback(() => setShowGraph(true), {
+        timeout: 1500,
+      });
+
+      return () => window.cancelIdleCallback(idleId);
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setShowGraph(true);
+    }, 200);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [deviceID2, sensorValue]);
+
+  useEffect(() => {
     if (!deviceID2) return;
 
     const interval = setInterval(() => {
@@ -107,48 +131,61 @@ function App({ deviceID, value1, setValue1, value }) {
   return (
     <>
       <Grid container className="widthLR-90 ">
+        {/* show device name and view profile button in device tab */}
+
         <Grid
           container
           direction="row"
           justifyContent="space-between"
           alignItems="center"
         >
-          <Grid item>
-            <>
-              <Tabs
-                value={value1}
-                onChange={handleChange2}
-                className="Tabs-dashboard2"
-                variant={value1 === 0 ? null : "scrollable"}
-                scrollButtons={value1 === 0 ? null : "auto"}
-                aria-label="scrollable auto tabs example"
-              >
-                {deviceID?.length > 0 ? (
-                  deviceID?.map((item, index) => {
-                    return (
-                      <Tab
-                        className="Tab-dashboardlabel2 fs-16 mr-20 hover "
-                        {...a11yProps(index)}
-                        label={
-                          <>
-                            <Typography className="sitesname ">
-                              {item?.deviceName}
-                            </Typography>
-                          </>
-                        }
-                      />
-                    );
-                  })
-                ) : (
-                  <Tab
-                    className="Tab-dashboardlabel2 fs-16 mr-20 hover"
-                    label={<Typography>No Device Assign</Typography>}
-                  />
-                )}
-              </Tabs>
-            </>
+          <Grid item xs={12}>
+            {" "}
+            {/*  full width */}
+            <Tabs
+              value={value1}
+              onChange={handleChange2}
+              className="Tabs-dashboard2"
+              variant="scrollable" //  always scrollable
+              scrollButtons="auto" //  left/right buttons auto
+              allowScrollButtonsMobile //  mobile pe bhi arrows
+              aria-label="scrollable auto tabs example"
+              sx={{
+                width: "100%", //  full parent width
+                minHeight: "48px",
+                "& .MuiTabs-flexContainer": {
+                  alignItems: "center",
+                },
+              }}
+            >
+              {deviceID?.length > 0 ? (
+                deviceID?.map((item, index) => {
+                  return (
+                    <Tab
+                      key={index}
+                      style={{ minWidth: 100 }} //  thoda proper width
+                      className="Tab-dashboardlabel2 fs-16 mr-20 hover"
+                      {...a11yProps(index)}
+                      label={
+                        <span className="text-sm font-semibold text-gray-800 tracking-wide">
+                          {item?.deviceName}
+                        </span>
+                      }
+                    />
+                  );
+                })
+              ) : (
+                <Tab
+                  className="Tab-dashboardlabel2 fs-16 mr-20 hover"
+                  label={<Typography>No Device Assign</Typography>}
+                />
+              )}
+            </Tabs>
           </Grid>
         </Grid>
+
+        {/* chat pi line  */}
+
         <Grid container className="mt-16">
           {value1 === 0 ? (
             <TabPanel value={value1} index={0} className="width100">
@@ -1251,14 +1288,24 @@ function App({ deviceID, value1, setValue1, value }) {
                 ) : null}
               </Grid>
               {sensorValue && sensor && deviceID2 === sensorValue._id && (
-                <DeviceGraph
-                  device={sensorValue}
-                  deviceID2={deviceID2}
-                  sensor={sensor}
-                  setSensor={setSensor}
-                  SensorTypeChange={SensorTypeChange}
-                  intervalId={intervalId}
-                />
+                showGraph ? (
+                  <Suspense
+                    fallback={
+                      <div className="mt-8 h-80 rounded-xl bg-slate-100 animate-pulse" />
+                    }
+                  >
+                    <DeviceGraph
+                      device={sensorValue}
+                      deviceID2={deviceID2}
+                      sensor={sensor}
+                      setSensor={setSensor}
+                      SensorTypeChange={SensorTypeChange}
+                      intervalId={intervalId}
+                    />
+                  </Suspense>
+                ) : (
+                  <div className="mt-8 h-80 rounded-xl bg-slate-100 animate-pulse" />
+                )
               )}
             </TabPanel>
           )}

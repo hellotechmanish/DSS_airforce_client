@@ -68,10 +68,15 @@ const normalizeDeviceFormValues = (device = {}) => ({
 const hasDeviceDetails = (device) =>
   Boolean(
     device &&
-      ("nodeUid" in device ||
-        "temp" in device ||
+      ("temp" in device ||
         "humidity" in device ||
         "resSensors" in device ||
+        "nerSensors" in device ||
+        "vmrSensors" in device ||
+        "spdSensors" in device ||
+        "resSensorsThreshold" in device ||
+        "nerSensorsThreshold" in device ||
+        "spdSensorsThreshold" in device ||
         "vmrSensorsThreshold" in device),
   );
 

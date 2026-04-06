@@ -1,2 +1,0 @@
-"use strict";(globalThis.webpackChunkdss=globalThis.webpackChunkdss||[]).push([[516],{5516(s,e,a){a.r(e),a.d(e,{default:()=>o});var t=a(3216),l=a(579);const o=()=>localStorage.getItem("token")?(0,l.jsx)(t.C5,{to:"/",replace:!0}):(0,l.jsx)(t.sv,{})}}]);
-//# sourceMappingURL=516.140324b3.chunk.js.map

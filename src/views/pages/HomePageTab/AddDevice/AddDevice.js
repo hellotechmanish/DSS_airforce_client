@@ -49,40 +49,47 @@ export default function AddDeviceDialog({
       return;
     }
 
+    const siteId = value === 0 ? sitezero?._id : state?._id;
+
+    const body = {
+      siteId,
+      deviceName: data.deviceName,
+      nodeUid: data.nodeUid,
+      vmrSensors: Number(data.vmrSensors),
+      resSensors: Number(data.resSensors),
+      spdSensors: Number(data.spdSensors),
+      nerSensors: Number(data.nerSensors),
+      vmrSensorsThreshold: {
+        r: Number(data.r),
+        y: Number(data.y),
+        b: Number(data.b),
+        ry: Number(data.ry),
+        yb: Number(data.yb),
+        rb: Number(data.rb),
+      },
+      resSensorsThreshold: Number(data.resSensorsThreshold),
+      spdSensorsThreshold: Number(data.spdSensorsThreshold),
+      nerSensorsThreshold: Number(data.nerSensorsThreshold),
+    };
+
     try {
-      const body = {
-        siteId: value === 0 ? sitezero?._id : state?._id,
-        deviceName: data.deviceName,
-        nodeUid: data.nodeUid,
-        vmrSensors: +data.vmrSensors,
-        resSensors: +data.resSensors,
-        spdSensors: +data.spdSensors,
-        nerSensors: +data.nerSensors,
-        vmrSensorsThreshold: {
-          r: +data.r,
-          y: +data.y,
-          b: +data.b,
-          ry: +data.ry,
-          yb: +data.yb,
-          rb: +data.rb,
-        },
-        resSensorsThreshold: +data.resSensorsThreshold,
-        spdSensorsThreshold: +data.spdSensorsThreshold,
-        nerSensorsThreshold: +data.nerSensorsThreshold,
-      };
+      const response = await POST(API.DEVICE.CREATE, body);
 
-      await POST(API.DEVICE.CREATE, body);
+      // ✅ Ensure success condition properly checked
+      if (response?.status === 200 || response?.success) {
+        toast.success("Device created successfully");
 
-      toast.success("Device created successfully");
-      reset();
-      setOpen(false);
+        reset();
+        setOpen(false);
 
-      //  FIX
-      const siteId = value === 0 ? sitezero?._id : state?._id;
-      getdeviceListbysite(siteId);
-      getnumberOfSite();
+        getdeviceListbysite(siteId);
+        getnumberOfSite();
+      } else {
+        throw new Error("API failed");
+      }
     } catch (error) {
-      toast.error("Failed to create device");
+      console.error(error);
+      toast.error(error?.message || "Failed to create device");
     }
   };
 

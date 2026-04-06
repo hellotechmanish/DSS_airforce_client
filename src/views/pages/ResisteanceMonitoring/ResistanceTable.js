@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useEffect, useState, useContext } from "react";
-import { Link } from "react-router-dom";
 
 import { API } from "../../../lib/endpoint";
 import { GET } from "../../../lib/request";
@@ -22,7 +21,7 @@ export default function Resistance() {
   const [total, setTotal] = useState(0);
 
   const auth = useContext(AuthContext);
-  const [openModal, setOpenModal] = useState(false);
+  // const [openModal, setOpenModal] = useState(false);
 
   // ================= FETCH =================
   const getAllSiteResistance = async () => {
