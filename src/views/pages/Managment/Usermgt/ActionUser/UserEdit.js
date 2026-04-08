@@ -27,12 +27,14 @@ export default function EditUserModal({ getnumberOfUser, row, UserID }) {
 
   const EditUser = async (data) => {
     try {
-      const res = await POST(API.USERS.EDIT, {
+      const payload = {
         userRole: 2,
         fullName: data.fullName,
-        uid: data.uid,
+        username: data.username,
         userId: UserID,
-      });
+      };
+
+      const res = await POST(API.USERS.EDIT, payload);
 
       if (res) {
         toast.success(res?.msg || "User updated successfully");
@@ -50,7 +52,7 @@ export default function EditUserModal({ getnumberOfUser, row, UserID }) {
   useEffect(() => {
     if (row) {
       setValue("fullName", row.fullName);
-      setValue("uid", row.uid);
+      setValue("username", row.username);
     }
   }, [row, setValue]);
 
@@ -100,20 +102,20 @@ export default function EditUserModal({ getnumberOfUser, row, UserID }) {
                   )}
                 </div>
 
-                {/* UID */}
+                {/* Username */}
                 <div>
-                  <label className="text-sm text-gray-900">UID</label>
+                  <label className="text-sm text-gray-900">Username</label>
 
                   <input
-                    {...register("uid", {
-                      required: "UID is required",
+                    {...register("username", {
+                      required: "Username is required",
                     })}
                     className="w-full mt-2 border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-400 focus:outline-none"
                   />
 
-                  {errors.uid && (
+                  {errors.username && (
                     <p className="text-red-500 text-xs mt-1">
-                      {errors.uid.message}
+                      {errors.username.message}
                     </p>
                   )}
                 </div>

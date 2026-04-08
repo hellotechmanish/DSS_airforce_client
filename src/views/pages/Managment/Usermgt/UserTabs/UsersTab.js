@@ -20,6 +20,7 @@ export default function Sites({ user = [], getnumberOfUser }) {
   const [selectedSites, setSelectedSites] = useState([]);
   const [selectedUser, setSelectedUser] = useState(null);
 
+
   useEffect(() => {
     getnumberOfUser();
   }, [getnumberOfUser]);
@@ -89,7 +90,7 @@ export default function Sites({ user = [], getnumberOfUser }) {
               <thead className="bg-gray-100 text-gray-600 uppercase text-xs">
                 <tr>
                   <th className="px-6 py-4">#</th>
-                  <th className="px-6 py-4">UID</th>
+                  <th className="px-6 py-4">Username</th>
                   <th className="px-6 py-4">User Name</th>
                   <th className="px-6 py-4">Sites</th>
                   <th className="px-6 py-4">Password</th>
@@ -109,7 +110,7 @@ export default function Sites({ user = [], getnumberOfUser }) {
                     {/* UID */}
                     <td className="px-6 py-4 text-blue-600 font-semibold">
                       <Link to="/user-profile" state={row}>
-                        {row?.uid}
+                        {row?.username}
                       </Link>
                     </td>
 
@@ -270,7 +271,7 @@ export default function Sites({ user = [], getnumberOfUser }) {
                     <tr>
                       <th className="p-2">#</th>
                       <th className="p-2">Site Name</th>
-                      <th className="p-2">UID</th>
+                      <th className="p-2">Site Uid</th>
                     </tr>
                   </thead>
 
@@ -279,7 +280,7 @@ export default function Sites({ user = [], getnumberOfUser }) {
                       <tr key={site._id} className="border-t">
                         <td className="p-2">{index + 1}</td>
                         <td className="p-2">{site.siteName}</td>
-                        <td className="p-2">{site.uid}</td>
+                        <td className="p-2">{site.site_uid}</td>
                       </tr>
                     ))}
                   </tbody>

@@ -23,7 +23,7 @@ function App() {
     handleSubmit,
     formState: { errors },
   } = useForm();
-  const [uid, setUid] = useState("");
+  const [user, setUser] = useState("");
   const [password, setPassword] = useState("");
   const navigate = useNavigate();
 
@@ -56,7 +56,7 @@ function App() {
 
   const SignSubmit = async () => {
     const body = {
-      uid: uid,
+      username: user,
       password: password,
     };
 
@@ -257,7 +257,7 @@ function App() {
               <Input
                 fullWidth
                 disableUnderline
-                value={uid}
+                value={user}
                 sx={{
                   border: "1px solid #ccc",
                   borderRadius: "4px",
@@ -266,7 +266,7 @@ function App() {
                 }}
                 {...register("Uid", {
                   required: "Uid is required",
-                  onChange: (e) => setUid(e.target.value),
+                  onChange: (e) => setUser(e.target.value),
                 })}
               />
 

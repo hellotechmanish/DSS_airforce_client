@@ -30,7 +30,7 @@ export default function CreateTechnician({ getnumberOftechnician }) {
     try {
       const res = await POST(API.USERS.CREATE, {
         fullName: data.fullName,
-        uid: data.uid,
+        username: data.uid,
         password: data.password,
         type: "technician",
       });

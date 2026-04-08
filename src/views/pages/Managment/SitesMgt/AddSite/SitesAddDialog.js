@@ -28,22 +28,27 @@ export default function AddSiteDialog({ getnumberOfSite, buttonClass = "" }) {
     try {
       const res = await POST(API.SITE.CREATE, data);
 
-      if (res) {
-        toast.success("site created successfully");
+      if (res?.success) {
+        toast.success(res.message || "Site created successfully");
         getnumberOfSite();
         handleClose();
       }
     } catch (error) {
-      console.error(error, "Failed to create site");
-      toast.error("Failed to create site");
+      console.error(error);
+
+      const message =
+        error?.response?.data?.message ||
+        error?.message ||
+        "Failed to create site";
+
+      toast.error(message);
     }
   };
-
   const checkUid = useCallback(async () => {
     if (!uid) return;
 
     try {
-      const res = await POST(API.SITE.CHECK_UID, { uid });
+      const res = await POST(API.SITE.CHECK_UID, { site_uid: uid });
       setUidMatch(res?.status ?? false);
     } catch {
       setUidMatch(false);
@@ -112,7 +117,7 @@ export default function AddSiteDialog({ getnumberOfSite, buttonClass = "" }) {
                     UID
                   </label>
                   <input
-                    {...register("uid", { required: "UID is required" })}
+                    {...register("site_uid", { required: "UID is required" })}
                     placeholder="e.g. SITE-DEL-001"
                     className="w-full mt-2 px-3 py-2 border rounded-md focus:ring-2 focus:ring-indigo-500"
                   />
@@ -121,9 +126,9 @@ export default function AddSiteDialog({ getnumberOfSite, buttonClass = "" }) {
                       UID already exists!
                     </p>
                   )}
-                  {errors.uid && (
+                  {errors.site_uid && (
                     <p className="text-red-500 text-xs mt-1">
-                      {errors.uid.message}
+                      {errors.site_uid.message}
                     </p>
                   )}
                 </div>

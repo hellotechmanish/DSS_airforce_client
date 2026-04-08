@@ -139,7 +139,7 @@ export default function Sites() {
                   </Link>
                 </td>
 
-                <td className="px-4 py-3">{site.uid}</td>
+                <td className="px-4 py-3">{site.site_uid}</td>
                 <td className="px-4 py-3">{site.location}</td>
                 <td className="px-4 py-3">{site.deviceCount}</td>
                 <td className="px-4 py-3">

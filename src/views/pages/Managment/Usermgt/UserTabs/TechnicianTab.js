@@ -75,7 +75,7 @@ export default function Sites({ technician = [], getnumberOftechnician }) {
               <thead className="bg-gray-100 text-gray-600 uppercase text-xs">
                 <tr>
                   <th className="px-6 py-4">#</th>
-                  <th className="px-6 py-4">UID</th>
+                  <th className="px-6 py-4">Username</th>
                   <th className="px-6 py-4">Technician Name</th>
                   <th className="px-6 py-4">Password</th>
                   <th className="px-6 py-4">Added On</th>
@@ -91,10 +91,10 @@ export default function Sites({ technician = [], getnumberOftechnician }) {
                       {(currentPage - 1) * pageSize + index + 1}
                     </td>
 
-                    {/* UID */}
+                    {/* USERNAME */}
                     <td className="px-6 py-4 font-semibold text-blue-600">
                       <Link to="/technician-profile" state={row}>
-                        {row.uid}
+                        {row.username}
                       </Link>
                     </td>
 

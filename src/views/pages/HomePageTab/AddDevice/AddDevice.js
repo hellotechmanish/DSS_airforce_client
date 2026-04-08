@@ -44,52 +44,53 @@ export default function AddDeviceDialog({
 
   // ================= SUBMIT =================
   const onSubmit = async (data) => {
-    if (!uidMatch) {
-      toast.error("Node UID already exists");
-      return;
-    }
-
-    const siteId = value === 0 ? sitezero?._id : state?._id;
-
-    const body = {
-      siteId,
-      deviceName: data.deviceName,
-      nodeUid: data.nodeUid,
-      vmrSensors: Number(data.vmrSensors),
-      resSensors: Number(data.resSensors),
-      spdSensors: Number(data.spdSensors),
-      nerSensors: Number(data.nerSensors),
-      vmrSensorsThreshold: {
-        r: Number(data.r),
-        y: Number(data.y),
-        b: Number(data.b),
-        ry: Number(data.ry),
-        yb: Number(data.yb),
-        rb: Number(data.rb),
-      },
-      resSensorsThreshold: Number(data.resSensorsThreshold),
-      spdSensorsThreshold: Number(data.spdSensorsThreshold),
-      nerSensorsThreshold: Number(data.nerSensorsThreshold),
-    };
-
     try {
-      const response = await POST(API.DEVICE.CREATE, body);
-
-      // ✅ Ensure success condition properly checked
-      if (response?.status === 200 || response?.success) {
-        toast.success("Device created successfully");
-
-        reset();
-        setOpen(false);
-
-        getdeviceListbysite(siteId);
-        getnumberOfSite();
-      } else {
-        throw new Error("API failed");
+      if (!uidMatch) {
+        toast.error("Node UID already exists");
+        return;
       }
+
+      const siteId = value === 0 ? sitezero?._id : state?._id;
+
+      const body = {
+        siteId,
+        deviceName: data.deviceName?.trim(),
+        nodeUid: data.nodeUid?.toUpperCase().trim(),
+
+        vmrSensors: Number(data.vmrSensors) || 0,
+        resSensors: Number(data.resSensors) || 0,
+        spdSensors: Number(data.spdSensors) || 0,
+        nerSensors: Number(data.nerSensors) || 0,
+
+        vmrSensorsThreshold: {
+          r: Number(data.r) || 0,
+          y: Number(data.y) || 0,
+          b: Number(data.b) || 0,
+          ry: Number(data.ry) || 0,
+          yb: Number(data.yb) || 0,
+          rb: Number(data.rb) || 0,
+        },
+
+        resSensorsThreshold: Number(data.resSensorsThreshold) || 0,
+        spdSensorsThreshold: Number(data.spdSensorsThreshold) || 0,
+        nerSensorsThreshold: Number(data.nerSensorsThreshold) || 0,
+      };
+
+      const res = await POST(API.DEVICE.CREATE, body);
+
+      console.log("API RESPONSE =>", res);
+
+      if (res) {
+        toast.success("Device created successfully");
+      }
+
+      reset();
+      setOpen(false);
+      getdeviceListbysite(siteId);
+      // getnumberOfSite();
     } catch (error) {
-      console.error(error);
-      toast.error(error?.message || "Failed to create device");
+      console.error("Create device error:", error);
+      toast.error("Failed to create device");
     }
   };
 
@@ -157,7 +158,7 @@ export default function AddDeviceDialog({
                     </label>
                     <input
                       disabled
-                      value={value === 0 ? sitezero?.uid : state?.uid}
+                      value={value === 0 ? sitezero?.site_uid : state?.site_uid}
                       className="w-full border px-3 py-2 rounded bg-gray-100"
                     />
                   </div>

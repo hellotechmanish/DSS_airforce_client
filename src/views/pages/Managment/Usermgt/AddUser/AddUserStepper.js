@@ -13,6 +13,7 @@ export default function SimpleUser({ setOpen, getnumberOfUser }) {
     register,
     handleSubmit,
     watch,
+    reset,
     formState: { errors },
   } = useForm();
 
@@ -20,8 +21,8 @@ export default function SimpleUser({ setOpen, getnumberOfUser }) {
 
   const onSubmit = async (data) => {
     const payload = {
-      fullName: data.fullName,
-      uid: data.uid,
+      fullName: data.fullName?.trim(),
+      username: data.uid?.trim().toUpperCase(),
       password: data.password,
       type: "user",
     };
@@ -29,15 +30,23 @@ export default function SimpleUser({ setOpen, getnumberOfUser }) {
     try {
       setLoading(true);
 
-      await POST(API.USERS.CREATE, payload);
+      const res = await POST(API.USERS.CREATE, payload);
 
-      toast.success("User created successfully");
+      const message =
+        res?.data?.message || res?.message || "User created successfully";
 
+      toast.success(message);
+
+      reset();
       getnumberOfUser();
       setOpen(false);
     } catch (err) {
-      console.error(err);
-      toast.error("User creation failed");
+      console.error("User create error:", err);
+
+      const message =
+        err?.response?.data?.message || err?.message || "User creation failed";
+
+      toast.error(message);
     } finally {
       setLoading(false);
     }
@@ -52,7 +61,14 @@ export default function SimpleUser({ setOpen, getnumberOfUser }) {
         <div>
           <label>Full Name</label>
           <input
-            {...register("fullName", { required: "Required" })}
+            placeholder="Enter full name"
+            {...register("fullName", {
+              required: "Full name is required",
+              minLength: {
+                value: 3,
+                message: "Minimum 3 characters required",
+              },
+            })}
             className="border px-4 py-2 w-full"
           />
           {errors.fullName && <p>{errors.fullName.message}</p>}
@@ -61,30 +77,49 @@ export default function SimpleUser({ setOpen, getnumberOfUser }) {
         <div>
           <label>UID</label>
           <input
-            {...register("uid", { required: "Required" })}
+            placeholder="Enter unique user ID"
+            {...register("uid", {
+              required: "UID is required",
+              minLength: {
+                value: 3,
+                message: "UID must be at least 3 characters",
+              },
+            })}
             className="border px-4 py-2 w-full"
           />
+          {errors.uid && <p>{errors.uid.message}</p>}
         </div>
 
         <div>
           <label>Password</label>
           <input
             type="password"
-            {...register("password", { required: true })}
+            placeholder="Enter password"
+            {...register("password", {
+              required: "Password is required",
+              minLength: {
+                value: 6,
+                message: "Minimum 6 characters required",
+              },
+            })}
             className="border px-4 py-2 w-full"
           />
+          {errors.password && <p>{errors.password.message}</p>}
         </div>
 
         <div>
           <label>Confirm Password</label>
           <input
             type="password"
+            placeholder="Re-enter password"
             {...register("confirmPassword", {
+              required: "Confirm your password",
               validate: (value) =>
                 value === password || "Passwords do not match",
             })}
             className="border px-4 py-2 w-full"
           />
+          {errors.confirmPassword && <p>{errors.confirmPassword.message}</p>}
         </div>
 
         <div className="col-span-2 flex justify-end">

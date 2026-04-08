@@ -17,7 +17,7 @@ export default function EditDialog({ row, getnumberOfSite, sitesID, onClose }) {
     if (row) {
       reset({
         siteName: row.siteName || "",
-        uid: row.uid || "",
+        site_uid: row.site_uid || "",
         location: row.location || "",
         pincode: row.pincode || "",
         state: row.state || "",
@@ -28,11 +28,19 @@ export default function EditDialog({ row, getnumberOfSite, sitesID, onClose }) {
 
   /* ---------- Update Site ---------- */
   const updateSite = async (data) => {
+    const body = {
+      siteId: sitesID,
+      country: data.country,
+      location: data.location,
+      pincode: data.pincode,
+      siteName: data.siteName,
+      site_uid: data.site_uid,
+    };
+
+    console.log("body", body);
+
     try {
-      const res = await POST(API.SITE.EDIT, {
-        siteId: sitesID,
-        ...data,
-      });
+      const res = await POST(API.SITE.EDIT, body);
 
       if (res) {
         toast.success("Site updated successfully");
@@ -81,11 +89,11 @@ export default function EditDialog({ row, getnumberOfSite, sitesID, onClose }) {
               )}
             </div>
 
-            {/* UID */}
+            {/* SITE UID */}
             <div>
               <label className="text-sm font-medium text-gray-700">UID</label>
               <input
-                {...register("uid", {
+                {...register("site_uid", {
                   required: "UID is required",
                 })}
                 placeholder="Enter UID"

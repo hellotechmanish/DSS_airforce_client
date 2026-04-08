@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import AddUserStep from "./AddUserStepper";
+import SimpleUser from "./AddUserStepper";
 
 export default function AddUserDialog({ getnumberOfUser }) {
   const [open, setOpen] = useState(false);
@@ -36,7 +36,7 @@ export default function AddUserDialog({ getnumberOfUser }) {
 
             {/* Content */}
             <div className="p-6 bg-gray-50 rounded-b-xl">
-              <AddUserStep
+              <SimpleUser
                 handleClose={() => setOpen(false)}
                 open={open}
                 setOpen={setOpen}
