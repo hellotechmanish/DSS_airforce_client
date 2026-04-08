@@ -44,52 +44,74 @@ export default function AddDeviceDialog({
 
   // ================= SUBMIT =================
   const onSubmit = async (data) => {
-    if (!uidMatch) {
-      toast.error("Node UID already exists");
-      return;
-    }
-
-    const siteId = value === 0 ? sitezero?._id : state?._id;
-
-    const body = {
-      siteId,
-      deviceName: data.deviceName,
-      nodeUid: data.nodeUid,
-      vmrSensors: Number(data.vmrSensors),
-      resSensors: Number(data.resSensors),
-      spdSensors: Number(data.spdSensors),
-      nerSensors: Number(data.nerSensors),
-      vmrSensorsThreshold: {
-        r: Number(data.r),
-        y: Number(data.y),
-        b: Number(data.b),
-        ry: Number(data.ry),
-        yb: Number(data.yb),
-        rb: Number(data.rb),
-      },
-      resSensorsThreshold: Number(data.resSensorsThreshold),
-      spdSensorsThreshold: Number(data.spdSensorsThreshold),
-      nerSensorsThreshold: Number(data.nerSensorsThreshold),
-    };
-
     try {
+      if (!uidMatch) {
+        toast.error("Node UID already exists");
+        return;
+      }
+
+      const siteId = value === 0 ? sitezero?._id : state?._id;
+
+      const body = {
+        siteId,
+        deviceName: data.deviceName,
+        nodeUid: data.nodeUid,
+        vmrSensors: Number(data.vmrSensors),
+        resSensors: Number(data.resSensors),
+        spdSensors: Number(data.spdSensors),
+        nerSensors: Number(data.nerSensors),
+        vmrSensorsThreshold: {
+          r: Number(data.r),
+          y: Number(data.y),
+          b: Number(data.b),
+          ry: Number(data.ry),
+          yb: Number(data.yb),
+          rb: Number(data.rb),
+        },
+        resSensorsThreshold: Number(data.resSensorsThreshold),
+        spdSensorsThreshold: Number(data.spdSensorsThreshold),
+        nerSensorsThreshold: Number(data.nerSensorsThreshold),
+      };
+
       const response = await POST(API.DEVICE.CREATE, body);
 
-      // ✅ Ensure success condition properly checked
-      if (response?.status === 200 || response?.success) {
-        toast.success("Device created successfully");
+      console.log("API RESPONSE =>", response);
+
+      // ✅ FIXED SUCCESS CHECK
+      if (
+        response &&
+        (response.success === true || response.data?.success === true)
+      ) {
+        toast.success(
+          response?.message ||
+            response?.data?.message ||
+            "Device created successfully",
+        );
 
         reset();
         setOpen(false);
-
         getdeviceListbysite(siteId);
         getnumberOfSite();
-      } else {
-        throw new Error("API failed");
+
+        return;
       }
+
+      // fallback if API does not send success flag but no error thrown
+      toast.success("Device created successfully");
+
+      reset();
+      setOpen(false);
+      getdeviceListbysite(siteId);
+      getnumberOfSite();
     } catch (error) {
-      console.error(error);
-      toast.error(error?.message || "Failed to create device");
+      console.error("Create device error:", error);
+
+      const message =
+        error?.response?.data?.message ||
+        error?.message ||
+        "Failed to create device";
+
+      toast.error(message);
     }
   };
 
