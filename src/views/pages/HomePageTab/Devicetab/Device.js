@@ -76,7 +76,6 @@ function App({ deviceID, value1, setValue1, value }) {
     }
 
     setDeviceID2(selectedId);
-    getDeviceById(selectedId); // optional (can rely on useEffect)
     setSensor("RES");
   };
 
@@ -93,6 +92,14 @@ function App({ deviceID, value1, setValue1, value }) {
   }, [deviceID2]);
 
   useEffect(() => {
+    setShowGraph(false);
+  }, [deviceID2]);
+
+  useEffect(() => {
+    if (showGraph) {
+      return undefined;
+    }
+
     setShowGraph(false);
 
     if (!sensorValue?._id || deviceID2 !== sensorValue._id) {
@@ -112,7 +119,7 @@ function App({ deviceID, value1, setValue1, value }) {
     }, 200);
 
     return () => window.clearTimeout(timeoutId);
-  }, [deviceID2, sensorValue]);
+  }, [deviceID2, sensorValue, showGraph]);
 
   useEffect(() => {
     if (!deviceID2) return;
@@ -735,6 +742,7 @@ function App({ deviceID, value1, setValue1, value }) {
                   </Grid>
                 ) : null}
               </Grid>
+
               {sensorValue &&
                 sensor &&
                 deviceID2 === sensorValue._id &&
@@ -749,7 +757,10 @@ function App({ deviceID, value1, setValue1, value }) {
                   />
                 )}
             </TabPanel>
+
           ) : (
+
+
             <TabPanel value={value1} index={value1} className="width100">
               <Typography align="right"></Typography>
               <Grid container className=" mt-24 border-grey">
@@ -1307,6 +1318,7 @@ function App({ deviceID, value1, setValue1, value }) {
                   <div className="mt-8 h-80 rounded-xl bg-slate-100 animate-pulse" />
                 )
               )}
+
             </TabPanel>
           )}
         </Grid>
@@ -1315,4 +1327,6 @@ function App({ deviceID, value1, setValue1, value }) {
   );
 }
 
+
 export default App;
+

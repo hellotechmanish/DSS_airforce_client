@@ -34,7 +34,7 @@ function App() {
   const user = getUser();
   const scrollRef = useRef(null);
 
-  console.log("sitessites", sites);
+  // console.log("sitessites", sites);
 
   // console.log("sites", sites[0]);
 
