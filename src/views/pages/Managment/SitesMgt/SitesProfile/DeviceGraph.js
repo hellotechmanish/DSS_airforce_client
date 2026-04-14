@@ -1,5 +1,7 @@
 import React, { useState } from "react";
 import {
+  Box,
+  CircularProgress,
   Grid,
   Typography,
   FormControl,
@@ -111,6 +113,7 @@ export default function Graph({
   const [labels, setLabels] = React.useState([]);
   const [graphData, setGraphData] = React.useState([]);
   const [DataSets, setDataSets] = React.useState([]);
+  const [loading, setLoading] = React.useState(false);
   const [borderColorArray] = React.useState([
     "rgb(255, 99, 132)",
     "rgb(230, 230, 0)",
@@ -294,6 +297,8 @@ export default function Graph({
   async function getData() {
     if (!device) return;
 
+    setLoading(true);
+
     try {
       const res = await POST(API.DEVICE.LATEST_DATA, {
         deviceId: device._id,
@@ -308,6 +313,8 @@ export default function Graph({
       setGraphData(res.msg);
     } catch (error) {
       console.log("Error fetching graph data", error);
+    } finally {
+      setLoading(false);
     }
   }
   React.useEffect(() => {
@@ -555,19 +562,71 @@ export default function Graph({
               </LocalizationProvider>
             </Typography>
           </Grid>
-          {DataSets && DataSets?.length > 0 ? (
-            <Line
-              options={options}
-              data={{
-                labels,
-                datasets: DataSets,
+          <Grid item xs={12}>
+            <Box
+              sx={{
+                position: "relative",
+                minHeight: 320,
+                borderRadius: "0 0 8px 8px",
+                overflow: "hidden",
+                transition: "background-color 0.25s ease",
               }}
-            />
-          ) : (
-            <Grid container justifyContent="center">
-              <img src={hondaGif} />{" "}
-            </Grid>
-          )}
+            >
+              {DataSets && DataSets?.length > 0 ? (
+                <Line
+                  options={options}
+                  data={{
+                    labels,
+                    datasets: DataSets,
+                  }}
+                />
+              ) : !loading ? (
+                <Grid
+                  container
+                  justifyContent="center"
+                  alignItems="center"
+                  sx={{ minHeight: 320 }}
+                >
+                  <img src={hondaGif} alt="No graph data available" />
+                </Grid>
+              ) : null}
+
+              {loading && (
+                <Box
+                  sx={{
+                    position: "absolute",
+                    inset: 0,
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 1.5,
+                    background:
+                      "linear-gradient(180deg, rgba(247, 248, 253, 0.55) 0%, rgba(247, 248, 253, 0.82) 100%)",
+                    backdropFilter: "blur(3px)",
+                    zIndex: 2,
+                    transition: "opacity 0.25s ease",
+                  }}
+                >
+                  <CircularProgress
+                    size={34}
+                    thickness={4.5}
+                    sx={{ color: "#044a70" }}
+                  />
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      color: "#044a70",
+                      fontWeight: 600,
+                      letterSpacing: "0.02em",
+                    }}
+                  >
+                    Loading graph data...
+                  </Typography>
+                </Box>
+              )}
+            </Box>
+          </Grid>
         </Grid>
       </Grid>
     </>

@@ -153,23 +153,27 @@ export default function Resistance() {
 
               return (
                 <tr key={index} className="border-t">
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3 text-center">
                     {(page - 1) * limit + index + 1}
                   </td>
 
-                  <td className="px-4 py-3">{row?.siteName}</td>
+                  <td className="px-4 py-3 text-center">{row?.siteName}</td>
 
                   {auth?.user?.role !== "user" && (
-                    <td className="px-4 py-3">{row?.siteUid}</td>
+                    <td className="px-4 py-3 text-center">{row?.siteUid}</td>
                   )}
 
-                  <td className="px-4 py-3">{row?.nodeUid}</td>
-                  <td className="px-4 py-3">{row?.deviceName}</td>
-                  <td className="px-4 py-3">{row?.resistanceNumber}</td>
+                  <td className="px-4 py-3 text-center">{row?.nodeUid}</td>
+                  <td className="px-4 py-3 text-center">{row?.deviceName}</td>
+                  <td className="px-4 py-3 text-center">
+                    {row?.resistanceNumber}
+                  </td>
 
                   <td
-                    className={`px-4 py-3 ${
-                      value > threshold ? "bg-red-200 text-red-700" : ""
+                    className={`px-4 py-3 text-center ${
+                      value > threshold
+                        ? "bg-red-200 text-red-700 text-center"
+                        : ""
                     }`}
                   >
                     {value}
@@ -178,12 +182,12 @@ export default function Resistance() {
                   <td className="px-4 py-3 text-center">
                     {value > threshold ? (
                       <FiBell
-                        className="text-red-500 animate-pulse"
+                        className="text-red-500 animate-pulse text-center"
                         title="Alert: Resistance is higher than the safe limit."
                       />
                     ) : (
                       <FiCheckCircle
-                        className="text-green-500"
+                        className="text-green-500 text-center"
                         title="Resistance is within the safe range."
                       />
                     )}

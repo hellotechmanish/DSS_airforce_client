@@ -91,7 +91,7 @@ export default function AddDeviceDialog({
         reset();
         setOpen(false);
         getdeviceListbysite(siteId);
-        getnumberOfSite();
+        // getnumberOfSite();
 
         return;
       }
@@ -99,10 +99,10 @@ export default function AddDeviceDialog({
       // fallback if API does not send success flag but no error thrown
       toast.success("Device created successfully");
 
-      reset();
-      setOpen(false);
-      getdeviceListbysite(siteId);
-      getnumberOfSite();
+      // reset();
+      // setOpen(false);
+      // getdeviceListbysite(siteId);
+      // getnumberOfSite();
     } catch (error) {
       console.error("Create device error:", error);
 
