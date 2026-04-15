@@ -58,6 +58,7 @@ export default function UserManagement() {
   // SAVE TAB TO LOCALSTORAGE
   // ===============================
   useEffect(() => {
+    localStorage.removeItem("user_mgmt_tab");
     localStorage.setItem("user_mgmt_tab", activeTab);
   }, [activeTab]);
 

@@ -15,7 +15,6 @@ import toast from "react-hot-toast";
 import { AuthContext } from "../../../../../context/AuthContext";
 
 const DEVICES_PER_PAGE = 12;
-const DEVICE_STORAGE_PREFIX = "site-profile-active-device";
 
 const EMPTY_DEVICE_FORM = {
   deviceName: "",
@@ -42,9 +41,6 @@ const EMPTY_DEVICE_FORM = {
 const siteDevicesCache = new Map();
 const pendingSiteDeviceRequests = new Map();
 
-const getDeviceStorageKey = (siteId) =>
-  `${DEVICE_STORAGE_PREFIX}:${siteId ?? "unknown"}`;
-
 const getPageForIndex = (index) => Math.floor(index / DEVICES_PER_PAGE) + 1;
 
 const normalizeDeviceFormValues = (device = {}) => ({
@@ -68,16 +64,16 @@ const normalizeDeviceFormValues = (device = {}) => ({
 const hasDeviceDetails = (device) =>
   Boolean(
     device &&
-      ("temp" in device ||
-        "humidity" in device ||
-        "resSensors" in device ||
-        "nerSensors" in device ||
-        "vmrSensors" in device ||
-        "spdSensors" in device ||
-        "resSensorsThreshold" in device ||
-        "nerSensorsThreshold" in device ||
-        "spdSensorsThreshold" in device ||
-        "vmrSensorsThreshold" in device),
+    ("temp" in device ||
+      "humidity" in device ||
+      "resSensors" in device ||
+      "nerSensors" in device ||
+      "vmrSensors" in device ||
+      "spdSensors" in device ||
+      "resSensorsThreshold" in device ||
+      "nerSensorsThreshold" in device ||
+      "spdSensorsThreshold" in device ||
+      "vmrSensorsThreshold" in device),
   );
 
 const mergeDeviceData = (baseDevice = {}, nextDevice = {}) => ({
@@ -91,7 +87,9 @@ const mergeDeviceData = (baseDevice = {}, nextDevice = {}) => ({
 
 const mergeDeviceIntoList = (deviceList, deviceData) =>
   deviceList.map((device) =>
-    device._id === deviceData._id ? mergeDeviceData(device, deviceData) : device,
+    device._id === deviceData._id
+      ? mergeDeviceData(device, deviceData)
+      : device,
   );
 
 const fetchDevicesBySiteId = async (siteId, { force = false } = {}) => {
@@ -131,7 +129,6 @@ export default function Sites() {
   const auth = useContext(AuthContext);
   const role = auth?.user?.role;
   const siteId = state?._id;
-  const storageKey = getDeviceStorageKey(siteId);
 
   const [devices, setDevices] = useState([]);
   const [selectedDevice, setSelectedDevice] = useState(null);
@@ -162,12 +159,13 @@ export default function Sites() {
 
   const clearDeviceSelection = useCallback(() => {
     detailRequestIdRef.current += 1;
-    localStorage.removeItem(storageKey);
     setDeviceData(null);
-  }, [setDeviceData, storageKey]);
+  }, [setDeviceData]);
 
   const syncSelectedDevicePage = useCallback((deviceList, deviceId) => {
-    const deviceIndex = deviceList.findIndex((device) => device._id === deviceId);
+    const deviceIndex = deviceList.findIndex(
+      (device) => device._id === deviceId,
+    );
 
     if (deviceIndex >= 0) {
       setCurrentPage(getPageForIndex(deviceIndex));
@@ -190,16 +188,14 @@ export default function Sites() {
         return nextDevices;
       }
 
-      const storedDeviceId = localStorage.getItem(storageKey);
-
-      if (!storedDeviceId) {
+      if (!activeDeviceId) {
         setDeviceData(null);
         setCurrentPage(1);
         return nextDevices;
       }
 
       const restoredDevice = nextDevices.find(
-        (device) => device._id === storedDeviceId,
+        (device) => device._id === activeDeviceId,
       );
 
       if (!restoredDevice) {
@@ -226,7 +222,10 @@ export default function Sites() {
         }
 
         if (fullDeviceData) {
-          const mergedDevices = mergeDeviceIntoList(nextDevices, fullDeviceData);
+          const mergedDevices = mergeDeviceIntoList(
+            nextDevices,
+            fullDeviceData,
+          );
           siteDevicesCache.set(siteId, mergedDevices);
           setDevices(mergedDevices);
           setDeviceData(fullDeviceData);
@@ -240,10 +239,10 @@ export default function Sites() {
       return nextDevices;
     },
     [
+      activeDeviceId,
       clearDeviceSelection,
       setDeviceData,
       siteId,
-      storageKey,
       syncSelectedDevicePage,
     ],
   );
@@ -252,71 +251,12 @@ export default function Sites() {
     let isMounted = true;
 
     const loadSiteDevices = async () => {
-      if (!siteId) {
-        setDevices([]);
-        setCurrentPage(1);
-        setDeviceData(null);
-        return;
-      }
-
       try {
-        const nextDevices = await fetchDevicesBySiteId(siteId);
-
         if (!isMounted) {
           return;
         }
 
-        setDevices(nextDevices);
-
-        const storedDeviceId = localStorage.getItem(storageKey);
-
-        if (!storedDeviceId) {
-          setCurrentPage(1);
-          setDeviceData(null);
-          return;
-        }
-
-        const restoredDevice = nextDevices.find(
-          (device) => device._id === storedDeviceId,
-        );
-
-        if (!restoredDevice) {
-          localStorage.removeItem(storageKey);
-          setCurrentPage(1);
-          setDeviceData(null);
-          return;
-        }
-
-        syncSelectedDevicePage(nextDevices, restoredDevice._id);
-
-        if (hasDeviceDetails(restoredDevice)) {
-          setDeviceData(restoredDevice);
-          return;
-        }
-
-        setLoading(true);
-        const requestId = ++detailRequestIdRef.current;
-
-        try {
-          const fullDeviceData = await fetchDeviceDetails(restoredDevice._id);
-
-          if (!isMounted || requestId !== detailRequestIdRef.current) {
-            return;
-          }
-
-          if (fullDeviceData) {
-            const mergedDevices = mergeDeviceIntoList(nextDevices, fullDeviceData);
-            siteDevicesCache.set(siteId, mergedDevices);
-            setDevices(mergedDevices);
-            setDeviceData(fullDeviceData);
-          } else {
-            setDeviceData(restoredDevice);
-          }
-        } finally {
-          if (isMounted) {
-            setLoading(false);
-          }
-        }
+        await refreshDevices({ force: false, restoreSelection: true });
       } catch (err) {
         if (!isMounted) {
           return;
@@ -334,7 +274,7 @@ export default function Sites() {
     return () => {
       isMounted = false;
     };
-  }, [setDeviceData, siteId, storageKey, syncSelectedDevicePage]);
+  }, [refreshDevices, setDeviceData, siteId]);
 
   const handlePrevPage = useCallback(() => {
     setCurrentPage((prevPage) => Math.max(prevPage - 1, 1));
@@ -361,7 +301,6 @@ export default function Sites() {
         return;
       }
 
-      localStorage.setItem(storageKey, device._id);
       syncSelectedDevicePage(devices, device._id);
 
       if (hasDeviceDetails(device)) {
@@ -387,7 +326,10 @@ export default function Sites() {
         }
 
         setDevices((prevDevices) => {
-          const mergedDevices = mergeDeviceIntoList(prevDevices, fullDeviceData);
+          const mergedDevices = mergeDeviceIntoList(
+            prevDevices,
+            fullDeviceData,
+          );
           siteDevicesCache.set(siteId, mergedDevices);
           return mergedDevices;
         });
@@ -400,7 +342,7 @@ export default function Sites() {
         setLoading(false);
       }
     },
-    [devices, setDeviceData, siteId, storageKey, syncSelectedDevicePage],
+    [devices, setDeviceData, siteId, syncSelectedDevicePage],
   );
 
   const onSubmit = useCallback(
@@ -443,9 +385,6 @@ export default function Sites() {
   );
 
   if (!state) return <div className="p-6">No Site</div>;
-
-  const indexOfLastDevice = currentPage * DEVICES_PER_PAGE;
-  const indexOfFirstDevice = indexOfLastDevice - DEVICES_PER_PAGE;
 
   return (
     <div className="w-full px-4 md:px-6 py-4 space-y-6 bg-[#f3f4f6] min-h-screen">
@@ -507,11 +446,11 @@ export default function Sites() {
             <span className="text-xs text-gray-500">
               Showing{" "}
               <span className="font-semibold text-[#0f3057]">
-                {indexOfFirstDevice + 1}
+                {(currentPage - 1) * DEVICES_PER_PAGE + 1}
               </span>{" "}
               to{" "}
               <span className="font-semibold text-[#0f3057]">
-                {Math.min(indexOfLastDevice, devices.length)}
+                {Math.min(currentPage * DEVICES_PER_PAGE, devices.length)}
               </span>{" "}
               of{" "}
               <span className="font-semibold text-[#0f3057]">

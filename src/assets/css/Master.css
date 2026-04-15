@@ -731,6 +731,8 @@ html {
 
 .Tabs-dashboard2 .MuiTabs-indicator {
   background-color: var(--blue) !important;
+  height: 3px !important;
+  border-radius: 999px !important;
 }
 
 .Tabs-dashboard2 {
@@ -740,16 +742,40 @@ html {
   text-transform: capitalize !important;
   font-size: 20px !important;
 }
+.Tabs-dashboard2 .MuiTabs-scroller {
+  scroll-behavior: smooth;
+}
+.Tabs-dashboard2 .MuiTabs-scrollButtons:hover {
+  background: #f8fbff !important;
+  transform: translateY(-1px);
+}
 .Tab-dashboardlabel2 {
   color: var(--sub-heading) !important;
   font-family: "Roboto", sans-serif !important;
   font-weight: 600 !important;
   text-transform: capitalize !important;
-  min-width: auto !important;
-  max-width: auto !important;
+  min-width: 120px !important;
+  max-width: 220px !important;
   display: inline-block !important;
-  padding: 16px 0px 2px 0px !important;
-  text-align: left !important;
+  padding: 12px 8px 8px 8px !important;
+  text-align: center !important;
+  border-radius: 12px !important;
+}
+.Tab-dashboardlabel2 .MuiTab-wrapper,
+.Tab-dashboardlabel2 span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.Tabs-dashboard2 .Mui-selected.Tab-dashboardlabel2 {
+  color: var(--blue) !important;
+}
+@media (max-width: 600px) {
+  .Tab-dashboardlabel2 {
+    min-width: 112px !important;
+    max-width: 180px !important;
+    padding: 10px 6px 8px 6px !important;
+  }
 }
 .Tab-dashboardlabel-sensor {
   color: var(--sub-heading) !important;
