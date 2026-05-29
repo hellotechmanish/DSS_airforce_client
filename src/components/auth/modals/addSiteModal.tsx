@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import toast from "react-hot-toast";
 import { HiOutlineX } from "react-icons/hi";
@@ -11,7 +11,7 @@ interface Props {
 
 interface FormData {
   siteName: string;
-  siteId: string;
+  siteUid: string;
   location: string;
   pincode: string;
   state: string;
@@ -53,41 +53,41 @@ const AddSiteModal = ({ getnumberOfSite }: Props) => {
   const {
     register,
     handleSubmit,
-    watch,
+    // watch,
     reset,
     formState: { errors },
   } = useForm<FormData>();
 
   // watch siteId field
-  const siteId = watch("siteId");
+  // const siteId = watch("siteUid");
 
   // ================= CHECK SITE ID =================
 
-  useEffect(() => {
-    const checkSiteID = async () => {
-      if (!siteId) {
-        setSiteExists(false);
-        return;
-      }
+  // useEffect(() => {
+  //   const checkSiteID = async () => {
+  //     if (!siteId) {
+  //       setSiteExists(false);
+  //       return;
+  //     }
 
-      try {
-        const res = await POST(API.SITE.CHECK_UID, {
-          siteId,
-        });
+  //     try {
+  //       const res = await POST(API.SITE.CHECK_UID, {
+  //         siteId,
+  //       });
 
-        // if API returns data => site exists
-        setSiteExists(res?.data ? true : false);
-      } catch (error) {
-        console.error(error);
-      }
-    };
+  //       // if API returns data => site exists
+  //       setSiteExists(res?.data ? true : false);
+  //     } catch (error) {
+  //       console.error(error);
+  //     }
+  //   };
 
-    const delayDebounce = setTimeout(() => {
-      checkSiteID();
-    }, 500);
+  //   const delayDebounce = setTimeout(() => {
+  //     checkSiteID();
+  //   }, 500);
 
-    return () => clearTimeout(delayDebounce);
-  }, [siteId]);
+  //   return () => clearTimeout(delayDebounce);
+  // }, [siteId]);
 
   // ================= CLOSE MODAL =================
 
@@ -112,7 +112,7 @@ const AddSiteModal = ({ getnumberOfSite }: Props) => {
 
       await POST(API.SITE.CREATE, {
         siteName: data.siteName,
-        siteId: data.siteId,
+        siteUid: data.siteUid,
         location: data.location,
         pincode: Number(data.pincode),
         country: data.country,
@@ -191,16 +191,16 @@ const AddSiteModal = ({ getnumberOfSite }: Props) => {
                   </label>
 
                   <input
-                    {...register("siteId", {
+                    {...register("siteUid", {
                       required: "Site ID is required",
                     })}
                     placeholder="SITE-001"
                     className={inputClass}
                   />
 
-                  {errors.siteId && (
+                  {errors.siteUid && (
                     <p className="mt-1 text-xs text-red-400">
-                      {errors.siteId.message}
+                      {errors.siteUid.message}
                     </p>
                   )}
 

@@ -1,3 +1,4 @@
+import type { AxiosRequestConfig } from "axios";
 import api from "./api";
 
 // ================= GET =================
@@ -5,9 +6,11 @@ import api from "./api";
 export const GET = async (
   url: string,
   params: Record<string, unknown> = {},
+  config: AxiosRequestConfig = {},
 ) => {
   return api.get(url, {
     params,
+    ...config,
   });
 };
 
