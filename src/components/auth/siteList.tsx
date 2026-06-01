@@ -1,101 +1,121 @@
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, MapPin } from "lucide-react";
 import { useState } from "react";
-
-type Site = {
-  _id: string;
-  siteUid: string;
-  siteName: string;
-  deviceCount: number;
-};
+import type { SiteType } from "../../Types/type";
+import AddSiteModal from "./modals/addSiteModal"; // Check path
 
 interface Props {
-  sites: Site[];
+  sites: SiteType[];
   selectedSiteId: string;
   setSelectedSiteId: (id: string) => void;
+  onRefresh: () => void;
 }
 
-const SiteList = ({ sites, selectedSiteId, setSelectedSiteId }: Props) => {
+const SiteList = ({
+  sites,
+  selectedSiteId,
+  setSelectedSiteId,
+  onRefresh,
+}: Props) => {
   const [currentPage, setCurrentPage] = useState(0);
 
-  // Isko 8 ya 10 karein taaki screen bhari hui dikhe
-  const itemsPerPage = 8;
-
+  const itemsPerPage = 10;
   const totalPages = Math.ceil(sites.length / itemsPerPage);
+
   const paginatedSites = sites.slice(
     currentPage * itemsPerPage,
     (currentPage + 1) * itemsPerPage,
   );
 
-  // console.log("isSelected", selectedSiteId);
-
-  if (!sites.length)
-    return (
-      <div className="py-4 text-center text-slate-400 text-xs">
-        No Sites Found
-      </div>
-    );
-
   return (
-    <div className="flex items-center gap-4 w-full">
-      {/* Left Arrow */}
-      <button
-        disabled={currentPage === 0}
-        onClick={() => setCurrentPage((p) => p - 1)}
-        className="flex items-center justify-center w-8 h-8 rounded-full border border-slate-200 bg-white shadow-sm hover:bg-slate-50 disabled:opacity-20 transition-all shrink-0"
-      >
-        <ChevronLeft size={18} />
-      </button>
+    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm shrink-0">
+      {/* ─── HEADER SECTION ─── */}
+      <div className="mb-2 flex items-center justify-between">
+        <div className="flex flex-col">
+          <h2 className="text-xs font-black uppercase tracking-[0.2em] text-slate-800">
+            Infrastructure Management
+          </h2>
+          <p className="text-[10px] font-bold text-slate-400 uppercase mt-0.5">
+            Command & Control Sites
+          </p>
+        </div>
 
-      {/* Responsive Grid - Ab ye 4 se lekar 8 boxes tak dikhayega space ke hisab se */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-3 flex-1">
-        {paginatedSites.map((site) => {
-          const isSelected = selectedSiteId === site._id;
-          return (
-            <button
-              key={site._id}
-              onClick={() => setSelectedSiteId(site._id)}
-              className={`
-                relative flex flex-col justify-between
-                min-w-0 h-[52px] p-2.5 rounded-xl border
-                transition-all duration-200
-                ${
-                  isSelected
-                    ? "bg-blue-600 border-blue-600 text-white shadow-md transform scale-[1.02]"
-                    : "bg-white border-slate-200 text-slate-700 hover:border-blue-400 hover:shadow-sm"
-                }
-              `}
-            >
-              <span className="text-[11px] font-bold truncate w-full text-left leading-tight">
-                {site.siteName}
-              </span>
-
-              <div className="flex items-center justify-between w-full mt-1">
-                <span className={`text-[9px] font-medium opacity-60`}>
-                  #{site.siteUid.slice(-4).toUpperCase()}
-                </span>
-                <span
-                  className={`text-[9px] px-1.5 py-0.5 rounded-md font-bold leading-none ${
-                    isSelected
-                      ? "bg-blue-500 text-white"
-                      : "bg-slate-100 text-slate-500"
-                  }`}
-                >
-                  {site.deviceCount}D
-                </span>
-              </div>
-            </button>
-          );
-        })}
+        {/* Add Site Modal integrated here */}
+        <AddSiteModal onSiteAdded={onRefresh} />
       </div>
 
-      {/* Right Arrow */}
-      <button
-        disabled={currentPage >= totalPages - 1}
-        onClick={() => setCurrentPage((p) => p + 1)}
-        className="flex items-center justify-center w-8 h-8 rounded-full border border-slate-200 bg-white shadow-sm hover:bg-slate-50 disabled:opacity-20 transition-all shrink-0"
-      >
-        <ChevronRight size={18} />
-      </button>
+      {/* ─── SITES SELECTOR BAR ─── */}
+      <div className="flex items-center gap-2 w-full bg-slate-50 p-1.5 rounded-xl border border-slate-100">
+        {/* Left Pagination */}
+        <button
+          disabled={currentPage === 0}
+          onClick={() => setCurrentPage((p) => p - 1)}
+          className="w-7 h-7 flex items-center justify-center rounded-full border border-slate-200 bg-white shadow-sm hover:bg-blue-50 disabled:opacity-20 shrink-0 transition-all"
+        >
+          <ChevronLeft size={14} />
+        </button>
+
+        {/* Horizontal Scroll Container */}
+        <div className="flex items-center gap-2 flex-1 overflow-hidden">
+          {sites.length === 0 ? (
+            <div className="flex-1 text-center text-slate-400 text-[10px] font-bold uppercase italic py-1">
+              No Operational Sites Detected
+            </div>
+          ) : (
+            paginatedSites.map((site) => {
+              const isSelected = selectedSiteId === site._id;
+              return (
+                <button
+                  key={site._id}
+                  onClick={() => setSelectedSiteId(site._id)}
+                  className={`
+              relative flex flex-col justify-center
+              min-w-[110px] max-w-[135px] h-[48px] px-2.5 py-1 rounded-lg border-2 transition-all duration-200
+              ${
+                isSelected
+                  ? "bg-blue-600 border-blue-700 text-white shadow-md z-10 scale-[1.02]"
+                  : "bg-white border-slate-100 text-slate-700 hover:border-blue-300"
+              }
+            `}
+                >
+                  {/* Top Row: Icon and Name */}
+                  <div className="flex items-center gap-1.5 w-full overflow-hidden mb-0.5">
+                    <MapPin
+                      size={11}
+                      className={isSelected ? "text-blue-200" : "text-blue-500"}
+                    />
+                    <span className="text-[10px] font-black truncate uppercase leading-tight tracking-tight">
+                      {site.siteName}
+                    </span>
+                  </div>
+
+                  {/* Bottom Row: Minimal ID & Count */}
+                  <div className="flex items-center justify-between w-full">
+                    <span
+                      className={`text-[7px] font-mono font-bold ${isSelected ? "text-blue-100" : "text-slate-400"}`}
+                    >
+                      #{site._id.slice(-4).toUpperCase()}
+                    </span>
+                    <span
+                      className={`text-[8px] px-1.5 rounded font-black ${isSelected ? "bg-white text-blue-600" : "bg-blue-100 text-blue-700"}`}
+                    >
+                      {site.deviceCount}D
+                    </span>
+                  </div>
+                </button>
+              );
+            })
+          )}
+        </div>
+
+        {/* Right Pagination */}
+        <button
+          disabled={currentPage >= totalPages - 1}
+          onClick={() => setCurrentPage((p) => p + 1)}
+          className="w-7 h-7 flex items-center justify-center rounded-full border border-slate-200 bg-white shadow-sm hover:bg-blue-50 disabled:opacity-20 shrink-0 transition-all"
+        >
+          <ChevronRight size={14} />
+        </button>
+      </div>
     </div>
   );
 };

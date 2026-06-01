@@ -49,6 +49,7 @@ export const API = {
       `/device/getDeviceDataById/${deviceId}`,
     BY_SITE_AND_USER: "/device/getdeviceListbysiteIdanduserId",
     LATEST_DATA: "/device/latestData",
+    GET_SENSOR_DATA: (deviceId: string) => `/device/sensor-data/${deviceId}`,
     REBOOT: "/device/reboot",
     SHUTDOWN: "/device/shutdown",
     GENERATE_REPORT: "/device/generateReport",

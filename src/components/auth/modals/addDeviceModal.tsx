@@ -15,22 +15,33 @@ interface Props {
 interface FormData {
   deviceName: string;
   nodeUid: string;
-  vmrSensors: number;
-  resSensors: number;
-  spdSensors: number;
-  nerSensors: number;
-  vmrSensorsThreshold: {
-    r: number;
-    y: number;
-    b: number;
-    ry: number;
-    yb: number;
-    rb: number;
+
+  sensors: {
+    temperature: boolean;
+    humidity: boolean;
+    vmr: number;
+    res: number;
+    spd: number;
+    ner: number;
   };
-  resSensorsThreshold: number;
-  spdSensorsThreshold: number;
-  nerSensorsThreshold: number;
-  threshold: number;
+
+  thresholds: {
+    vmr: {
+      r: number;
+      y: number;
+      b: number;
+      ry: number;
+      yb: number;
+      rb: number;
+    };
+
+    res: number;
+
+    spd: number;
+
+    ner: number;
+  };
+
   isActive: boolean;
 }
 
@@ -90,28 +101,42 @@ const AddDeviceModal = ({
 
   const onSubmit = async (data: FormData) => {
     setSubmitting(true);
+
+    console.log("logs", data);
+
     try {
       const body = {
         siteUid,
         site_id,
+
         deviceName: data.deviceName.trim(),
         nodeUid: data.nodeUid.trim(),
-        vmrSensors: Number(data.vmrSensors || 0),
-        resSensors: Number(data.resSensors || 0),
-        spdSensors: Number(data.spdSensors || 0),
-        nerSensors: Number(data.nerSensors || 0),
-        vmrSensorsThreshold: {
-          r: Number(data.vmrSensorsThreshold?.r || 0),
-          y: Number(data.vmrSensorsThreshold?.y || 0),
-          b: Number(data.vmrSensorsThreshold?.b || 0),
-          ry: Number(data.vmrSensorsThreshold?.ry || 0),
-          yb: Number(data.vmrSensorsThreshold?.yb || 0),
-          rb: Number(data.vmrSensorsThreshold?.rb || 0),
+
+        sensorCounts: {
+          temperature: data.sensors.temperature ? 1 : 0,
+          humidity: data.sensors.humidity ? 1 : 0,
+
+          vmr: Number(data.sensors.vmr || 0),
+          res: Number(data.sensors.res || 0),
+          spd: Number(data.sensors.spd || 0),
+          ner: Number(data.sensors.ner || 0),
         },
-        resSensorsThreshold: Number(data.resSensorsThreshold || 0),
-        spdSensorsThreshold: Number(data.spdSensorsThreshold || 0),
-        nerSensorsThreshold: Number(data.nerSensorsThreshold || 0),
-        threshold: Number(data.threshold || 0),
+
+        thresholds: {
+          vmr: {
+            r: Number(data.thresholds.vmr?.r || 0),
+            y: Number(data.thresholds.vmr?.y || 0),
+            b: Number(data.thresholds.vmr?.b || 0),
+            ry: Number(data.thresholds.vmr?.ry || 0),
+            yb: Number(data.thresholds.vmr?.yb || 0),
+            rb: Number(data.thresholds.vmr?.rb || 0),
+          },
+
+          res: Number(data.thresholds.res || 0),
+          spd: Number(data.thresholds.spd || 0),
+          ner: Number(data.thresholds.ner || 0),
+        },
+
         isActive: data.isActive ?? true,
       };
 
@@ -132,7 +157,7 @@ const AddDeviceModal = ({
     <>
       <button
         onClick={() => setOpen(true)}
-        className="rounded-xl bg-cyan-500 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-cyan-600"
+        className="rounded-lg bg-cyan-500 px-3 py-1.5 text-[11px] font-black uppercase tracking-tight text-white transition-all hover:bg-cyan-600 active:scale-95 shadow-sm shrink-0"
       >
         + Add Device
       </button>
@@ -207,6 +232,49 @@ const AddDeviceModal = ({
                 </section>
 
                 {/* ── SENSORS & THRESHOLDS ── */}
+
+                {/* ── ENVIRONMENT SENSORS (Checkboxes) ── */}
+                <section className="mt-6">
+                  <h3 className="mb-4 text-xs font-bold uppercase tracking-wider text-slate-400">
+                    Environment Monitoring
+                  </h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    {/* Temperature Checkbox */}
+                    <label className="flex cursor-pointer items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 transition hover:bg-slate-100">
+                      <div className="flex flex-col">
+                        <span className="text-sm font-bold text-slate-700">
+                          Temperature
+                        </span>
+                        <span className="text-[10px] text-slate-400 uppercase">
+                          Enable Ambient Tracking
+                        </span>
+                      </div>
+                      <input
+                        type="checkbox"
+                        {...register("sensors.temperature")}
+                        className="h-5 w-5 rounded border-gray-300 text-cyan-500 focus:ring-cyan-500"
+                      />
+                    </label>
+
+                    {/* Humidity Checkbox */}
+                    <label className="flex cursor-pointer items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 transition hover:bg-slate-100">
+                      <div className="flex flex-col">
+                        <span className="text-sm font-bold text-slate-700">
+                          Humidity
+                        </span>
+                        <span className="text-[10px] text-slate-400 uppercase">
+                          Enable Moisture Tracking
+                        </span>
+                      </div>
+                      <input
+                        type="checkbox"
+                        {...register("sensors.humidity")}
+                        className="h-5 w-5 rounded border-gray-300 text-cyan-500 focus:ring-cyan-500"
+                      />
+                    </label>
+                  </div>
+                </section>
+
                 <section>
                   <h3 className="mb-4 text-xs font-bold uppercase tracking-wider text-slate-400">
                     Sensors &amp; Thresholds
@@ -220,7 +288,7 @@ const AddDeviceModal = ({
                             type="number"
                             min={0}
                             placeholder="0"
-                            {...register("resSensors")}
+                            {...register("sensors.res")}
                             className={inputCls}
                           />
                         </div>
@@ -229,7 +297,7 @@ const AddDeviceModal = ({
                           <input
                             type="number"
                             placeholder="Enter threshold"
-                            {...register("resSensorsThreshold")}
+                            {...register("thresholds.res")}
                             className={inputCls}
                           />
                         </div>
@@ -244,7 +312,7 @@ const AddDeviceModal = ({
                             type="number"
                             min={0}
                             placeholder="0"
-                            {...register("nerSensors")}
+                            {...register("sensors.ner")}
                             className={inputCls}
                           />
                         </div>
@@ -253,7 +321,7 @@ const AddDeviceModal = ({
                           <input
                             type="number"
                             placeholder="Enter threshold"
-                            {...register("nerSensorsThreshold")}
+                            {...register("thresholds.ner")}
                             className={inputCls}
                           />
                         </div>
@@ -268,7 +336,7 @@ const AddDeviceModal = ({
                             type="number"
                             min={0}
                             placeholder="0"
-                            {...register("spdSensors")}
+                            {...register("sensors.spd")}
                             className={inputCls}
                           />
                         </div>
@@ -277,7 +345,7 @@ const AddDeviceModal = ({
                           <input
                             type="number"
                             placeholder="Enter threshold"
-                            {...register("spdSensorsThreshold")}
+                            {...register("thresholds.spd")}
                             className={inputCls}
                           />
                         </div>
@@ -292,7 +360,7 @@ const AddDeviceModal = ({
                             type="number"
                             min={0}
                             placeholder="0"
-                            {...register("vmrSensors")}
+                            {...register("sensors.vmr")}
                             className={inputCls}
                           />
                         </div>
@@ -306,9 +374,7 @@ const AddDeviceModal = ({
                                 </label>
                                 <input
                                   type="number"
-                                  {...register(
-                                    `vmrSensorsThreshold.${item.name}`,
-                                  )}
+                                  {...register(`thresholds.vmr.${item.name}`)}
                                   className="w-full rounded-lg border border-gray-300 bg-white px-2 py-2.5 text-center text-sm text-black outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200"
                                 />
                               </div>
