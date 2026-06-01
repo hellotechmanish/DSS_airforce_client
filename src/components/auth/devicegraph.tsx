@@ -2,18 +2,14 @@ import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { Activity } from "lucide-react";
 import { GET } from "../../lib/request";
 import { API } from "../../lib/endpoint";
-// 1. Logic/Classes (Runtime values)
+import { AgCharts } from "ag-charts-react";
 import {
   LineSeriesModule,
+  ModuleRegistry,
   NumberAxisModule,
   TimeAxisModule,
 } from "ag-charts-community";
-
-import {
-  AgCharts,
-  ModuleRegistry,
-  type AgChartOptions, // Yahan 'type' add karein
-} from "ag-charts-community";
+import type { AgCartesianChartOptions } from "ag-charts-community";
 
 // Register modules
 ModuleRegistry.registerModules([
@@ -28,12 +24,30 @@ interface DataPoint {
   rawTime: string;
 }
 
+interface SensorReading {
+  value: number | null;
+  timestamp: string | null;
+  isLive: boolean;
+}
+
+interface SensorDataResponse {
+  success?: boolean;
+  status?: boolean;
+  data?: Array<{
+    createdAt: string;
+    dataStreams?: Array<{ value?: number | string }>;
+    value?: number | string;
+  }>;
+}
+
 const DeviceGraph = ({
   deviceId,
   sensorName,
+  onReadingChange,
 }: {
   deviceId: string;
   sensorName: string;
+  onReadingChange?: (reading: SensorReading) => void;
 }) => {
   const [data, setData] = useState<DataPoint[]>([]);
   const [loading, setLoading] = useState(true);
@@ -46,30 +60,69 @@ const DeviceGraph = ({
         const since = isInitial ? "" : lastTimestampRef.current;
         const endpoint = `${API.DEVICE.GET_SENSOR_DATA(deviceId)}?type=${sensorName}&limit=${limit}&since=${since}`;
 
-        const resp = await GET(endpoint);
+        const resp = await GET<SensorDataResponse>(endpoint);
+        console.log("live data ", resp);
 
-        if (resp?.status && resp.data?.length > 0) {
-          const newPoints = resp.data.map((item: any) => ({
-            time: new Date(item.createdAt),
-            value: Number(item.dataStreams?.[0]?.value ?? item.value ?? 0),
-            rawTime: item.createdAt,
-          }));
+        const rows = resp?.data ?? [];
 
-          lastTimestampRef.current = resp.data[resp.data.length - 1].createdAt;
+        if ((resp?.success || resp?.status) && rows.length > 0) {
+          const newPoints: DataPoint[] = rows
+            .map((item) => ({
+              time: new Date(item.createdAt),
+              value: Number(item.dataStreams?.[0]?.value ?? item.value ?? 0),
+              rawTime: item.createdAt,
+            }))
+            .filter(
+              (point) =>
+                Number.isFinite(point.value) &&
+                !Number.isNaN(point.time.getTime()),
+            )
+            .sort((a, b) => a.time.getTime() - b.time.getTime());
+
+          if (newPoints.length === 0) {
+            onReadingChange?.({
+              value: null,
+              timestamp: null,
+              isLive: false,
+            });
+            return;
+          }
+
+          const latestPoint = newPoints[newPoints.length - 1];
+          onReadingChange?.({
+            value: latestPoint.value,
+            timestamp: latestPoint.rawTime,
+            isLive: true,
+          });
+
+          lastTimestampRef.current = latestPoint.rawTime;
 
           setData((prev) => {
-            const combined = isInitial ? newPoints : [...prev, ...newPoints];
-            const unique = combined.filter(
-              (v, i, a) => a.findIndex((t) => t.rawTime === v.rawTime) === i,
-            );
+            const combined: DataPoint[] = isInitial
+              ? newPoints
+              : [...prev, ...newPoints];
+            const unique = Array.from(
+              new Map(combined.map((point) => [point.rawTime, point])).values(),
+            ).sort((a, b) => a.time.getTime() - b.time.getTime());
             return unique.slice(-50);
+          });
+        } else {
+          onReadingChange?.({
+            value: null,
+            timestamp: null,
+            isLive: false,
           });
         }
       } catch (e) {
+        onReadingChange?.({
+          value: null,
+          timestamp: null,
+          isLive: false,
+        });
         console.error("Graph Sync Error:", e);
       }
     },
-    [deviceId, sensorName],
+    [deviceId, sensorName, onReadingChange],
   );
 
   useEffect(() => {
@@ -81,20 +134,14 @@ const DeviceGraph = ({
 
   // Use useMemo to prevent re-calculating options unless data changes
   const options = useMemo(
-    (): AgChartOptions => ({
+    (): AgCartesianChartOptions<DataPoint> => ({
       data: data,
-      autoSize: true,
+      animation: {
+        enabled: true,
+        duration: 1000,
+      },
       theme: {
         baseTheme: "ag-vivid-dark", // Better for dark backgrounds
-        overrides: {
-          line: {
-            series: {
-              highlightStyle: {
-                series: { strokeWidth: 4 },
-              },
-            },
-          },
-        },
       },
       series: [
         {
@@ -108,22 +155,42 @@ const DeviceGraph = ({
             enabled: true,
             fill: "#3b82f6",
             stroke: "#fff",
-            strokeWidth: 2,
-            size: 6,
+            strokeWidth: 1.5,
+            size: 5,
+            itemStyler: ({ last }) =>
+              last
+                ? {
+                    fill: "#facc15",
+                    stroke: "#ffffff",
+                    strokeWidth: 4,
+                    size: 13,
+                  }
+                : {
+                    fill: "#3b82f6",
+                    stroke: "#dbeafe",
+                    strokeWidth: 1.5,
+                    size: 5,
+                  },
           },
         },
       ],
-      axes: [
-        {
+      axes: {
+        x: {
           type: "time",
           position: "bottom",
           nice: false, // Prevents axis from jumping around
           label: {
             format: "%H:%M:%S",
             color: "#94a3b8",
+            fontSize: 11,
+            minSpacing: 70,
+          },
+          interval: {
+            minSpacing: 75,
+            maxSpacing: 160,
           },
         },
-        {
+        y: {
           type: "number",
           position: "left",
           label: { color: "#94a3b8" },
@@ -131,7 +198,7 @@ const DeviceGraph = ({
             style: [{ stroke: "rgba(255, 255, 255, 0.05)", lineDash: [4, 4] }],
           },
         },
-      ],
+      },
       background: { visible: false }, // Use the CSS container background
     }),
     [data, sensorName],
@@ -150,7 +217,7 @@ const DeviceGraph = ({
     );
 
   return (
-    <div className="h-[400px] w-full p-4 bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+    <div className="h-[400px] w-full p-4  bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
       <AgCharts options={options} />
     </div>
   );

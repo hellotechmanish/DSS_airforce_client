@@ -3,12 +3,12 @@ import api from "./api";
 
 // ================= GET =================
 
-export const GET = async (
+export const GET = async <T = any>(
   url: string,
   params: Record<string, unknown> = {},
   config: AxiosRequestConfig = {},
 ) => {
-  return api.get(url, {
+  return api.get<T, T>(url, {
     params,
     ...config,
   });

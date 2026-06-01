@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useCallback, useEffect } from "react";
 import {
   Activity,
   ChevronLeft,
@@ -16,7 +16,7 @@ import {
 import type { DeviceType } from "../../Types/type";
 import AddDeviceModal from "./modals/addDeviceModal";
 import { API } from "../../lib/endpoint";
-import DeviceGraph from "./Devicegraph";
+import DeviceGraph from "./devicegraph";
 
 interface SelectedSite {
   siteUid?: string;
@@ -35,6 +35,30 @@ interface Props {
 
 const DEVICES_PER_PAGE = 10;
 
+interface LatestSensorReading {
+  value: number | null;
+  timestamp: string | null;
+  isLive: boolean;
+}
+
+const sensorUnits: Record<string, string> = {
+  TEMP: "C",
+  HUM: "%",
+  RES: "ohm",
+  VMR: "",
+  SPD: "",
+  NER: "",
+};
+
+const formatReadingTime = (timestamp: string | null) => {
+  if (!timestamp) return "--:--:--";
+  return new Date(timestamp).toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
+};
+
 const DeviceList = ({
   devices,
   loading,
@@ -46,6 +70,11 @@ const DeviceList = ({
   const [page, setPage] = useState(0);
   const [selectedDeviceId, setSelectedDeviceId] = useState<string>("");
   const [activeSensor, setActiveSensor] = useState<string | null>(null);
+  const [latestReading, setLatestReading] = useState<LatestSensorReading>({
+    value: null,
+    timestamp: null,
+    isLive: false,
+  });
 
   // States for Filter and CSV
   const [dateRange, setDateRange] = useState({ start: "", end: "" });
@@ -85,6 +114,28 @@ const DeviceList = ({
     sensorInventory.some((s) => s.id === activeSensor && Number(s.count) > 0)
       ? activeSensor
       : defaultSensor;
+
+  useEffect(() => {
+    setLatestReading({
+      value: null,
+      timestamp: null,
+      isLive: false,
+    });
+  }, [derivedSelectedDeviceId, effectiveActiveSensor]);
+
+  const handleReadingChange = useCallback((reading: LatestSensorReading) => {
+    setLatestReading((prev) =>
+      reading.value === null && reading.timestamp === null
+        ? { ...prev, isLive: reading.isLive }
+        : reading,
+    );
+  }, []);
+
+  const latestValueText =
+    latestReading.value === null ? "--" : latestReading.value.toFixed(2);
+  const latestUnit = effectiveActiveSensor
+    ? sensorUnits[effectiveActiveSensor] || ""
+    : "";
 
   const totalPages = Math.ceil(devices.length / DEVICES_PER_PAGE);
   const visibleDevices = devices.slice(
@@ -258,10 +309,45 @@ const DeviceList = ({
                   <Download size={14} /> EXPORT CSV
                 </button>
 
-                <div className="flex items-center gap-2 px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full">
-                  <div className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-ping" />
-                  <span className="text-[9px] font-black text-emerald-400 uppercase tracking-widest">
-                    Live
+                <div className="min-w-[120px] rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-right">
+                  <div className="text-[8px] font-black uppercase tracking-widest text-slate-500">
+                    {effectiveActiveSensor ?? "SENSOR"}
+                  </div>
+                  <div className="font-mono text-xl font-black leading-none text-white">
+                    {latestValueText}
+                    {latestUnit && (
+                      <span className="ml-1 text-[10px] text-slate-400">
+                        {latestUnit}
+                      </span>
+                    )}
+                  </div>
+                  <div className="mt-1 font-mono text-[9px] font-bold text-slate-500">
+                    {formatReadingTime(latestReading.timestamp)}
+                  </div>
+                </div>
+
+                <div
+                  className={`flex items-center gap-2 px-3 py-1 rounded-full border ${
+                    latestReading.isLive
+                      ? "bg-emerald-500/10 border-emerald-500/20"
+                      : "bg-rose-500/10 border-rose-500/20"
+                  }`}
+                >
+                  <div
+                    className={`h-1.5 w-1.5 rounded-full ${
+                      latestReading.isLive
+                        ? "bg-emerald-400 animate-ping"
+                        : "bg-rose-400"
+                    }`}
+                  />
+                  <span
+                    className={`text-[9px] font-black uppercase tracking-widest ${
+                      latestReading.isLive
+                        ? "text-emerald-400"
+                        : "text-rose-400"
+                    }`}
+                  >
+                    {latestReading.isLive ? "Live" : "No Data"}
                   </span>
                 </div>
               </div>
@@ -356,6 +442,7 @@ const DeviceList = ({
                       key={`${currentDevice._id}-${effectiveActiveSensor}`}
                       deviceId={currentDevice._id}
                       sensorName={effectiveActiveSensor}
+                      onReadingChange={handleReadingChange}
                     />
                   </div>
                 ) : (
