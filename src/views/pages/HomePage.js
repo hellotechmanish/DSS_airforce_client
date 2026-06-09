@@ -76,8 +76,6 @@ function App() {
   const getdeviceListbysite = async (siteId) => {
     if (!siteId) return;
 
-    console.log("siteId from getdeviceListbysite", siteId);
-
     try {
       setLoading(true);
 

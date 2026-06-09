@@ -69,12 +69,11 @@ export default function EditSensorDialog({
         deviceId: device?._id,
       });
 
-      console.log("API RESPONSE:", res);
+      // console.log("API RESPONSE:", res);
       toast.success("Sensor data fetched successfully");
       // ✅ FIX: always array
       setGetSelectSensor(Array.isArray(res?.msg) ? res.msg : []);
     } catch (err) {
-      console.log("FETCH ERROR:", err);
       setGetSelectSensor([]);
     }
   }, [UserId, device?._id]);
@@ -117,7 +116,6 @@ export default function EditSensorDialog({
       getdevicebyuserId();
       toast.success("Device sensors updated successfully");
     } catch (err) {
-      console.log("UPDATE ERROR:", err);
       toast.error("Failed to update device sensors");
     }
   };

@@ -150,8 +150,6 @@ export default function Graph({
       (item) => item?.sensorId?.toString() === device._id?.toString(),
     );
 
-    console.log("Matched userDevice =>", found); //  debug
-
     setUserDevice(found || null);
   }, [auth, device?._id]);
 

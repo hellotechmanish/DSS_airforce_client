@@ -197,7 +197,7 @@ export default function Clusterhead({
       const res = await GET(API.DEVICE.LIST_BY_SITEID(siteId));
       setDevice(res.msg);
     } catch (err) {
-      console.log("Error fetching device list by site", err);
+      console.error("Error fetching device list by site", err);
     }
   }, [siteId]);
 

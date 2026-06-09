@@ -35,8 +35,6 @@ export default function BasicTable() {
     try {
       const res = await GET(API.SITE.GET_ALL_SITE_GN);
 
-      console.log("get number Of Site resp ===>", res?.msg);
-
       if (res) {
         setGroundNewtal(res?.msg || []);
       }

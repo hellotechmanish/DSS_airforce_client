@@ -75,7 +75,7 @@ export default function AddDeviceDialog({
 
       const response = await POST(API.DEVICE.CREATE, body);
 
-      console.log("API RESPONSE =>", response);
+      // console.log("API RESPONSE =>", response);
 
       //  FIXED SUCCESS CHECK
       if (

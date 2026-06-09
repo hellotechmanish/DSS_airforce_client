@@ -312,7 +312,7 @@ export default function Graph({
       setLabels([...new Set(res.msg.map((item) => item.time))]);
       setGraphData(res.msg);
     } catch (error) {
-      console.log("Error fetching graph data", error);
+      console.error("Error fetching graph data", error);
     } finally {
       setLoading(false);
     }

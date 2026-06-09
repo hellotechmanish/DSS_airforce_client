@@ -13,7 +13,6 @@ export default function DeleteUserModal({ UserID, getnumberOfUser }) {
   const handleOpen = () => setOpen(true);
   const handleClose = () => setOpen(false);
 
-  console.log("DeleteUserModal rendered with UserID:", UserID);
   const DeleteUser = async () => {
     try {
       setLoading(true);

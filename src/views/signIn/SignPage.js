@@ -36,7 +36,7 @@ function App() {
   const { login } = useAuth();
   const [loading, setloading] = useState();
 
-  console.log(">>login", login);
+  // console.log(">>login", login);
 
   const SnanbarClose = (event, reason) => {
     if (reason === "clickaway") {
@@ -63,7 +63,6 @@ function App() {
     setloading(true);
 
     try {
-      console.log("Request body =>", body);
 
       const resp = await POST(API.AUTH.LOGIN, body);
 
@@ -84,7 +83,7 @@ function App() {
       navigate("/dashboard");
       window.location.reload();
     } catch (err) {
-      console.error("Login error =>", err);
+      // console.error("Login error =>", err);
       toast.error(err?.response?.data?.msg || "Login failed");
     } finally {
       setloading(false); //  ALWAYS stop loader

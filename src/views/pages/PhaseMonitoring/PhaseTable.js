@@ -22,8 +22,6 @@ export default function BasicTable() {
     try {
       const res = await GET(API.SITE.GET_ALL_SITE_VMR);
 
-      console.log("getAllSiteVmr resp ===>", res?.msg);
-
       setPhase(res?.msg || []);
     } catch (error) {
       console.error("getAllSiteVmr error:", error);
@@ -178,11 +176,6 @@ export default function BasicTable() {
                         {row?.vmrValue?.map((data, i) => {
                           const value = Object.values(row.vmrSensorsThreshold);
                           let vmrSThreshold = value;
-                          console.log(
-                            " vmrSThreshold Check Object Key Data String",
-                            vmrSThreshold,
-                          );
-                          console.log(" vmrSThreshold Array", data.value);
 
                           return (
                             <>

@@ -62,7 +62,6 @@ export default function MaxWidthDialog({
   UserId,
   getnumberOfAssignSite,
 }) {
-  console.log("Check USer ID ", UserId);
   const [open, setOpen] = React.useState(false);
   const [fullWidth] = React.useState(true);
   const [maxWidth] = React.useState("sm");

@@ -41,7 +41,7 @@ export default function Navbar() {
       const res = await GET(API.ALARM.STATUS);
       setAlarmStatus(res.data);
     } catch (err) {
-      console.log("Error fetching alarm status", err);
+      console.error("Error fetching alarm status", err);
     }
   };
 
@@ -50,7 +50,7 @@ export default function Navbar() {
       await POST(API.ALARM.UPDATE_STATUS, { status });
       getGlobalAlarmStatus();
     } catch (err) {
-      console.log("Error updating alarm status", err);
+      console.error("Error updating alarm status", err);
     }
   };
 
@@ -76,7 +76,7 @@ export default function Navbar() {
     try {
       await POST(API.DEVICE.REBOOT);
     } catch (error) {
-      console.log("Reboot failed", error);
+      console.error("Reboot failed", error);
     }
   };
 
@@ -85,7 +85,7 @@ export default function Navbar() {
     try {
       await POST(API.DEVICE.SHUTDOWN);
     } catch (error) {
-      console.log("Shutdown failed", error);
+      console.error("Shutdown failed", error);
     }
   };
 

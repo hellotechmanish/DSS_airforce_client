@@ -126,7 +126,7 @@ export default function CustomizedDialogs(props) {
       const res = await GET(API.DEVICE.GET_BY_ID(originalDeviceData));
       setSensorValue(res.msg);
     } catch (err) {
-      console.log("Error fetching device by id", err);
+      console.error("Error fetching device by id", err);
     }
   };
 

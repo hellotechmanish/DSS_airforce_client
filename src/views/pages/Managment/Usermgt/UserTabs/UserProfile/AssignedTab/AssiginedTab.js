@@ -55,7 +55,7 @@ export default function Sites({ state }) {
       setTotal(res?.pagination?.total || 0);
       setTotalPages(res?.pagination?.totalPages || 1);
     } catch (err) {
-      console.log(err);
+      console.error(err);
     }
   }, [state?._id, page, limit]);
 

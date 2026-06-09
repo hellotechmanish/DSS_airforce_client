@@ -23,7 +23,7 @@ export default function SensorDialog({ user, sensorValue }) {
 
       setGetSelectSensor(res.msg?.[0]);
     } catch (err) {
-      console.log("Error fetching assigned sensor data", err);
+      console.error("Error fetching assigned sensor data", err);
     }
   }, [sensorValue?._id, user?._id]);
 

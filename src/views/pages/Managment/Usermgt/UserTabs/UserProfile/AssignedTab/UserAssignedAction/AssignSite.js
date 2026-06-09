@@ -49,8 +49,6 @@ export default function MaxWidthDialog({ getnumberOfAssignSite, UserId }) {
 
       setSites(res?.msg || []);
       setSiteTotalPages(res?.pagination?.totalPages || 1);
-
-      console.log("🔥 Sites API:", res);
     } catch (err) {
       console.error(err);
       setSites([]);
@@ -69,8 +67,6 @@ export default function MaxWidthDialog({ getnumberOfAssignSite, UserId }) {
 
       setDevices(res?.msg || []);
       setDeviceTotalPages(res?.pagination?.totalPages || 1);
-
-      console.log("🔥 Devices API:", res);
     } catch (err) {
       console.error(err);
       setDevices([]);
@@ -97,8 +93,6 @@ export default function MaxWidthDialog({ getnumberOfAssignSite, UserId }) {
       siteIds: selectedSites,
       deviceIds: selectedDevices,
     };
-
-    console.log("🚀 FINAL PAYLOAD:", payload);
 
     try {
       const res = await POST(API.USERS.ASSIGN_SITE, payload);
@@ -250,7 +244,6 @@ export default function MaxWidthDialog({ getnumberOfAssignSite, UserId }) {
             <Button
               disabled={!selectedSites.length}
               onClick={() => {
-                console.log("Selected Sites:", selectedSites);
                 setStep(2);
               }}
               variant="contained"

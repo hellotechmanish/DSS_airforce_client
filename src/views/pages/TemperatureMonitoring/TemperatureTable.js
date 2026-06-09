@@ -28,7 +28,7 @@ export default function TemperatureTable() {
         `${API.SITE.GET_ALL_SITE_TEMP}?page=${page}&limit=${limit}`,
       );
 
-      console.log("API Response:", res);
+      console.log("API R/esponse:", res);
 
       const formattedData =
         res?.msg?.map((row) => {

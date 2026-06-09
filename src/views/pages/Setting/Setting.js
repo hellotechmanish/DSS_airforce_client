@@ -31,7 +31,6 @@ export default function UserManagment() {
   const password = watch("password");
 
   const onSubmit = async (data) => {
-    console.log("data check pass reset", data);
 
     try {
       // If password is provided, reset it

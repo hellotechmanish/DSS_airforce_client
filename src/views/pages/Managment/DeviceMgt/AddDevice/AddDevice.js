@@ -166,7 +166,6 @@ export default function MaxWidthDialog({
         nerSensorsThreshold: +nerSensorsThreshold,
       });
 
-      console.log("Create Device Resp =>", resp);
 
       clearData();
       setSnackOpen(true);
@@ -193,7 +192,6 @@ export default function MaxWidthDialog({
         uid: nodeUid,
       });
 
-      console.log("Check UID Resp =>", resp);
 
       setUidMatch(resp?.status);
     } catch (error) {

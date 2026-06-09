@@ -15,7 +15,6 @@ export default function Alarm() {
   const [total, setTotal] = useState(0);
   const [searchTerm, setSearchTerm] = useState("");
 
-  console.log("total", total);
 
   // ================= FETCH =================
   const getAllAlarm = useCallback(async () => {

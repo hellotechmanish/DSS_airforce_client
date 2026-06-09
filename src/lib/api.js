@@ -8,7 +8,7 @@ import {
 
 // env file mendatory for fething url
 const api = axios.create({
-  baseURL: process.env.REACT_APP_API_URL,
+  baseURL: process.env.REACT_APP_API_URL || "http://localhost:5009/api",
   timeout: 15000,
 });
 
@@ -37,7 +37,7 @@ api.interceptors.response.use(
       return holdRequestUntilReconnect();
     }
 
-    console.error("API Error:", error.message);
+    // console.error("API Error:", error.message);
     if (error.response?.status === 401) {
       localStorage.clear();
       window.location.href = "/signin";
