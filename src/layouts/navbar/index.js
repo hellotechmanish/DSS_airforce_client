@@ -1,11 +1,13 @@
 "use client";
 
-import React, { useContext, useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom"; //  Added useNavigate
 import { FiMenu } from "react-icons/fi";
 import { VscUnmute, VscMute } from "react-icons/vsc";
 import routes from "../../routes/AdminRoutes";
-import { AuthContext } from "../../context/AuthContext";
+
+//  FIXED: Context ko hatakar Zustand store import kiya
+import { useAuth } from "../../context/useAuth";
 import { GET, POST } from "../../lib/request";
 import { API } from "../../lib/endpoint";
 
@@ -16,7 +18,11 @@ import LogoutDialog from "./LogoutDialog";
 import ShutDonwDialog from "./ShutDonwDialog";
 
 export default function Navbar() {
-  const { user } = useContext(AuthContext);
+  //   FIXED: Context consumption ko Zustand select queries me badla
+  const user = useAuth((state) => state.user);
+  const clearSessionMemory = useAuth((state) => state.logout);
+
+  const navigate = useNavigate();
 
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [alarmStatus, setAlarmStatus] = useState(null);
@@ -29,10 +35,21 @@ export default function Navbar() {
 
   const [inputValues] = useState(loadSavedData());
 
-  // ================= LOGOUT =================
-  const logout = () => {
-    localStorage.clear();
-    window.location.reload();
+  // =================     FIXED LOGOUT PIPELINE =================
+  const logout = async () => {
+    try {
+      // 1.    Using explicit endpoint matrix path from endpoints configuration
+      await GET(API.AUTH.LOGOUT);
+    } catch (err) {
+      console.error("Backend token invalidation failed:", err.message);
+    } finally {
+      // 2. Zustand ki RAM memory ko clear karo (isLoggedIn false ho jayega)
+      clearSessionMemory();
+
+      // 3. Drawer band karo aur safety se clean transition ke sath /signIn portal par bhej do
+      setDrawerOpen(false);
+      navigate("/signIn", { replace: true });
+    }
   };
 
   // ================= ALARM =================

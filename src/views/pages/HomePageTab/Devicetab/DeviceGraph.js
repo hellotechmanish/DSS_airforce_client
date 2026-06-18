@@ -1,4 +1,6 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+"use client";
+
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
   Box,
   CircularProgress,
@@ -9,72 +11,28 @@ import {
   TextField,
 } from "@mui/material";
 import dayjs from "dayjs";
-
-import { Line } from "react-chartjs-2";
+import Chart from "react-apexcharts";
+import ApexCharts from "apexcharts";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { DesktopDatePicker } from "@mui/x-date-pickers/DesktopDatePicker";
 import moment from "moment";
 import DewnloadReport from "../../DownloadReport/Downlaod";
 import hondaGif from "../../../../assets/img/hondagif.gif";
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Title,
-  Tooltip,
-  Legend,
-} from "chart.js";
-import { AuthContext } from "../../../../context/AuthContext";
+import { useAuth } from "../../../../context/useAuth";
 import { POST } from "../../../../lib/request";
 import { API } from "../../../../lib/endpoint";
 
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Title,
-  Tooltip,
-  Legend,
-);
-
-export const options = {
-  responsive: true,
-  plugins: {
-    legend: {
-      position: "top",
-    },
-    title: {
-      display: true,
-    },
-  },
-};
-
 const BORDER_COLORS = [
-  "rgb(255, 99, 132)",
-  "rgb(230, 230, 0)",
-  "rgb(51, 204, 255)",
-  "rgb(204, 51, 255)",
-  "rgb(60, 179, 113)",
-  "rgb(238, 130, 238)",
-  "rgb(255, 165, 0)",
-  "rgb(106, 90, 20)",
-  "rgb(255, 99, 71)",
-];
-
-const BG_COLORS = [
-  "rgba(255, 99, 132, 0.5)",
-  "rgba(230, 230, 0, 0.5)",
-  "rgba(51, 204, 255, 0.5)",
-  "rgba(0, 0, 255, 0.5)",
-  "rgba(60, 179, 113, 0.5)",
-  "rgba(238, 130, 238, 0.5)",
-  "rgba(255, 165, 0, 0.5)",
-  "rgba(106, 90, 205, 0.5)",
-  "rgba(255, 99, 71, 0.5)",
+  "#FF6384",
+  "#E6E600",
+  "#33CCFF",
+  "#CC33FF",
+  "#3CB371",
+  "#EE82EE",
+  "#FFA500",
+  "#6A5A14",
+  "#FF6347",
 ];
 
 const PHASE_LABELS = ["R", "Y", "B", "RY", "YB", "RB"];
@@ -101,285 +59,257 @@ export default function Graph({
   SensorTypeChange,
   intervalId,
 }) {
-  const auth = React.useContext(AuthContext);
+  const user = useAuth((state) => state.user);
   const currentDate = dayjs().toDate();
 
-  //("AuthContext auth data ==>", auth.user);
-
-  // const intervalId = React.useRef(sensor);
   const [startDate, setStartDate] = useState(
     moment(new Date()).format("YYYY-MM-DD"),
   );
+  const [phasevalue, setPhaseValue] = useState(1);
+  const [labels, setLabels] = useState([]);
+  const [graphData, setGraphData] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [userDevice, setUserDevice] = useState([]);
 
   const handleData = (data, datatype) => {
-    if (datatype === "startDate") {
+    if (datatype === "startDate")
       setStartDate(moment(data).format("YYYY-MM-DD"));
-    }
-  };
-  const [phasevalue, setPhaseValue] = useState(1);
-  const PhaseValueChange = (newValue) => {
-    // //("MENU ITEM NEW VALUE =>", newValue);
-    setPhaseValue(Number(newValue));
   };
 
-  // ==================================================== //
-  const [labels, setLabels] = React.useState([]);
-  const [graphData, setGraphData] = React.useState([]);
-  const [DataSets, setDataSets] = React.useState([]);
-  const [loading, setLoading] = React.useState(false);
-
-  const [userDevice, setUserDevice] = React.useState([]);
-  // const [data, setData] = React.useState({})
-
-  // let data = {
-  //   labels,
-  //   datasets: DataSets,
-  // };
-  // ["rgb(255, 99, 132)", ]
-  // []
+  const PhaseValueChange = (newValue) => setPhaseValue(Number(newValue));
 
   useEffect(() => {
-    const ds = auth?.user?.deviceSensors;
-
+    const ds = user?.deviceSensors;
     if (!Array.isArray(ds) || !device?._id) {
       setUserDevice(null);
       return;
     }
-
     const found = ds.find(
       (item) => item?.sensorId?.toString() === device._id?.toString(),
     );
-
     setUserDevice(found || null);
-  }, [auth, device?._id]);
+  }, [user, device?._id]);
 
-  const computedDataSets = useMemo(() => {
+  // ====================================================
+  // 📊 1. DATASETS SERIES GENERATION ENGINE (Shifted Up)
+  // ====================================================
+  const chartSeries = useMemo(() => {
     if (!Array.isArray(graphData) || graphData.length === 0) return [];
+    const role = user?.role;
 
-    const role = auth?.user?.role;
-
-    //  RES (Resistance)
     if (sensor === "RES") {
       const count =
         role === "user"
           ? userDevice?.resistanceNumber?.length ||
             Number(device?.resSensors || 0)
           : Number(device?.resSensors || 0);
-
       return Array.from({ length: count }, (_, i) => ({
-        label: `R${i + 1}`,
-
-        //  safe value + no undefined
+        name: `R${i + 1}`,
         data: graphData.map((item) => {
           const val = item?.msg?.DATASTREAMS?.[i]?.value;
           return val !== undefined && val !== null ? Number(val) : 0;
         }),
-
-        borderColor: BORDER_COLORS[i],
-        backgroundColor: BG_COLORS[i],
-
-        spanGaps: true, //  no line break
-        tension: 0.1, //  smooth curve
       }));
     }
 
-    //  SPD
     if (sensor === "SPD") {
       const count =
         role === "user"
           ? userDevice?.spdNumber?.length || 0
           : Number(device?.spdSensors || 0);
-
       return Array.from({ length: count }, (_, i) => ({
-        label: `SPD${i + 1}`,
-
+        name: `SPD${i + 1}`,
         data: graphData.map((item) => {
           const val = item?.msg?.DATASTREAMS?.[i]?.value;
           return val !== undefined && val !== null ? Number(val) : 0;
         }),
-
-        borderColor: BORDER_COLORS[i],
-        backgroundColor: BG_COLORS[i],
-
-        spanGaps: true, //  fix break
-        tension: 0.1,
       }));
     }
 
-    //  NER (GN)
     if (sensor === "NER") {
       const count =
         role === "user"
           ? userDevice?.gnNumber?.length || Number(device?.nerSensors || 0)
           : Number(device?.nerSensors || 0);
-
       return Array.from({ length: count }, (_, i) => ({
-        label: `GN${i + 1}`,
-
+        name: `GN${i + 1}`,
         data: graphData.map((item) => {
           const val = item?.msg?.DATASTREAMS?.[i]?.value;
           return val !== undefined && val !== null ? Number(val) : 0;
         }),
-
-        borderColor: BORDER_COLORS[i],
-        backgroundColor: BG_COLORS[i],
-
-        spanGaps: true, //  fix break
-        tension: 0.1,
       }));
     }
 
-    //  VMR (Phase)
     if (sensor === "VMR") {
       const phaseList =
         role === "user" && Array.isArray(userDevice?.phaseNumber)
           ? PHASE_LABELS.slice(0, userDevice.phaseNumber.length)
           : PHASE_LABELS;
-
-      return phaseList.map((phase, i) => ({
-        label: phase,
-
+      return phaseList.map((phase) => ({
+        name: phase,
         data: graphData
           .filter((item) => item?.phaseNumber === phase.toLowerCase())
           .map((item) => {
             const val = item?.value;
             return val !== undefined && val !== null ? Number(val) : 0;
           }),
-
-        borderColor: BORDER_COLORS[i],
-        backgroundColor: BG_COLORS[i],
-
-        spanGaps: true,
-        tension: 0.1,
       }));
     }
 
-    //  TEMP
     if (sensor === "TEMP") {
       return [
         {
-          label: "T1",
-
-          data: graphData.map((item) => {
-            const val = getTempValue(item);
-            return val !== undefined && val !== null ? Number(val) : 0;
-          }),
-
-          borderColor: BORDER_COLORS[0],
-          backgroundColor: BG_COLORS[0],
-
-          spanGaps: true,
-          tension: 0.1,
+          name: "T1",
+          data: graphData.map((item) => getTempValue(item)),
         },
       ];
     }
 
-    //  HUM
     if (sensor === "HUM") {
       return [
         {
-          label: "H1",
-
-          data: graphData.map((item) => {
-            const val = getHumValue(item);
-            return val !== undefined && val !== null ? Number(val) : 0;
-          }),
-
-          borderColor: BORDER_COLORS[0],
-          backgroundColor: BG_COLORS[0],
-
-          spanGaps: true,
-          tension: 0.1,
+          name: "H1",
+          data: graphData.map((item) => getHumValue(item)),
         },
       ];
     }
 
     return [];
-  }, [auth?.user?.role, device, graphData, sensor, userDevice]);
+  }, [user?.role, device, graphData, sensor, userDevice]);
+
+  // ====================================================
+  // ⚡ 2. APEXCHARTS CONFIGURATION (Safe Placement)
+  // ====================================================
+  const chartOptions = useMemo(
+    () => ({
+      chart: {
+        id: "realtime-telemetry-chart",
+        type: "line",
+        animations: {
+          enabled: false,
+          easing: "linear",
+          dynamicAnimation: {
+            speed: 350,
+          },
+        },
+        toolbar: { show: false },
+        background: "#ffffff",
+      },
+      xaxis: {
+        categories: labels,
+        labels: {
+          show: true,
+          style: { colors: "#64748b", fontSize: "11px" },
+        },
+        axisBorder: { show: false },
+        axisTicks: { show: false },
+      },
+      yaxis: {
+        labels: {
+          style: { colors: "#64748b" },
+          formatter: (val) => val.toFixed(2),
+        },
+      },
+      stroke: {
+        curve: "smooth",
+        width: 3,
+      },
+      colors: BORDER_COLORS,
+      grid: {
+        borderColor: "#f1f5f9",
+      },
+      legend: {
+        position: "top",
+        horizontalAlign: "center",
+      },
+      dataLabels: { enabled: false },
+      markers: {
+        size: 0,
+        discrete:
+          chartSeries?.map((series) => ({
+            seriesIndex: chartSeries.indexOf(series),
+            dataPointIndex: (series?.data?.length || 1) - 1,
+            fillColor:
+              BORDER_COLORS[chartSeries.indexOf(series) % BORDER_COLORS.length],
+            strokeColor: "#ffffff",
+            size: 6,
+            shape: "circle",
+          })) || [],
+      },
+      tooltip: { x: { show: true } },
+    }),
+    [labels, chartSeries],
+  );
+
+  const downloadDataSets = useMemo(() => {
+    return chartSeries.map((s, i) => ({
+      label: s.name,
+      data: s.data,
+      borderColor: BORDER_COLORS[i],
+    }));
+  }, [chartSeries]);
+
+  // ====================================================
+  // 🔄 SILENT REFRESH DATA HANDLER
+  // ====================================================
+  const fetchdevidata = useCallback(
+    async (isSilent = false) => {
+      if (!device?._id) return;
+      if (!isSilent) setLoading(true);
+
+      try {
+        const resp = await POST(API.DEVICE.LATEST_DATA, {
+          deviceId: device._id,
+          sensorName: sensor,
+          deviceNumber: `${phasevalue - 1}`,
+          startDate,
+          endDate: startDate,
+        });
+
+        console.log(resp.msg);
+
+        const data = Array.isArray(resp?.msg) ? resp.msg : [];
+        const sortedData = [...data].sort(
+          (a, b) =>
+            new Date(`${a.date} ${a.time}`) - new Date(`${b.date} ${b.time}`),
+        );
+        const nextLabels = sortedData.map((item) =>
+          moment(`${item.date} ${item.time}`).format("HH:mm:ss"),
+        );
+
+        if (isSilent && graphData.length > 0) {
+          setLabels(nextLabels);
+          setGraphData(sortedData);
+          ApexCharts.exec(
+            "realtime-telemetry-chart",
+            "updateSeries",
+            chartSeries,
+            true,
+          );
+        } else {
+          setLabels(nextLabels);
+          setGraphData(sortedData);
+        }
+      } catch (error) {
+        console.error("Error fetching graph data:", error);
+      } finally {
+        if (!isSilent) setLoading(false);
+      }
+    },
+    [device?._id, phasevalue, sensor, startDate, graphData.length, chartSeries],
+  );
+
   useEffect(() => {
-    setDataSets(computedDataSets);
-  }, [computedDataSets]);
-
-  // const fetchdevidata = useCallback(async () => {
-  //   try {
-  //     if (!device?._id) return;
-  //     const resp = await POST(API.DEVICE.LATEST_DATA, {
-  //       deviceId: device._id,
-  //       sensorName: sensor,
-  //       deviceNumber: `${phasevalue - 1}`,
-  //       startDate,
-  //       endDate: startDate,
-  //     });
-
-  //     console.log("Graph API resp =>", resp);
-
-  //     const data = resp?.msg || [];
-
-  //     setLabels([...new Set(data.map((item) => item.time))]);
-  //     setGraphData(data);
-  //   } catch (error) {
-  //     console.error("Error fetching graph data:", error);
-  //   }
-  // }, [device?._id, phasevalue, sensor, startDate]);
-
-  const fetchdevidata = useCallback(async () => {
-    if (!device?._id) return;
-
-    setLoading(true);
-
-    try {
-      const resp = await POST(API.DEVICE.LATEST_DATA, {
-        deviceId: device._id,
-        sensorName: sensor,
-        deviceNumber: `${phasevalue - 1}`,
-        startDate,
-        endDate: startDate,
-      });
-
-      const data = Array.isArray(resp?.msg) ? resp.msg : [];
-
-      // console.log("Parsed Graph Data : ", data);
-
-      //  STEP 1: SORT DATA (MOST IMPORTANT)
-      const sortedData = [...data].sort(
-        (a, b) =>
-          new Date(`${a.date} ${a.time}`) - new Date(`${b.date} ${b.time}`),
-      );
-
-      //  STEP 2: LABELS FIX (NO RANDOM ORDER)
-      const labels = sortedData.map((item) =>
-        moment(`${item.date} ${item.time}`).format("HH:mm:ss"),
-      );
-
-      // console.log("labels>>>", labels);
-
-      //  STEP 3: SET STATE
-      setLabels(labels);
-      setGraphData(sortedData);
-    } catch (error) {
-      console.error("Error fetching graph data:", error);
-    } finally {
-      setLoading(false);
-    }
+    fetchdevidata(false);
   }, [device?._id, phasevalue, sensor, startDate]);
-  useEffect(() => {
-    fetchdevidata();
-  }, [fetchdevidata]);
 
-  // let interval = setInterval(() => {
-  //   setStartDate(startDate);
-  //   setEndDate(endDate);
-  //   getData();
-  // }, 50000);
   useEffect(() => {
     intervalId.current = setInterval(() => {
-      // console.log("Hit Graph Data render");
-      fetchdevidata();
-    }, 11000);
-    return () => {
-      clearInterval(intervalId.current);
-    };
+      fetchdevidata(true);
+    }, 5000);
+    return () => clearInterval(intervalId.current);
   }, [fetchdevidata, intervalId]);
+
   return (
     <>
       <Grid container className="graph-container mt-32 mb-40">
@@ -400,7 +330,7 @@ export default function Graph({
               <Grid item>
                 <Typography
                   align="center"
-                  className="width100  white-typo ml-12"
+                  className="width100 white-typo ml-12"
                 >
                   Device UID :{" "}
                   <span className="white-typo"> #{device?.nodeUid} </span>
@@ -408,7 +338,7 @@ export default function Graph({
               </Grid>
               <Grid item>
                 <Typography className="white-typo">
-                  Device Name :
+                  Device Name :{" "}
                   <span className="white-typo"> {device?.deviceName} </span>
                 </Typography>
               </Grid>
@@ -434,7 +364,8 @@ export default function Graph({
               <Typography className="white-typo mt-8 ">
                 Humidity :{" "}
                 <span className="white-typo">
-                  {getHumValue({ msg: device }).toFixed(2)} %
+                  {" "}
+                  {getHumValue({ msg: device }).toFixed(2)} %{" "}
                 </span>
               </Typography>
               <DewnloadReport
@@ -442,16 +373,17 @@ export default function Graph({
                 sensor={sensor}
                 vmrSensors={phasevalue}
                 device={device}
-                DataSets={DataSets}
+                DataSets={downloadDataSets}
               />
             </Grid>
           </Grid>
         </Grid>
+
         <Grid
           container
           direction="row"
           justifyContent="space-between"
-          className="mt-16  width100  "
+          className="mt-16 width100"
         >
           <Grid item md={2} sx={{ marginLeft: "10px" }}>
             <FormControl size="small">
@@ -464,18 +396,14 @@ export default function Graph({
                   backgroundColor: "#fff",
                   borderRadius: "6px",
                   minWidth: 180,
-                  "& .MuiSelect-select": {
-                    color: "#000",
-                  },
+                  "& .MuiSelect-select": { color: "#000" },
                 }}
                 SelectProps={{
                   MenuProps: {
                     PaperProps: {
                       sx: {
                         backgroundColor: "#fff",
-                        "& .MuiMenuItem-root": {
-                          color: "#000",
-                        },
+                        "& .MuiMenuItem-root": { color: "#000" },
                       },
                     },
                   },
@@ -503,18 +431,14 @@ export default function Graph({
                     backgroundColor: "#fff",
                     borderRadius: "6px",
                     minWidth: 120,
-                    "& .MuiSelect-select": {
-                      color: "#000",
-                    },
+                    "& .MuiSelect-select": { color: "#000" },
                   }}
                   SelectProps={{
                     MenuProps: {
                       PaperProps: {
                         sx: {
                           backgroundColor: "#fff",
-                          "& .MuiMenuItem-root": {
-                            color: "#000",
-                          },
+                          "& .MuiMenuItem-root": { color: "#000" },
                         },
                       },
                     },
@@ -532,21 +456,22 @@ export default function Graph({
             )}
           </Grid>
 
-          <Grid item md={5} justifyContent="flex-end" alignItems="flex-end">
-            <Typography align="right" className="mr-10 ">
+          <Grid
+            item
+            md={5}
+            display="flex"
+            justifyContent="flex-end"
+            alignItems="flex-end"
+          >
+            <Box sx={{ width: "100%", textAlign: "right" }} className="mr-10">
               <LocalizationProvider dateAdapter={AdapterDateFns}>
                 <DesktopDatePicker
                   className="rangepicker width-150"
-                  InputProps={{
-                    disableUnderline: true,
-                  }}
-                  // disabled={!dateType ? true: false}
+                  InputProps={{ disableUnderline: true }}
                   inputFormat="dd/MM/yyyy"
                   value={startDate}
                   maxDate={currentDate}
-                  onChange={(e) => {
-                    handleData(e, "startDate");
-                  }}
+                  onChange={(e) => handleData(e, "startDate")}
                   renderInput={(params) => (
                     <TextField
                       variant="filled"
@@ -560,7 +485,7 @@ export default function Graph({
                   )}
                 />
               </LocalizationProvider>
-            </Typography>
+            </Box>
           </Grid>
           <Grid item xs={12}>
             <Box
@@ -569,16 +494,16 @@ export default function Graph({
                 minHeight: 320,
                 borderRadius: "0 0 8px 8px",
                 overflow: "hidden",
-                transition: "background-color 0.25s ease",
+                backgroundColor: "#fff",
+                padding: "10px",
               }}
             >
-              {DataSets && DataSets?.length > 0 ? (
-                <Line
-                  options={options}
-                  data={{
-                    labels,
-                    datasets: DataSets,
-                  }}
+              {chartSeries.length > 0 ? (
+                <Chart
+                  options={chartOptions}
+                  series={chartSeries}
+                  type="line"
+                  height={320}
                 />
               ) : !loading ? (
                 <Grid
@@ -605,7 +530,6 @@ export default function Graph({
                       "linear-gradient(180deg, rgba(247, 248, 253, 0.55) 0%, rgba(247, 248, 253, 0.82) 100%)",
                     backdropFilter: "blur(3px)",
                     zIndex: 2,
-                    transition: "opacity 0.25s ease",
                   }}
                 >
                   <CircularProgress

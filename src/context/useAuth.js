@@ -1,37 +1,42 @@
 import { create } from "zustand";
 
-export const useAuth = create((set) => {
-  const storedUser = localStorage.getItem("user");
-  const storedToken = localStorage.getItem("token");
+export const useAuth = create((set) => ({
+  //  State Variables
+  isLoggedIn: false,
+  user: null,
+  loading: true,
 
-  return {
-    isLoggedIn: !!storedToken && !!storedUser,
-    user: storedUser ? JSON.parse(storedUser) : null,
+  // 1. App initialization handshake status update karne ke liye (App.js me use hoga)
+  setSession: (userData) => {
+    // 🪵 Log user details during initialization
+    // console.log("🪵   Zustand [setSession] => Updating user details:", userData);
 
-    login: (user, token) => {
-      localStorage.setItem("token", token);
-      localStorage.setItem("user", JSON.stringify(user));
-      set({ isLoggedIn: true, user });
-    },
+    if (userData) {
+      set({ isLoggedIn: true, user: userData, loading: false });
+    } else {
+      set({ isLoggedIn: false, user: null, loading: false });
+    }
+  },
 
-    logout: () => {
-      localStorage.removeItem("token");
-      localStorage.removeItem("user");
-      set({ isLoggedIn: false, user: null });
-    },
-  };
-});
-export const getUser = () => {
-  try {
-    const data = localStorage.getItem("userData");
+  // 2. Loading explicit state trigger
+  setLoading: (status) => set({ loading: status }),
 
-    if (!data) return null;
+  // 3. Login Action
+  login: (userData) => {
+    // 🪵 Log user details right after successful login hit
+    // console.log(
+    //   "🪵 Zustand [login action] => User logged in successfully:",
+    //   userData,
+    // );
 
-    const parsed = JSON.parse(data);
+    set({ isLoggedIn: true, user: userData, loading: false });
+  },
 
-    return parsed.user; // yaha se direct user object mil jayega
-  } catch (error) {
-    console.error("User parse error:", error);
-    return null;
-  }
-};
+  // 4. Logout Action
+  logout: () => {
+    console.log(
+      "🪵 Zustand [logout action] => Clearing user state from memory.",
+    );
+    set({ isLoggedIn: false, user: null, loading: false });
+  },
+}));

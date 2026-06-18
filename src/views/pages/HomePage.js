@@ -6,12 +6,14 @@ import DeviceTab from "./HomePageTab/Devicetab/Device";
 import NodataFound from "../../assets/img/nodatafound.png";
 import AddDevice from "./HomePageTab/AddDevice/AddDevice";
 import AddSiteDialog from "./Managment/SitesMgt/AddSite/SitesAddDialog";
-import { getUser } from "../../context/useAuth";
+
+//   FIXED: Import the hook directly instead of individual helper items
+import { useAuth } from "../../context/useAuth";
 
 import { GET } from "../../lib/request";
 import { API } from "../../lib/endpoint";
 
-function App() {
+function Homepage() {
   const [, setLoading] = useState(false);
 
   const [value, setValue] = useState(0);
@@ -31,14 +33,9 @@ function App() {
     totalPages: 1,
   });
 
-  const user = getUser();
+  //   FIXED: Fetch the active live user state profile from Zustand memory directly
+  const user = useAuth((state) => state.user);
   const scrollRef = useRef(null);
-
-  // console.log("sitessites", sites);
-
-  // console.log("sites", sites[0]);
-
-  // console.log("deviceID", deviceID);
 
   // ================= SITE FETCH =================
 
@@ -65,7 +62,7 @@ function App() {
         }
       }
     } catch (err) {
-      console.error(err);
+      console.error("Error loading telemetry sites grid:", err);
     } finally {
       setLoading(false);
     }
@@ -80,12 +77,9 @@ function App() {
       setLoading(true);
 
       const resp = await GET(API.DEVICE.LIST_BY_SITEID(siteId));
-
-      // console.log("resp from getdeviceListbysite", resp);
-
       setDevice(Array.isArray(resp?.msg) ? resp.msg : []);
     } catch (err) {
-      console.error(err);
+      console.error("Error reading hardware nodes dataset:", err);
     } finally {
       setLoading(false);
     }
@@ -98,8 +92,6 @@ function App() {
   }, []);
 
   useEffect(() => {
-    // console.log("sitesID from useEffect", sitesID);
-
     if (sitesID) {
       getdeviceListbysite(sitesID);
     }
@@ -109,24 +101,12 @@ function App() {
     setValue1(0);
   }, [value, deviceID]);
 
-  const scrollTabs = (dir) => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollBy({
-        left: dir === "left" ? -500 : 500,
-        behavior: "smooth",
-      });
-    }
-  };
-
   // ================= TAB CHANGE =================
 
   const TabChange = (index) => {
     setValue(index);
-
     const selectedSite = sites[index];
-
     setSelectSiteData(selectedSite);
-
     setSitesID(selectedSite?._id);
   };
 
@@ -137,16 +117,16 @@ function App() {
       {sites?.length > 0 ? (
         <>
           {/* ================= SITE SECTION ================= */}
-
           <div
             className="rounded-xl p-5 mb-6
   bg-gradient-to-r from-[#0a192f] to-[#0f3057]
   shadow-lg border border-[#1f4068]"
           >
-            {/* ── Header row ── */}
+            {/* Header row */}
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-semibold text-white">Sites</h2>
 
+              {/*   Secure matrix handles dynamic roles filtering safely now */}
               {user?.role !== "user" && user?.role !== "technician" && (
                 <AddSiteDialog
                   getnumberOfSite={getnumberOfSite}
@@ -159,19 +139,8 @@ function App() {
               )}
             </div>
 
-            {/* ── Tabs + scroll arrows ── */}
+            {/* Tabs Container */}
             <div className="flex items-center gap-2">
-              {/* Left arrow */}
-              {/* <button
-                onClick={() => scrollTabs("left")}
-                className="flex-shrink-0 bg-[#1f4068] text-white
-        w-7 h-7 flex items-center justify-center
-        rounded-md hover:bg-[#274c77] transition-colors duration-150 text-xs"
-              >
-                ◀
-              </button> */}
-
-              {/* Scrollable tab track */}
               <div
                 ref={scrollRef}
                 className="flex-1 flex justify-center gap-2 overflow-x-auto scroll-smooth py-0.5"
@@ -208,22 +177,11 @@ function App() {
                   </button>
                 ))}
               </div>
-
-              {/* Right arrow */}
-              {/* <button
-                onClick={() => scrollTabs("right")}
-                className="flex-shrink-0 bg-[#1f4068] text-white
-        w-7 h-7 flex items-center justify-center
-        rounded-md hover:bg-[#274c77] transition-colors duration-150 text-xs"
-              >
-                ▶
-              </button> */}
             </div>
 
-            {/* ── Pagination controls ── */}
+            {/* Pagination Controls */}
             {pagination.totalPages > 1 && (
               <div className="flex items-center justify-between mt-5 pt-4 border-t border-[#1f4068]">
-                {/* Page info */}
                 <span className="text-sm text-white">
                   Page {pagination.page} of {pagination.totalPages}
                   <span className="ml-2 text-white">
@@ -231,33 +189,23 @@ function App() {
                   </span>
                 </span>
 
-                {/* Page buttons */}
                 <div className="flex items-center gap-2">
-                  {/* First */}
                   <button
                     disabled={pagination.page === 1}
                     onClick={() => getnumberOfSite(1)}
-                    className="px-3 py-1.5 rounded text-sm font-medium
-        border border-[#274c77] text-white
-        disabled:opacity-30 disabled:cursor-not-allowed
-        hover:bg-[#274c77] transition"
+                    className="px-3 py-1.5 rounded text-sm font-medium border border-[#274c77] text-white disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[#274c77] transition"
                   >
                     «
                   </button>
 
-                  {/* Prev */}
                   <button
                     disabled={pagination.page === 1}
                     onClick={() => getnumberOfSite(pagination.page - 1)}
-                    className="px-3 py-1.5 rounded text-sm font-medium
-        border border-[#274c77] text-white
-        disabled:opacity-30 disabled:cursor-not-allowed
-        hover:bg-[#274c77] transition"
+                    className="px-3 py-1.5 rounded text-sm font-medium border border-[#274c77] text-white disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[#274c77] transition"
                   >
                     ‹
                   </button>
 
-                  {/* Numbered page pills */}
                   {Array.from(
                     { length: pagination.totalPages },
                     (_, i) => i + 1,
@@ -287,39 +235,29 @@ function App() {
                         <button
                           key={p}
                           onClick={() => getnumberOfSite(p)}
-                          className={`w-9 h-9 rounded text-sm font-semibold
-              border transition
-              ${
-                pagination.page === p
-                  ? "bg-white text-[#0f3057] border-white"
-                  : "border-[#274c77] text-white hover:bg-[#274c77]"
-              }`}
+                          className={`w-9 h-9 rounded text-sm font-semibold border transition ${
+                            pagination.page === p
+                              ? "bg-white text-[#0f3057] border-white"
+                              : "border-[#274c77] text-white hover:bg-[#274c77]"
+                          }`}
                         >
                           {p}
                         </button>
                       ),
                     )}
 
-                  {/* Next */}
                   <button
                     disabled={pagination.page === pagination.totalPages}
                     onClick={() => getnumberOfSite(pagination.page + 1)}
-                    className="px-3 py-1.5 rounded text-sm font-medium
-        border border-[#274c77] text-white
-        disabled:opacity-30 disabled:cursor-not-allowed
-        hover:bg-[#274c77] transition"
+                    className="px-3 py-1.5 rounded text-sm font-medium border border-[#274c77] text-white disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[#274c77] transition"
                   >
                     ›
                   </button>
 
-                  {/* Last */}
                   <button
                     disabled={pagination.page === pagination.totalPages}
                     onClick={() => getnumberOfSite(pagination.totalPages)}
-                    className="px-3 py-1.5 rounded text-sm font-medium
-        border border-[#274c77] text-white
-        disabled:opacity-30 disabled:cursor-not-allowed
-        hover:bg-[#274c77] transition"
+                    className="px-3 py-1.5 rounded text-sm font-medium border border-[#274c77] text-white disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[#274c77] transition"
                   >
                     »
                   </button>
@@ -329,7 +267,6 @@ function App() {
           </div>
 
           {/* ================= DEVICE SECTION ================= */}
-
           <div className="bg-white rounded-xl shadow border p-5">
             <div className="flex justify-between items-center">
               <h2 className="text-lg font-bold text-[#0f3057]">Devices</h2>
@@ -338,8 +275,6 @@ function App() {
                 <AddDevice
                   getnumberOfSite={getnumberOfSite}
                   getdeviceListbysite={getdeviceListbysite}
-                  // getnumberOfSite={getnumberOfSite}
-                  // getdeviceListbysite={getdeviceListbysite}
                   state={selectSiteData}
                   sitezero={sitezero}
                   value={value}
@@ -347,8 +282,7 @@ function App() {
               )}
             </div>
 
-            {/* Device List */}
-
+            {/* Device List Grid Rendering */}
             {deviceID?.length > 0 ? (
               <DeviceTab
                 deviceID={deviceID}
@@ -356,14 +290,12 @@ function App() {
                 setValue1={setValue1}
               />
             ) : (
-              // <div></div>
               <div className="flex flex-col items-center justify-center py-16">
                 <img
                   src={NodataFound}
                   alt="No Device"
                   className="w-48 opacity-70"
                 />
-
                 <p className="mt-4 text-gray-600">No Device found</p>
 
                 {user?.role !== "user" && user?.role !== "technician" && (
@@ -384,20 +316,13 @@ function App() {
       ) : (
         <div className="flex flex-col items-center justify-center h-[80vh]">
           <img src={NodataFound} alt="No Site" className="w-52 opacity-70" />
-
           <p className="mt-4 text-gray-600">No Site found</p>
 
           {user?.role !== "user" && user?.role !== "technician" && (
             <div className="mt-4">
               <AddSiteDialog
                 getnumberOfSite={getnumberOfSite}
-                buttonClass="px-5 py-2 
-                bg-blue-400
-                border border-white-900
-                text-white text-sm font-semibold bg-blue-800
-                rounded-lg
-                transition-all duration-200
-                hover:bg-blue-900 hover:text-white"
+                buttonClass="px-5 py-2 bg-blue-400 border border-white-900 text-white text-sm font-semibold bg-blue-800 rounded-lg transition-all duration-200 hover:bg-blue-900 hover:text-white"
               />
             </div>
           )}
@@ -407,4 +332,4 @@ function App() {
   );
 }
 
-export default App;
+export default Homepage;

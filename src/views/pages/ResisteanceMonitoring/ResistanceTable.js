@@ -14,7 +14,7 @@ export default function Resistance() {
   const [resistance, setResistance] = useState([]);
   const [search, setSearch] = useState("");
 
-  // ✅ pagination states
+  //    pagination states
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
@@ -44,7 +44,7 @@ export default function Resistance() {
 
     const interval = setInterval(getAllSiteResistance, 20000);
     return () => clearInterval(interval);
-  }, [page, limit, search]);
+  }, [page, limit, search,getAllSiteResistance]);
 
   // ================= DOWNLOAD =================
   const downloadCSV = () => {
@@ -192,6 +192,7 @@ export default function Resistance() {
                       />
                     )}
                   </td>
+                  
                 </tr>
               );
             })}

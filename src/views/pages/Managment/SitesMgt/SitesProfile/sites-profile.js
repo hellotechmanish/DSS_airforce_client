@@ -1,6 +1,6 @@
 import React, {
   useCallback,
-  useContext,
+  // useContext,
   useEffect,
   useMemo,
   useRef,
@@ -12,7 +12,8 @@ import { API } from "../../../../../lib/endpoint";
 import { GET, POST } from "../../../../../lib/request";
 import AddDevice from "../../../HomePageTab/AddDevice/AddDevice";
 import toast from "react-hot-toast";
-import { AuthContext } from "../../../../../context/AuthContext";
+// import { AuthContext } from "../../../../../context/AuthContext";
+import { useAuth } from "../../../../../context/useAuth";
 
 const DEVICES_PER_PAGE = 12;
 
@@ -126,8 +127,8 @@ const fetchDeviceDetails = async (deviceId) => {
 
 export default function Sites() {
   const { state } = useLocation();
-  const auth = useContext(AuthContext);
-  const role = auth?.user?.role;
+  const user = useAuth((state) => state.user); //      2. Direct user object nikalye
+  const role = user?.role;
   const siteId = state?._id;
 
   const [devices, setDevices] = useState([]);
@@ -347,9 +348,10 @@ export default function Sites() {
 
   const onSubmit = useCallback(
     async (formData) => {
-      if (!selectedDevice?._id) {
-        return;
-      }
+      if (!selectedDevice?._id) return;
+
+      console.log("Form Data:", formData);
+      const loadingToast = toast.loading("Updating device...");
 
       try {
         const updatedDevice = mergeDeviceData(selectedDevice, formData);
@@ -359,6 +361,9 @@ export default function Sites() {
           ...formData,
         });
 
+        console.log("Server Response:", updateResponse);
+
+        // Grouped Local State Updates
         setDeviceData(updatedDevice);
         setDevices((prevDevices) => {
           const mergedDevices = mergeDeviceIntoList(prevDevices, updatedDevice);
@@ -366,19 +371,20 @@ export default function Sites() {
           return mergedDevices;
         });
 
-        toast.success("Device Updated");
+        toast.success("Device updated successfully!", { id: loadingToast });
 
+        // Background Refresh
         try {
           await refreshDevices({ force: true, restoreSelection: true });
         } catch (refreshError) {
-          console.error(refreshError);
-          toast.error("Device updated, but latest data could not be refreshed");
+          console.error("Refresh Error:", refreshError);
         }
 
         return updateResponse;
       } catch (err) {
-        console.error(err);
-        toast.error("Failed to update device");
+        console.error("Submit Error:", err);
+        const errMsg = err?.message || "Failed to update device";
+        toast.error(errMsg, { id: loadingToast });
       }
     },
     [refreshDevices, selectedDevice, setDeviceData, siteId],

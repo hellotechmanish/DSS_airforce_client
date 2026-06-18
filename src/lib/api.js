@@ -1,4 +1,5 @@
 import axios from "axios";
+import { useAuth } from "../context/useAuth"; // 👈 1. Zustand store import karein (path verify kar lein)
 import {
   holdRequestUntilReconnect,
   isServerUnavailableError,
@@ -6,73 +7,57 @@ import {
   markServerUnavailable,
 } from "./serverConnection";
 
-// env file mendatory for fething url
 const api = axios.create({
-  baseURL: process.env.REACT_APP_API_URL || "http://localhost:5009/api",
+  baseURL: process.env.REACT_APP_API_URL || "http://localhost:5009",
   timeout: 15000,
+  withCredentials: true, //  CRITICAL FIX: Sends cookies automatically
 });
 
+// ==================== REQUEST INTERCEPTOR ====================
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("token"); //  only this
-
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-
   if (!(config.data instanceof FormData)) {
     config.headers["Content-Type"] = "application/json";
   }
-
   return config;
 });
 
+// ==================== RESPONSE INTERCEPTOR ====================
 api.interceptors.response.use(
   (response) => {
     markServerAvailable();
     return response.data;
   },
-  (error) => {
+  async (error) => {
     if (isServerUnavailableError(error)) {
       markServerUnavailable(error);
       return holdRequestUntilReconnect();
     }
 
-    // console.error("API Error:", error.message);
+    // ==================== 🔐 AUTO LOGOUT ON EXPIRY (16th MINUTE) ====================
     if (error.response?.status === 401) {
-      localStorage.clear();
-      window.location.href = "/signin";
-    }
-    return Promise.reject(error.response?.data || error.message);
+      console.warn(
+        "Unauthorized API call intercepted. Session invalid or expired.",
+      );
 
-    // return Promise.resolve({
-    //   success: false,
-    //   data: null,
-    //   error: error.response?.data || error.message,
-    // });
+      const currentPath = window.location.pathname;
+
+      //  Condition: Agar user pehle se login page ya root par hai, toh bypass karein.
+      // Agar user dashboard ya kisi page par monitor kar raha hai aur tab 401 aaye:
+      if (currentPath !== "/signIn" && currentPath !== "/") {
+        console.log(
+          "Active monitoring token expired. Executing auto-cleanup matrix.",
+        );
+
+        // A. Zustand store memory ko plain JS file se direct clear karein
+        useAuth.getState().logout();
+
+        // B. Clear local window frame and force safe redirect to portal
+        window.location.href = "/signIn";
+      }
+    }
+
+    return Promise.reject(error.response?.data || error.message);
   },
 );
-
-// api.interceptors.response.use(
-//   (response) => {
-//     return {
-//       success: true,
-//       data: response.data,
-//     };
-//   },
-//   (error) => {
-//     console.error("API Error:", error.message);
-
-//     if (error.response?.status === 401) {
-//       localStorage.clear();
-//       window.location.href = "/signin";
-//     }
-
-//     return Promise.resolve({
-//       success: false,
-//       data: null,
-//       error: error.response?.data || error.message,
-//     });
-//   }
-// );
 
 export default api;

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useContext, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import toast from "react-hot-toast";
 
@@ -9,15 +9,14 @@ import CreateUser from "./AddUser/UserAdd";
 import TechnicianTab from "../Usermgt/UserTabs/TechnicianTab";
 import UserTab from "../Usermgt/UserTabs/UsersTab";
 
-import { AuthContext } from "../../../../context/AuthContext";
 import { API } from "../../../../lib/endpoint";
 import { GET } from "../../../../lib/request";
+import { useAuth } from "../../../../context/useAuth";
 
 export default function UserManagement() {
-  const auth = useContext(AuthContext);
-  const role = auth?.user?.role;
+  const user = useAuth((state) => state.user);
+  const role = user?.role;
 
-  // ✅ LOAD FROM LOCALSTORAGE
   const [activeTab, setActiveTab] = useState(() => {
     const savedTab = localStorage.getItem("user_mgmt_tab");
     if (savedTab) return savedTab;
@@ -26,11 +25,9 @@ export default function UserManagement() {
   });
 
   const [technician, setTechnician] = useState([]);
-  const [user, setUser] = useState([]);
+  const [users, setUser] = useState([]);
 
-  // ===============================
-  // FETCH TECHNICIAN
-  // ===============================
+  // Fetch Technicians
   const getTechnicians = useCallback(async () => {
     try {
       const res = await GET(API.USERS.LIST_BY_ROLE("technician"));
@@ -41,9 +38,7 @@ export default function UserManagement() {
     }
   }, []);
 
-  // ===============================
-  // FETCH USERS
-  // ===============================
+  // Fetch Users
   const getUsers = useCallback(async () => {
     try {
       const res = await GET(API.USERS.LIST_BY_ROLE("user"));
@@ -54,26 +49,20 @@ export default function UserManagement() {
     }
   }, []);
 
-  // ===============================
-  // SAVE TAB TO LOCALSTORAGE
-  // ===============================
+  // Save active tab state to localStorage
   useEffect(() => {
     localStorage.removeItem("user_mgmt_tab");
     localStorage.setItem("user_mgmt_tab", activeTab);
   }, [activeTab]);
 
-  // ===============================
-  // ROLE SAFETY CHECK
-  // ===============================
+  // Role enforcement fallback safety check
   useEffect(() => {
     if (role !== "admin" && activeTab === "technician") {
       setActiveTab("user");
     }
   }, [role, activeTab]);
 
-  // ===============================
-  // FETCH DATA BASED ON TAB
-  // ===============================
+  // Handle data fetching dynamically based on active tab state
   useEffect(() => {
     if (activeTab === "technician" && role === "admin") {
       getTechnicians();
@@ -88,7 +77,7 @@ export default function UserManagement() {
 
   return (
     <div className="p-6 bg-slate-100 min-h-screen">
-      {/* 🔹 Breadcrumb */}
+      {/* Breadcrumb Navigation UI */}
       <div className="mb-4 text-sm">
         <Link to="/dashboard" className="text-sky-500 font-medium no-underline">
           Dashboard
@@ -99,21 +88,21 @@ export default function UserManagement() {
         <span className="text-[#0f3057] font-semibold">User Management</span>
       </div>
 
-      {/* 🔹 Header */}
+      {/* Header Panel */}
       <div className="bg-gradient-to-br from-[#0a192f] to-[#0f3057] rounded-xl p-5 mb-5 flex justify-between items-center shadow-lg">
         <h2 className="text-white text-xl font-semibold">USER MANAGEMENT</h2>
 
-        {/* Admin → Add Technician */}
+        {/* Admin restricted create technician trigger */}
         {role === "admin" && activeTab === "technician" && (
           <CraeteTechnician getnumberOftechnician={getTechnicians} />
         )}
 
-        {/* Admin + Technician → Add User */}
+        {/* Multi-role context sensitive create user layer */}
         {(role === "admin" || role === "technician") &&
           activeTab === "user" && <CreateUser getnumberOfUser={getUsers} />}
       </div>
 
-      {/* 🔹 Tabs (Admin Only) */}
+      {/* Admin Protected Tab Navigation Switcher */}
       {role === "admin" && (
         <div className="flex gap-6 border-b border-gray-300 mb-6">
           <button
@@ -140,9 +129,9 @@ export default function UserManagement() {
         </div>
       )}
 
-      {/* 🔹 Content */}
+      {/* Context-Rendered Grid Content Mount Layout Layers */}
 
-      {/* Technician Table */}
+      {/* Admin Technician Dataset Frame */}
       {activeTab === "technician" && role === "admin" && (
         <TechnicianTab
           technician={technician}
@@ -150,9 +139,9 @@ export default function UserManagement() {
         />
       )}
 
-      {/* User Table */}
+      {/* Standard Core Users Dataset Frame */}
       {activeTab === "user" && (
-        <UserTab user={user} getnumberOfUser={getUsers} />
+        <UserTab user={users} getnumberOfUser={getUsers} />
       )}
     </div>
   );

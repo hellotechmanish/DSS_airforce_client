@@ -9,10 +9,10 @@ import { useForm } from "react-hook-form";
 import { POST } from "../../lib/request.js";
 import { API } from "../../lib/endpoint.js";
 import { Link } from "react-router-dom";
-// import { useAuth } from "../../context/useAuth.js";
-import { useAuth } from "../../context/AuthContext.js";
 import { toast } from "react-hot-toast";
 import { AiOutlineLoading3Quarters } from "react-icons/ai";
+import { useAuth } from "../../context/useAuth.js";
+// import { useAuth } from "../../context/AuthContext.js";
 const Alert = React.forwardRef(function Alert(props, ref) {
   return <MuiAlert elevation={6} ref={ref} variant="filled" {...props} />;
 });
@@ -60,33 +60,37 @@ function App() {
       password: password,
     };
 
+    console.log("Executing secure login submission matrix:", body);
+
     setloading(true);
 
     try {
-
+      // 1. Backend Cookie Controller ko hit karein
+      // Interceptor response.data return karta hai, toh resp ke andar direct `{ success, user }` milega
       const resp = await POST(API.AUTH.LOGIN, body);
 
-      if (resp.token) {
-        localStorage.setItem("token", resp.token);
+      // 2. Clear out any residual legacy localStorage tokens to avoid data pollution
+      // localStorage.removeItem("token");
+      // localStorage.removeItem("userData");
 
-        localStorage.setItem(
-          "userData",
-          JSON.stringify({
-            user: resp.user,
-            token: resp.token,
-          }),
-        );
+      // 3.    CRITICAL STEP: Sync the global state manager
+      // Agar aap Zustand store use kar rahe hain (e.g., const loginStore = useAuth((s) => s.login))
+      // Toh use yahan execute karein:
+      if (resp && resp.user) {
+        login(resp.user); // 🚀 Fills the unified state from response pipeline instantly
       }
 
       toast.success("Login successfully");
 
-      navigate("/dashboard");
-      window.location.reload();
+      // 4.    FIXED: Route cleanly to dashboard layout without crashing the browser via window.location.reload
+      navigate("/dashboard", { replace: true });
     } catch (err) {
-      // console.error("Login error =>", err);
-      toast.error(err?.response?.data?.msg || "Login failed");
+      console.error("Login component boundaries error =>", err);
+
+      // Dynamic fallback captures standard messages from your updated controller keys
+      toast.error("Login failed");
     } finally {
-      setloading(false); //  ALWAYS stop loader
+      setloading(false); // 🔒 ALWAYS release loader window locks
     }
   };
 

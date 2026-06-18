@@ -5,6 +5,8 @@ export const API = {
     LOGIN: "/auth/login",
     SIGNUP: "/auth/signup",
     FORGOTPASSWORD: "/auth/forgot-password",
+    ME: "/auth/me",
+    LOGOUT: "/auth/logout",
   },
 
   USERS: {

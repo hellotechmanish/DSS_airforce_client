@@ -30,14 +30,14 @@ export default function Sites({ technician = [], getnumberOftechnician }) {
     return filteredData.slice(start, start + pageSize);
   }, [filteredData, currentPage, pageSize]);
 
-  // ✅ Fix page overflow
+  //    Fix page overflow
   useEffect(() => {
     if (currentPage > totalPages) {
       setCurrentPage(1);
     }
   }, [totalPages, currentPage]);
 
-  // ✅ limit visible page buttons
+  //    limit visible page buttons
   const visiblePages = useMemo(() => {
     const max = 5;
     let start = Math.max(currentPage - 2, 1);

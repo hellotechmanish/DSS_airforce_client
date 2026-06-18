@@ -21,7 +21,7 @@ export default function EditSensorDialog({
   const [gnNumber, setGnNumber] = useState([]);
   const [phaseNumber, setPhaseNumber] = useState([]);
 
-  // ✅ FIX: default empty array (NOT null)
+  //    FIX: default empty array (NOT null)
   const [getSelectSensor, setGetSelectSensor] = useState([]);
 
   // ================= VALUES =================
@@ -71,7 +71,7 @@ export default function EditSensorDialog({
 
       // console.log("API RESPONSE:", res);
       toast.success("Sensor data fetched successfully");
-      // ✅ FIX: always array
+      //    FIX: always array
       setGetSelectSensor(Array.isArray(res?.msg) ? res.msg : []);
     } catch (err) {
       setGetSelectSensor([]);
@@ -92,7 +92,7 @@ export default function EditSensorDialog({
       setGnNumber(sensor?.gnNumber || []);
       setPhaseNumber(sensor?.phaseNumber || []);
     } else {
-      // ✅ reset if no data
+      //    reset if no data
       setResValue([]);
       setSpdNumber([]);
       setGnNumber([]);

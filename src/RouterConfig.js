@@ -21,8 +21,8 @@ import Temperature from "./views/pages/TemperatureMonitoring/TemperatureTable";
 import SitesProfile from "./views/pages/Managment/SitesMgt/SitesProfile/sites-profile";
 import TechnicianProfile from "./views/pages/Managment/Usermgt/UserTabs/TechProfile/TechnicianProfile";
 import UserProfile from "./views/pages/Managment/Usermgt/UserTabs/UserProfile/UserProfile";
-import TestHomepage from "../src/views/component/test-homepage";
-// 🔥 Import ProtectedRoute
+// import TestHomepage from "../src/views/component/test-homepage";
+import { Navigate } from "react-router-dom"; //      Navigate import karna mat bhoolna
 import ProtectedRoute from "./lib/ProtectedRoute";
 
 // const RootErrorBoundary = () => {
@@ -37,37 +37,35 @@ import ProtectedRoute from "./lib/ProtectedRoute";
 // };
 
 export const routes = [
-  // 🔓 PUBLIC ROUTES
+  // 🔓 1. PUBLIC ROUTES (Sirf Login aur Forgot Password ke liye)
   {
     element: <AuthLayout />,
     children: [
       { path: "/signIn", element: <SignIn /> },
       { path: "/forgot-password", element: <ForgotPassword /> },
-      { path: "*", element: <Unauthorized /> },
     ],
   },
 
-  // 🔐 PROTECTED ROUTES
+  //     2. PROTECTED ROUTES (Saare Dashboards aur Monitoring Pages)
   {
-    element: <ProtectedRoute />, // 🔐 First protect
+    element: <ProtectedRoute />,
     children: [
       {
-        element: <AdminLayout />, // 🔥 Layout yaha lagao
+        element: <AdminLayout />,
         children: [
+          //   FIXED: Jab koi sirf "/" khole, use safely dashboard par navigate karwao
           {
             path: "/",
-            // element: <Navigate to="/dashboard" replace />,
-            element: <HomePage />,
-          },
-          {
-            path: "/test",
-            // element: <Navigate to="/dashboard" replace />,
-            element: <TestHomepage />,
+            element: <Navigate to="/dashboard" replace />,
           },
           {
             path: "/dashboard",
             element: <HomePage />,
           },
+          // {
+          //   path: "/test",
+          //   element: <TestHomepage />,
+          // },
           {
             path: "/resistance-monitoring",
             element: <Resistence />,
@@ -104,20 +102,15 @@ export const routes = [
             path: "/user-profile",
             element: <UserProfile />,
           },
-          // {
-          //   path: "/reboot",
-          //   element: <Reboot />,
-          // },
-          // {
-          //   path: "/shutdown",
-          //   element: <Shutdown />,
-          // },
-          {
-            path: "*",
-            element: <Unauthorized />,
-          },
         ],
       },
     ],
+  },
+
+  // ⚠️ 3. GLOBAL WILDCARD FALLBACK (Puri list ke bahar hona chahiye)
+  // Agar upar diye gaye kisi bhi raste se URL match nahi khata, tabhi yeh chalega
+  {
+    path: "*",
+    element: <Unauthorized />,
   },
 ];

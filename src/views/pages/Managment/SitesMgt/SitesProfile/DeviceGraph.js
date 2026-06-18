@@ -308,6 +308,8 @@ export default function Graph({
         endDate: startDate,
       });
 
+      // console.log("res of latest data ", res);
+
       // res already = response.data (interceptor ke baad)
       setLabels([...new Set(res.msg.map((item) => item.time))]);
       setGraphData(res.msg);

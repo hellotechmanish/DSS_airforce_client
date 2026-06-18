@@ -1,6 +1,12 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, useContext,useCallback } from "react";
+import React, {
+  useState,
+  useEffect,
+  useMemo,
+  useContext,
+  useCallback,
+} from "react";
 import { Link } from "react-router-dom";
 import { API } from "../../../lib/endpoint";
 import { GET } from "../../../lib/request";
@@ -12,7 +18,7 @@ export default function TemperatureTable() {
   const [data, setData] = useState([]);
   const [search, setSearch] = useState("");
 
-  // ✅ Pagination states
+  //    Pagination states
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
@@ -172,7 +178,7 @@ export default function TemperatureTable() {
           </div>
         )}
 
-        {/* ✅ PAGINATION FOOTER */}
+        {/*    PAGINATION FOOTER */}
         <div className="flex justify-between items-center p-4 border-t text-sm">
           {/* LEFT */}
           <div>

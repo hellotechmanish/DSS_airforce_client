@@ -57,7 +57,7 @@ export default function Sites({ user = [], getnumberOfUser }) {
     return Array.from({ length: end - start + 1 }, (_, i) => start + i);
   }, [currentPage, totalPages]);
 
-  // ✅ OPEN MODAL FUNCTION (NEW)
+  //    OPEN MODAL FUNCTION (NEW)
   const handleOpenSites = (row) => {
     setSelectedSites(row?.sites || []);
     setSelectedUser(row);
@@ -120,7 +120,7 @@ export default function Sites({ user = [], getnumberOfUser }) {
                       {/* </Link> */}
                     </td>
 
-                    {/* ✅ SITE COUNT + EYE (UPDATED ONLY THIS) */}
+                    {/*    SITE COUNT + EYE (UPDATED ONLY THIS) */}
                     <td className="px-6 py-4">
                       <div className="flex items-center justify-center gap-2">
                         <span className="bg-blue-100 text-blue-600 px-2 py-0.5 rounded text-xs font-semibold">
