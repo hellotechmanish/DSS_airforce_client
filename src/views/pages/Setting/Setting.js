@@ -1,17 +1,17 @@
 "use client";
-import React, { useState, useContext } from "react";
+import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
-import { AuthContext } from "../../../context/AuthContext";
 import { POST } from "../../../lib/request";
 import { API } from "../../../lib/endpoint";
 import toast from "react-hot-toast";
+import { useAuth } from "../../../context/useAuth";
 
-export default function UserManagment() {
+export default function UserManagement() {
   const [isEditing, setIsEditing] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const { user } = useContext(AuthContext);
+  const user = useAuth((state) => state.user);
 
   const {
     register,
@@ -31,30 +31,25 @@ export default function UserManagment() {
   const password = watch("password");
 
   const onSubmit = async (data) => {
-
     try {
-      // If password is provided, reset it
-
-      await POST(API.USERS.RESET_PASSWORD, {
-        userId: user?.userID,
-        password: data.confirmPassword,
+      await POST(API.AUTH.FORGOTPASSWORD, {
+        uid: user?.uid,
+        secretKey: "DSS_PASSWORD_RESET_KEY",
+        newPassword: data.password,
+        confirmPassword: data.confirmPassword,
       });
-
       toast.success("Password updated successfully");
       setIsEditing(false);
-      reset();
+      reset({ password: "", confirmPassword: "" });
     } catch (error) {
-      console.error("Update failed:", error);
+      console.error(error);
+      toast.error("Failed to update password");
     }
   };
 
   const handleCancel = () => {
     setIsEditing(false);
     reset();
-  };
-
-  const handleEdit = () => {
-    setIsEditing(true);
   };
 
   return (
@@ -75,21 +70,20 @@ export default function UserManagment() {
       {/* Header */}
       <div className="bg-[#0f3057] rounded-xl p-5 mb-6 flex justify-between items-center shadow-lg">
         <h1 className="text-white text-xl font-semibold">USER PROFILE</h1>
-        <span className="text-white text-bold text-md">
+        <span className="text-white font-bold text-md">
           Manage your account details
         </span>
       </div>
 
       {/* Main Card */}
       <div className="bg-white rounded-xl shadow border border-gray-200 p-6">
-        {/* Section Header */}
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-lg font-semibold text-gray-800">
             Personal Information
           </h2>
           {!isEditing && (
             <button
-              onClick={handleEdit}
+              onClick={() => setIsEditing(true)}
               className="px-10 py-2 border border-blue-900 text-blue-900 rounded-md hover:bg-blue-50 transition-colors"
             >
               Edit
@@ -107,8 +101,8 @@ export default function UserManagment() {
               </label>
               <input
                 {...register("uid")}
-                disabled={!isEditing || user?.role === "admin"}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm disabled:bg-gray-100 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-blue-500"
+                disabled
+                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm disabled:bg-gray-100 disabled:cursor-not-allowed focus:outline-none"
               />
             </div>
 
@@ -118,18 +112,13 @@ export default function UserManagment() {
                 Full Name
               </label>
               <input
-                {...register("fullName", { required: "Full name is required" })}
-                disabled={!isEditing || user?.role === "admin"}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm disabled:bg-gray-100 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-blue-500"
+                {...register("fullName")}
+                disabled
+                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm disabled:bg-gray-100 disabled:cursor-not-allowed focus:outline-none"
               />
-              {errors.fullName && (
-                <p className="text-red-500 text-sm mt-1">
-                  {errors.fullName.message}
-                </p>
-              )}
             </div>
 
-            {/* Password (only in edit mode) */}
+            {/* Password */}
             {isEditing && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -138,15 +127,10 @@ export default function UserManagment() {
                 <div className="relative">
                   <input
                     {...register("password", {
+                      required: "Password is required",
                       minLength: {
                         value: 6,
-                        message: "Password must be at least 6 characters",
-                      },
-                      pattern: {
-                        value:
-                          /(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[#?!@$%^&*-])/,
-                        message:
-                          "Password must contain uppercase, lowercase, digit, and special character",
+                        message: "Minimum 6 characters required",
                       },
                     })}
                     type={showPassword ? "text" : "password"}
@@ -156,12 +140,12 @@ export default function UserManagment() {
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400"
                   >
                     {showPassword ? (
-                      <AiOutlineEyeInvisible className="text-gray-400" />
+                      <AiOutlineEyeInvisible />
                     ) : (
-                      <AiOutlineEye className="text-gray-400" />
+                      <AiOutlineEye />
                     )}
                   </button>
                 </div>
@@ -173,7 +157,7 @@ export default function UserManagment() {
               </div>
             )}
 
-            {/* Confirm Password (only in edit mode and if password is entered) */}
+            {/* Confirm Password */}
             {isEditing && password && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -197,7 +181,7 @@ export default function UserManagment() {
             )}
           </div>
 
-          {/* Buttons */}
+          {/* Action Buttons */}
           {isEditing && (
             <div className="flex justify-end space-x-4">
               <button
