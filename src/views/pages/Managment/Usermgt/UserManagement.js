@@ -17,11 +17,12 @@ export default function UserManagement() {
   const user = useAuth((state) => state.user);
   const role = user?.role;
 
+  // Uses non-role specific tab names: "tab_one" and "tab_two"
   const [activeTab, setActiveTab] = useState(() => {
     const savedTab = localStorage.getItem("user_mgmt_tab");
     if (savedTab) return savedTab;
 
-    return role === "admin" ? "technician" : "user";
+    return role === "admin" ? "tab_one" : "tab_two";
   });
 
   const [technician, setTechnician] = useState([]);
@@ -51,26 +52,26 @@ export default function UserManagement() {
 
   // Save active tab state to localStorage
   useEffect(() => {
-    localStorage.removeItem("user_mgmt_tab");
     localStorage.setItem("user_mgmt_tab", activeTab);
   }, [activeTab]);
 
   // Role enforcement fallback safety check
   useEffect(() => {
-    if (role !== "admin" && activeTab === "technician") {
-      setActiveTab("user");
+    if (role !== "admin" && activeTab === "tab_one") {
+      setActiveTab("tab_two");
     }
   }, [role, activeTab]);
 
   // Handle data fetching dynamically based on active tab state
   useEffect(() => {
-    if (activeTab === "technician" && role === "admin") {
+    if (activeTab === "tab_one" && role === "admin") {
       getTechnicians();
     }
   }, [activeTab, getTechnicians, role]);
 
   useEffect(() => {
-    if (activeTab === "user") {
+    // Fixed: changed from "usersection" to "tab_two"
+    if (activeTab === "tab_two") {
       getUsers();
     }
   }, [activeTab, getUsers]);
@@ -93,22 +94,22 @@ export default function UserManagement() {
         <h2 className="text-white text-xl font-semibold">USER MANAGEMENT</h2>
 
         {/* Admin restricted create technician trigger */}
-        {role === "admin" && activeTab === "technician" && (
+        {role === "admin" && activeTab === "tab_one" && (
           <CraeteTechnician getnumberOftechnician={getTechnicians} />
         )}
 
         {/* Multi-role context sensitive create user layer */}
         {(role === "admin" || role === "technician") &&
-          activeTab === "user" && <CreateUser getnumberOfUser={getUsers} />}
+          activeTab === "tab_two" && <CreateUser getnumberOfUser={getUsers} />}
       </div>
 
       {/* Admin Protected Tab Navigation Switcher */}
       {role === "admin" && (
         <div className="flex gap-6 border-b border-gray-300 mb-6">
           <button
-            onClick={() => setActiveTab("technician")}
+            onClick={() => setActiveTab("tab_one")}
             className={`pb-2 font-medium transition ${
-              activeTab === "technician"
+              activeTab === "tab_one"
                 ? "border-b-2 border-indigo-500 text-indigo-600"
                 : "text-gray-500 hover:text-indigo-600"
             }`}
@@ -117,9 +118,9 @@ export default function UserManagement() {
           </button>
 
           <button
-            onClick={() => setActiveTab("user")}
+            onClick={() => setActiveTab("tab_two")}
             className={`pb-2 font-medium transition ${
-              activeTab === "user"
+              activeTab === "tab_two"
                 ? "border-b-2 border-indigo-500 text-indigo-600"
                 : "text-gray-500 hover:text-indigo-600"
             }`}
@@ -132,7 +133,7 @@ export default function UserManagement() {
       {/* Context-Rendered Grid Content Mount Layout Layers */}
 
       {/* Admin Technician Dataset Frame */}
-      {activeTab === "technician" && role === "admin" && (
+      {activeTab === "tab_one" && role === "admin" && (
         <TechnicianTab
           technician={technician}
           getnumberOftechnician={getTechnicians}
@@ -140,7 +141,7 @@ export default function UserManagement() {
       )}
 
       {/* Standard Core Users Dataset Frame */}
-      {activeTab === "user" && (
+      {activeTab === "tab_two" && (
         <UserTab user={users} getnumberOfUser={getUsers} />
       )}
     </div>
