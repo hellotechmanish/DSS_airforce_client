@@ -1,187 +1,148 @@
-import React, { useState, useEffect } from "react";
-import PropTypes from "prop-types";
-import {
-  Grid,
-  Breadcrumbs,
-  Typography,
-  Container,
-  Tabs,
-  Tab,
-  Button,
-  Box,
-} from "@mui/material";
-import { Link, useLocation } from "react-router-dom";
+"use client";
+
+import React, { useState, useEffect, useCallback } from "react";
+import { Link } from "react-router-dom";
+import toast from "react-hot-toast";
 
 import CraeteTechnician from "./AddTechnician/AddTechnician";
 import CreateUser from "./AddUser/UserAdd";
 import TechnicianTab from "../Usermgt/UserTabs/TechnicianTab";
 import UserTab from "../Usermgt/UserTabs/UsersTab";
-import { FETCH_URL } from "../../../../fetchIp";
-import { AuthContext } from "../../../../context/AuthContext";
 
-function TabPanel(props) {
-  const { children, value, index, ...other } = props;
+import { API } from "../../../../lib/endpoint";
+import { GET } from "../../../../lib/request";
+import { useAuth } from "../../../../context/useAuth";
+
+export default function UserManagement() {
+  const user = useAuth((state) => state.user);
+  const role = user?.role;
+
+  const [activeTab, setActiveTab] = useState(() => {
+    const savedTab = localStorage.getItem("user_mgmt_tab");
+    if (savedTab) return savedTab;
+
+    return role === "admin" ? "technician" : "user";
+  });
+
+  const [technician, setTechnician] = useState([]);
+  const [users, setUser] = useState([]);
+
+  // Fetch Technicians
+  const getTechnicians = useCallback(async () => {
+    try {
+      const res = await GET(API.USERS.LIST_BY_ROLE("technician"));
+      setTechnician(res?.msg || []);
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to fetch technicians");
+    }
+  }, []);
+
+  // Fetch Users
+  const getUsers = useCallback(async () => {
+    try {
+      const res = await GET(API.USERS.LIST_BY_ROLE("user"));
+      setUser(res?.msg || []);
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to fetch users");
+    }
+  }, []);
+
+  // Save active tab state to localStorage
+  useEffect(() => {
+    localStorage.removeItem("user_mgmt_tab");
+    localStorage.setItem("user_mgmt_tab", activeTab);
+  }, [activeTab]);
+
+  // Role enforcement fallback safety check
+  useEffect(() => {
+    if (role !== "admin" && activeTab === "technician") {
+      setActiveTab("user");
+    }
+  }, [role, activeTab]);
+
+  // Handle data fetching dynamically based on active tab state
+  useEffect(() => {
+    if (activeTab === "technician" && role === "admin") {
+      getTechnicians();
+    }
+  }, [activeTab, getTechnicians, role]);
+
+  useEffect(() => {
+    if (activeTab === "user") {
+      getUsers();
+    }
+  }, [activeTab, getUsers]);
 
   return (
-    <div
-      role="tabpanel"
-      hidden={value !== index}
-      id={`simple-tabpanel-${index}`}
-      aria-labelledby={`simple-tab-${index}`}
-      {...other}
-    >
-      {value === index && <Typography>{children}</Typography>}
+    <div className="p-6 bg-slate-100 min-h-screen">
+      {/* Breadcrumb Navigation UI */}
+      <div className="mb-4 text-sm">
+        <Link to="/dashboard" className="text-sky-500 font-medium no-underline">
+          Dashboard
+        </Link>
+
+        <span className="mx-2">›</span>
+
+        <span className="text-[#0f3057] font-semibold">User Management</span>
+      </div>
+
+      {/* Header Panel */}
+      <div className="bg-gradient-to-br from-[#0a192f] to-[#0f3057] rounded-xl p-5 mb-5 flex justify-between items-center shadow-lg">
+        <h2 className="text-white text-xl font-semibold">USER MANAGEMENT</h2>
+
+        {/* Admin restricted create technician trigger */}
+        {role === "admin" && activeTab === "technician" && (
+          <CraeteTechnician getnumberOftechnician={getTechnicians} />
+        )}
+
+        {/* Multi-role context sensitive create user layer */}
+        {(role === "admin" || role === "technician") &&
+          activeTab === "user" && <CreateUser getnumberOfUser={getUsers} />}
+      </div>
+
+      {/* Admin Protected Tab Navigation Switcher */}
+      {role === "admin" && (
+        <div className="flex gap-6 border-b border-gray-300 mb-6">
+          <button
+            onClick={() => setActiveTab("technician")}
+            className={`pb-2 font-medium transition ${
+              activeTab === "technician"
+                ? "border-b-2 border-indigo-500 text-indigo-600"
+                : "text-gray-500 hover:text-indigo-600"
+            }`}
+          >
+            Technician
+          </button>
+
+          <button
+            onClick={() => setActiveTab("user")}
+            className={`pb-2 font-medium transition ${
+              activeTab === "user"
+                ? "border-b-2 border-indigo-500 text-indigo-600"
+                : "text-gray-500 hover:text-indigo-600"
+            }`}
+          >
+            Users
+          </button>
+        </div>
+      )}
+
+      {/* Context-Rendered Grid Content Mount Layout Layers */}
+
+      {/* Admin Technician Dataset Frame */}
+      {activeTab === "technician" && role === "admin" && (
+        <TechnicianTab
+          technician={technician}
+          getnumberOftechnician={getTechnicians}
+        />
+      )}
+
+      {/* Standard Core Users Dataset Frame */}
+      {activeTab === "user" && (
+        <UserTab user={users} getnumberOfUser={getUsers} />
+      )}
     </div>
-  );
-}
-
-TabPanel.propTypes = {
-  children: PropTypes.node,
-  index: PropTypes.number.isRequired,
-  value: PropTypes.number.isRequired,
-};
-export default function UserManagment() {
-  const { state } = useLocation();
-  const auth = React.useContext(AuthContext);
-  const [value, setValue] = React.useState(auth.user.role);
-
-  const TabChange = (event, newValue) => {
-    setValue(newValue);
-  };
-  // console.log("Check Value", value + 2);
-  const [technician, setTechnician] = useState(null);
-  const [data, setData] = useState(null);
-  useEffect(() => {
-    getnumberOftechnician();
-  }, []);
-  const getnumberOftechnician = async () => {
-    let token = JSON.parse(localStorage.getItem("userData")).token;
-    const response = await fetch(
-      `${FETCH_URL}/api/user/userList/${value + 1}`,
-      {
-        method: "GET",
-        headers: {
-          Accept: "application/json",
-          "Content-type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
-    let res = await response.json();
-    if (response.ok) {
-      // console.log("  get number Of technician List resp ===> ", res.msg);
-      setTechnician(res.msg);
-    } else {
-      // console.log("Error in get technician List ==> ", res);
-    }
-  };
-
-  const [user, setUser] = useState(null);
-
-  const getnumberOfUser = async () => {
-    let token = JSON.parse(localStorage.getItem("userData")).token;
-    const response = await fetch(
-      `${FETCH_URL}/api/user/userList/${value + 1}`,
-      {
-        method: "GET",
-        headers: {
-          Accept: "application/json",
-          "Content-type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
-    let res = await response.json();
-    if (response.ok) {
-      // console.log(" get getnumber Of User List resp ===> ", res.msg);
-      setUser(res.msg);
-    } else {
-      // console.log("Error in get get number OfUser List ==> ", res);
-    }
-  };
-  useEffect(() => {
-    getnumberOfUser();
-  }, []);
-  return (
-    <>
-      <Container maxWidth="xl">
-        <Grid container direction="row" className="widthLR-90 mt-24">
-          <Breadcrumbs separator="›" aria-label="breadcrumb">
-            <Link
-              to="/dashboard"
-              className="linkcolor"
-              underline="hover"
-              key="1"
-            >
-              <Typography className="sky-typo fs-16">Dashboard</Typography>
-            </Link>
-            ,
-            <Typography className="heading-black  ">User Management</Typography>
-            ,
-          </Breadcrumbs>{" "}
-          <Grid container justifyContent="flex-end" alignItems="flex-end">
-            <Grid item className="hgt-40">
-              {value === 0 ? (
-                <CraeteTechnician
-                  getnumberOftechnician={getnumberOftechnician}
-                />
-              ) : (
-                <CreateUser getnumberOfUser={getnumberOfUser} />
-              )}
-            </Grid>
-          </Grid>
-          <Grid container>
-            <Box className="width100">
-              {auth.user.role === 0 ? (
-                <>
-                  <Tabs
-                    value={value}
-                    onChange={TabChange}
-                    className="Tabs-dashboard2"
-                  >
-                    <Tab
-                      className="Tab-dashboardlabel2 fs-16 mr-20 hover"
-                      label={
-                        <Typography className="sitesname ">
-                          Technician
-                        </Typography>
-                      }
-                    />
-                    <Tab
-                      className="Tab-dashboardlabel2 fs-16  hover"
-                      label={
-                        <Typography className="sitesname ">Users</Typography>
-                      }
-                    />
-                  </Tabs>
-                  <TabPanel value={value} index={0}>
-                    <TechnicianTab
-                      value={value}
-                      technician={technician}
-                      getnumberOftechnician={getnumberOftechnician}
-                    />
-                  </TabPanel>
-                  <TabPanel value={value} index={1}>
-                    <UserTab
-                      user={user}
-                      value={value}
-                      getnumberOfUser={getnumberOfUser}
-                    />{" "}
-                  </TabPanel>
-                </>
-              ) : (
-                <TabPanel value={value} index={1}>
-                  <UserTab
-                    user={user}
-                    value={value}
-                    getnumberOfUser={getnumberOfUser}
-                  />{" "}
-                </TabPanel>
-              )}
-            </Box>
-          </Grid>
-        </Grid>
-      </Container>
-    </>
   );
 }

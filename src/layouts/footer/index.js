@@ -19,11 +19,16 @@ export default function Footer() {
             className=" widthLR-90"
           >
             <Grid item>
-              <img src={dssLogo} style={{ height: "66px", width: "179px" }} />
+              <img
+                src={dssLogo}
+                alt="DSS logo"
+                style={{ height: "66px", width: "179px" }}
+              />
             </Grid>
             <Grid item>
               <img
                 src={CompanyLogo}
+                alt="Company logo"
                 style={{ height: "118px", width: "188px" }}
               />
             </Grid>

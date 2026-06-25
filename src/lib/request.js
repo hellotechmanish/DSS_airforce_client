@@ -1,9 +1,26 @@
 import api from "./api";
 
-export const GET = (url, params = {}) => api.get(url, { params });
+//    GET METHOD
+// Automatically forwards configuration query params directly to axios core
+export const GET = async (url, params = {}) => {
+  const response = await api.get(url, { params });
+  return response; // Returns the parsed response.data from interceptor smoothly
+};
 
-export const POST = (url, data = {}) => api.post(url, data);
+//    POST METHOD
+export const POST = async (url, data = {}) => {
+  const response = await api.post(url, data);
+  return response;
+};
 
-export const PUT = (url, data = {}) => api.put(url, data);
+//    PUT METHOD
+export const PUT = async (url, data = {}) => {
+  const response = await api.put(url, data);
+  return response;
+};
 
-export const DELETE = (url) => api.delete(url);
+//    DELETE METHOD
+export const DELETE = async (url) => {
+  const response = await api.delete(url);
+  return response;
+};

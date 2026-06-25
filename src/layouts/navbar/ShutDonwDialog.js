@@ -17,8 +17,6 @@ import PropTypes from "prop-types";
 
 import { styled } from "@mui/material/styles";
 import CloseIcon from "@mui/icons-material/Close";
-//React Icons
-import { RiDeleteBin6Line } from "react-icons/ri";
 import ShutDown from "../../assets/img/shutdown.png";
 
 const BootstrapDialog = styled(Dialog)(({ theme }) => ({
@@ -108,7 +106,7 @@ export default function MaxWidthDialog({ getShutdownStatus }) {
       </Snackbar>
       <Grid container onClick={() => handleClickOpen()}>
         <ListItemIcon className="sidebar-icon">
-          <img src={ShutDown} className="sidebar-image" />
+          <img src={ShutDown} alt="Shut down" className="sidebar-image" />
         </ListItemIcon>
         <ListItemText disableTypography className="sidebar-text">
           Shut Down

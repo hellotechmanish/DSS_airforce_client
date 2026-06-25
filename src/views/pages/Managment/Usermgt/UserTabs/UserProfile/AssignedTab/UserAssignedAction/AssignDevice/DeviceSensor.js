@@ -1,5 +1,4 @@
-import React, { useState, useEffect } from "react";
-import { styled } from "@mui/material/styles";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import Radio from "@mui/material/Radio";
 import PropTypes from "prop-types";
 
@@ -9,18 +8,16 @@ import {
   Typography,
   DialogContent,
   FormControlLabel,
-  InputBase,
   ListItemButton,
   FormLabel,
   Box,
   Tabs,
   Tab,
   Checkbox,
-  FormGroup,
 } from "@mui/material";
-//React Icons
-import SearchIcon from "@mui/icons-material/Search";
-import { FETCH_URL } from "../../../../../../../../../fetchIp";
+
+import { API } from "../../../../../../../../../lib/endpoint";
+import { GET } from "../../../../../../../../../lib/request";
 
 function TabPanel(props) {
   const { children, value, index, ...other } = props;
@@ -48,9 +45,6 @@ export default function CustomizedDialogs(props) {
   const {
     states: {
       sitesData,
-      siteUid,
-      device,
-      resistanceNumber,
       originalDeviceData,
       resValue,
       spdNumber,
@@ -83,72 +77,51 @@ export default function CustomizedDialogs(props) {
 
   // // console.log(" originalData ", originalData);
 
-  const getnumberOfDevice = async () => {
-    let token = JSON.parse(localStorage.getItem("userData")).token;
-    const response = await fetch(
-      `${FETCH_URL}/api/device/getDeviceById/${originalDeviceData}`,
-      {
-        method: "GET",
-        headers: {
-          Accept: "application/json",
-          "Content-type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
-    let res = await response.json();
-    if (response.ok) {
-      // // console.log("get DeviceById List resp ===> ", res.msg);
+  const getnumberOfDevice = useCallback(async () => {
+    try {
+      if (!originalDeviceData) return;
+      const res = await GET(API.DEVICE.GET_BY_ID(originalDeviceData));
       setSensorValue(res.msg);
-    } else {
-      // console.log("Error in get site List ==> ", res);
+    } catch (err) {
+      console.log("Error fetching device data", err);
     }
-  };
+  }, [originalDeviceData]);
+
   useEffect(() => {
     getnumberOfDevice();
-  }, []);
+  }, [getnumberOfDevice]);
 
-  // Sensor Value Show Function Start
-  const [rValue, setRValue] = useState([]);
-  function setResSensor() {
-    let arr = [];
-    for (let i = 0; i < new Array(sensorValue?.resSensors).length; i++) {
-      arr.push(`R${i + 1}`);
-    }
-    setRValue(arr);
-  }
+  const rValue = useMemo(
+    () =>
+      Array.from({ length: Number(sensorValue?.resSensors || 0) }, (_, i) => {
+        return `R${i + 1}`;
+      }),
+    [sensorValue?.resSensors],
+  );
 
-  const [gnValue, setGnValue] = useState([]);
-  function setGnSensor() {
-    let arr = [];
-    for (let i = 0; i < new Array(sensorValue?.nerSensors).length; i++) {
-      arr.push(`GN${i + 1}`);
-    }
-    setGnValue(arr);
-  }
-  const [vmrValue, setVmrValue] = useState([]);
-  function setVmrSensor() {
-    let arr = [];
-    for (let i = 0; i < new Array(sensorValue?.vmrSensors).length; i++) {
-      arr.push(`PH${i + 1}`);
-    }
-    setVmrValue(arr);
-  }
-  const [spValue, setSPalue] = useState([]);
-  function setSpdSensor() {
-    let arr = [];
-    for (let i = 0; i < new Array(sensorValue?.spdSensors).length; i++) {
-      arr.push(`SPD${i + 1}`);
-    }
-    setSPalue(arr);
-  }
+  const gnValue = useMemo(
+    () =>
+      Array.from({ length: Number(sensorValue?.nerSensors || 0) }, (_, i) => {
+        return `GN${i + 1}`;
+      }),
+    [sensorValue?.nerSensors],
+  );
 
-  React.useEffect(() => {
-    setResSensor();
-    setVmrSensor();
-    setSpdSensor();
-    setGnSensor();
-  }, [sensorValue]);
+  const vmrValue = useMemo(
+    () =>
+      Array.from({ length: Number(sensorValue?.vmrSensors || 0) }, (_, i) => {
+        return `PH${i + 1}`;
+      }),
+    [sensorValue?.vmrSensors],
+  );
+
+  const spValue = useMemo(
+    () =>
+      Array.from({ length: Number(sensorValue?.spdSensors || 0) }, (_, i) => {
+        return `SPD${i + 1}`;
+      }),
+    [sensorValue?.spdSensors],
+  );
 
   return (
     <div>

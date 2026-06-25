@@ -1,5 +1,9 @@
-import React, { useState } from "react";
+"use client";
+
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
+  Box,
+  CircularProgress,
   Grid,
   Typography,
   FormControl,
@@ -7,392 +11,305 @@ import {
   TextField,
 } from "@mui/material";
 import dayjs from "dayjs";
-
-import { Line } from "react-chartjs-2";
+import Chart from "react-apexcharts";
+import ApexCharts from "apexcharts";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { DesktopDatePicker } from "@mui/x-date-pickers/DesktopDatePicker";
 import moment from "moment";
-import axios from "axios";
 import DewnloadReport from "../../DownloadReport/Downlaod";
 import hondaGif from "../../../../assets/img/hondagif.gif";
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Title,
-  Tooltip,
-  Legend,
-} from "chart.js";
-import { AuthContext } from "../../../../context/AuthContext";
-import { FETCH_URL } from "../../../../fetchIp";
-let interval;
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Title,
-  Tooltip,
-  Legend
-);
+import { useAuth } from "../../../../context/useAuth";
+import { POST } from "../../../../lib/request";
+import { API } from "../../../../lib/endpoint";
 
-export const options = {
-  responsive: true,
-  plugins: {
-    legend: {
-      position: "top",
-    },
-    title: {
-      display: true,
-    },
-  },
-};
+const BORDER_COLORS = [
+  "#FF6384",
+  "#E6E600",
+  "#33CCFF",
+  "#CC33FF",
+  "#3CB371",
+  "#EE82EE",
+  "#FFA500",
+  "#6A5A14",
+  "#FF6347",
+];
 
-const labels = ["January", "February", "March", "April", "May", "June", "July"];
+const PHASE_LABELS = ["R", "Y", "B", "RY", "YB", "RB"];
+
 const getTempValue = (row) =>
   Number(
     row?.msg?.TempValues?.DATASTREAMS?.[0]?.value ??
-    row?.msg?.DATASTREAMS?.[0]?.value ??
-    row?.temp ??
-    0
+      row?.msg?.DATASTREAMS?.[0]?.value ??
+      row?.temp ??
+      0,
   );
 
 const getHumValue = (row) =>
   Number(
     row?.msg?.HumValues?.DATASTREAMS?.[0]?.value ??
-    row?.msg?.DATASTREAMS?.[0]?.value ??
-    row?.humidity ??
-    0
+      row?.msg?.DATASTREAMS?.[0]?.value ??
+      row?.humidity ??
+      0,
   );
-
 
 export default function Graph({
   device,
   sensor,
   SensorTypeChange,
-  setSensor,
   intervalId,
-  deviceID2,
 }) {
-  const getTempValue = (row) =>
-    Number(
-      row?.msg?.TempValues?.DATASTREAMS?.[0]?.value ??
-      row?.msg?.DATASTREAMS?.[0]?.value ??
-      row?.temp ??
-      0
-    );
-  
-  const getHumValue = (row) =>
-    Number(
-      row?.msg?.HumValues?.DATASTREAMS?.[0]?.value ??
-      row?.msg?.DATASTREAMS?.[0]?.value ??
-      row?.humidity ??
-      0
-    );
-  
-  const auth = React.useContext(AuthContext);
+  const user = useAuth((state) => state.user);
   const currentDate = dayjs().toDate();
 
-  //("AuthContext auth data ==>", auth.user);
-
-  // const [sensor, setSensor] = useState("RES");
-  const [dateType, setDateType] = useState(0);
-  // const intervalId = React.useRef(sensor);
-
-  // const SensorTypeChange = (event, newValue) => {
-  //   //("Check Drop Down Value ===>", newValue);
-  //   setSensor(newValue);
-  // };
   const [startDate, setStartDate] = useState(
-    moment(new Date()).format("YYYY-MM-DD")
+    moment(new Date()).format("YYYY-MM-DD"),
   );
+  const [phasevalue, setPhaseValue] = useState(1);
+  const [labels, setLabels] = useState([]);
+  const [graphData, setGraphData] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [userDevice, setUserDevice] = useState([]);
 
   const handleData = (data, datatype) => {
-    if (datatype == "startDate") {
+    if (datatype === "startDate")
       setStartDate(moment(data).format("YYYY-MM-DD"));
-    }
-  };
-  const [showPhase1, setShowPhase1] = React.useState(false);
-  const [phasevalue, setPhaseValue] = useState(1);
-  const PhaseValueChange = (newValue) => {
-    // //("MENU ITEM NEW VALUE =>", newValue);
-    setPhaseValue(newValue);
   };
 
-  // ==================================================== //
-  const [labels, setLabels] = React.useState([]);
-  const [graphData, setGraphData] = React.useState([]);
-  const [DataSets, setDataSets] = React.useState([]);
-  const [borderColorArray, setBorderColorArray] = React.useState([
-    "rgb(255, 99, 132)",
-    "rgb(230, 230, 0)",
-    "rgb(51, 204, 255)",
-    "rgb(204, 51, 255)",
-    "rgb(60, 179, 113)",
-    "rgb(238, 130, 238)",
-    "rgb(255, 165, 0)",
-    "rgb(106, 90, 20)",
-    "rgb(255, 99, 71)",
-  ]);
-  const [backgroundColorArray, setBackgroundColorArray] = React.useState([
-    "rgba(255, 99, 132, 0.5)",
-    "rgba(230, 230, 0, 0.5)",
-    "rgba(51, 204, 255, 0.5)",
-    "rgba(0, 0, 255, 0.5)",
-    "rgba(60, 179, 113, 0.5)",
-    "rgba(238, 130, 238, 0.5)",
-    "rgba(255, 165, 0, 0.5)",
-    "rgba(106, 90, 205, 0.5)",
-    "rgba(255, 99, 71, 0.5)",
-  ]);
+  const PhaseValueChange = (newValue) => setPhaseValue(Number(newValue));
 
-  const [ItemPhase, setItemPhase] = React.useState([
-    "R",
-    "Y",
-    "B",
-    "RY",
-    "YB",
-    "RB",
-  ]);
-
-  const [userDevice, setUserDevice] = React.useState([]);
-  // const [data, setData] = React.useState({})
-
-  // let data = {
-  //   labels,
-  //   datasets: DataSets,
-  // };
-  // ["rgb(255, 99, 132)", ]
-  // []
-
-  React.useEffect(() => {
-    // //("DataSets Changed===>", DataSets);
-  }, [DataSets]);
-  React.useEffect(() => {
-    // //("graphData from useEffect", graphData)
-    if (graphData.length > 0) {
-      //("graphData if length is greater than 0");
-
-      if (sensor === "RES") {
-        let arr = [];
-
-        if (auth.user.role === 2) {
-          for (let i = 0; i < userDevice?.resistanceNumber?.length; i++) {
-            let obj = {};
-            // //("get data inside dynamic data RES ==>");
-            obj["label"] = `R${i + 1}`;
-            obj["data"] = graphData?.map(
-              (item) => item.msg.DATASTREAMS[i]?.value
-            );
-            obj["borderColor"] = borderColorArray[i];
-            obj["backgroundColor"] = backgroundColorArray[i];
-            // //("OBJECT FOR RES ==>", obj);
-            arr.push(obj);
-          }
-        } else {
-          for (let i = 0; i < new Array(device?.resSensors).length; i++) {
-            let obj = {};
-            // //("get data inside dynamic data RES ==>");
-            obj["label"] = `R${i + 1}`;
-            obj["data"] = graphData?.map(
-              (item) => item.msg.DATASTREAMS[i]?.value
-            );
-            obj["borderColor"] = borderColorArray[i];
-            obj["backgroundColor"] = backgroundColorArray[i];
-            // //("OBJECT FOR RES ==>", obj);
-            arr.push(obj);
-          }
-        }
-        setDataSets(arr);
-      }
-
-      if (sensor === "SPD") {
-        let arr = [];
-
-        if (auth.user.role === 2) {
-          for (let i = 0; i < userDevice?.spdNumber?.length; i++) {
-            let obj = {};
-            // //("get data inside dynamic data SPD ==>");
-            obj["label"] = `SPD${i + 1}`;
-            obj["data"] = graphData?.map(
-              (item) => item.msg.DATASTREAMS[i]?.value
-            );
-            obj["borderColor"] = borderColorArray[i];
-            obj["backgroundColor"] = backgroundColorArray[i];
-            arr.push(obj);
-          }
-        } else {
-          for (let i = 0; i < new Array(device?.spdSensors).length; i++) {
-            let obj = {};
-            // //("get data inside dynamic data SPD ==>");
-            obj["label"] = `SPD${i + 1}`;
-            obj["data"] = graphData?.map(
-              (item) => item.msg.DATASTREAMS[i]?.value
-            );
-            obj["borderColor"] = borderColorArray[i];
-            obj["backgroundColor"] = backgroundColorArray[i];
-            arr.push(obj);
-          }
-        }
-        setDataSets(arr);
-      }
-
-      if (sensor === "NER") {
-        let arr = [];
-        if (auth.user.role === 2) {
-          for (let i = 0; i < userDevice?.gnNumber?.length; i++) {
-            let obj = {};
-            // //("get data inside dynamic data NER ==>");
-            obj["label"] = `GN${i + 1}`;
-            obj["data"] = graphData?.map(
-              (item) => item.msg.DATASTREAMS[i]?.value
-            );
-            obj["borderColor"] = borderColorArray[i];
-            obj["backgroundColor"] = backgroundColorArray[i];
-            arr.push(obj);
-          }
-        } else {
-          for (let i = 0; i < new Array(device?.nerSensors).length; i++) {
-            let obj = {};
-            // //("get data inside dynamic data NER ==>");
-            obj["label"] = `GN${i + 1}`;
-            obj["data"] = graphData?.map(
-              (item) => item.msg.DATASTREAMS[i]?.value
-            );
-            obj["borderColor"] = borderColorArray[i];
-            obj["backgroundColor"] = backgroundColorArray[i];
-            arr.push(obj);
-          }
-        }
-        setDataSets(arr);
-      }
-
-      if (sensor === "VMR") {
-        let arr = [];
-        if (auth.user.role === 2) {
-          for (let i = 0; i < userDevice?.phaseNumber?.length; i++) {
-            let obj = {};
-            obj["label"] = ItemPhase[i];
-            obj["data"] = graphData
-              ?.filter((item) => {
-                return item?.phaseNumber === ItemPhase[i]?.toLowerCase();
-              })
-              .map((item) => item.value);
-            obj["borderColor"] = borderColorArray[i];
-            obj["backgroundColor"] = backgroundColorArray[i];
-            // //("OBJECT FOR RES ==>", obj);
-            arr.push(obj);
-          }
-        } else {
-          for (let i = 0; i < ItemPhase?.length; i++) {
-            let obj = {};
-            obj["label"] = ItemPhase[i];
-            obj["data"] = graphData
-              ?.filter((item) => {
-                return item?.phaseNumber === ItemPhase[i]?.toLowerCase();
-              })
-              .map((item) => item.value);
-            obj["borderColor"] = borderColorArray[i];
-            obj["backgroundColor"] = backgroundColorArray[i];
-            // //("OBJECT FOR RES ==>", obj);
-            arr.push(obj);
-          }
-        }
-        setDataSets(arr);
-      }
-      if (sensor === "TEMP") {
-        let arr = [];
-        let obj = {};
-        // //("get data inside dynamic data RES ==>");
-        obj["label"] = `T${1}`;
-        //obj["data"] = graphData?.map((item) => item.msg.DATASTREAMS[0]?.value);
-        obj["data"] = graphData.map((item) => getTempValue(item));
-        obj["borderColor"] = borderColorArray[0];
-        obj["backgroundColor"] = backgroundColorArray[0];
-        // //("OBJECT FOR RES ==>", obj);
-        arr.push(obj);
-        setDataSets(arr);
-      }
-      if (sensor === "HUM") {
-        let arr = [];
-        let obj = {};
-        // //("get data inside dynamic data RES ==>");
-        obj["label"] = `H${1}`;
-        //obj["data"] = graphData?.map((item) => item.msg.DATASTREAMS[0]?.value);
-        obj["data"] = graphData.map((item) => getHumValue(item));
-        obj["borderColor"] = borderColorArray[0];
-        obj["backgroundColor"] = backgroundColorArray[0];
-        // //("OBJECT FOR RES ==>", obj);
-        arr.push(obj);
-        setDataSets(arr);
-      }
-    } else {
-      //("graphData length is 0");
+  useEffect(() => {
+    const ds = user?.deviceSensors;
+    if (!Array.isArray(ds) || !device?._id) {
+      setUserDevice(null);
+      return;
     }
-  }, [graphData]);
-  React.useEffect(() => {
-    let user = auth.user.deviceSensors.find(
-      (item) => item.deviceId === device._id
+    const found = ds.find(
+      (item) => item?.sensorId?.toString() === device._id?.toString(),
     );
-    setUserDevice(user);
-  }, [auth]);
+    setUserDevice(found || null);
+  }, [user, device?._id]);
 
-  // function get Graph data
-  async function getData() {
-    // //("asyn function getting Called...", sensor, startDate);
-    try {
-      let resp = await axios.post(`${FETCH_URL}/api/device/latestData`, {
-        deviceId: device._id,
-        sensorName: sensor,
-        deviceNumber: `${phasevalue - 1}`,
-        startDate: startDate,
-        endDate: startDate,
-      });
-      
-      console.log("H resp from graph data ==>", resp.data.msg);
-      setLabels([...new Set(resp.data.msg.map((item) => item.time))]);
+  // ====================================================
+  // 📊 1. DATASETS SERIES GENERATION ENGINE (Shifted Up)
+  // ====================================================
+  const chartSeries = useMemo(() => {
+    if (!Array.isArray(graphData) || graphData.length === 0) return [];
+    const role = user?.role;
 
-      setGraphData(resp.data.msg);
-    } catch (error) {
-      // //("error from getData () ", error);
+    if (sensor === "RES") {
+      const count =
+        role === "user"
+          ? userDevice?.resistanceNumber?.length ||
+            Number(device?.resSensors || 0)
+          : Number(device?.resSensors || 0);
+      return Array.from({ length: count }, (_, i) => ({
+        name: `R${i + 1}`,
+        data: graphData.map((item) => {
+          const val = item?.msg?.DATASTREAMS?.[i]?.value;
+          return val !== undefined && val !== null ? Number(val) : 0;
+        }),
+      }));
     }
-  }
 
-  React.useEffect(() => {
-    getData();
-  }, [sensor, startDate, device]);
+    if (sensor === "SPD") {
+      const count =
+        role === "user"
+          ? userDevice?.spdNumber?.length || 0
+          : Number(device?.spdSensors || 0);
+      return Array.from({ length: count }, (_, i) => ({
+        name: `SPD${i + 1}`,
+        data: graphData.map((item) => {
+          const val = item?.msg?.DATASTREAMS?.[i]?.value;
+          return val !== undefined && val !== null ? Number(val) : 0;
+        }),
+      }));
+    }
 
-  // let interval = setInterval(() => {
-  //   setStartDate(startDate);
-  //   setEndDate(endDate);
-  //   getData();
-  // }, 50000);
-  React.useEffect(() => {
+    if (sensor === "NER") {
+      const count =
+        role === "user"
+          ? userDevice?.gnNumber?.length || Number(device?.nerSensors || 0)
+          : Number(device?.nerSensors || 0);
+      return Array.from({ length: count }, (_, i) => ({
+        name: `GN${i + 1}`,
+        data: graphData.map((item) => {
+          const val = item?.msg?.DATASTREAMS?.[i]?.value;
+          return val !== undefined && val !== null ? Number(val) : 0;
+        }),
+      }));
+    }
+
+    if (sensor === "VMR") {
+      const phaseList =
+        role === "user" && Array.isArray(userDevice?.phaseNumber)
+          ? PHASE_LABELS.slice(0, userDevice.phaseNumber.length)
+          : PHASE_LABELS;
+      return phaseList.map((phase) => ({
+        name: phase,
+        data: graphData
+          .filter((item) => item?.phaseNumber === phase.toLowerCase())
+          .map((item) => {
+            const val = item?.value;
+            return val !== undefined && val !== null ? Number(val) : 0;
+          }),
+      }));
+    }
+
+    if (sensor === "TEMP") {
+      return [
+        {
+          name: "T1",
+          data: graphData.map((item) => getTempValue(item)),
+        },
+      ];
+    }
+
+    if (sensor === "HUM") {
+      return [
+        {
+          name: "H1",
+          data: graphData.map((item) => getHumValue(item)),
+        },
+      ];
+    }
+
+    return [];
+  }, [user?.role, device, graphData, sensor, userDevice]);
+
+  // ====================================================
+  // ⚡ 2. APEXCHARTS CONFIGURATION (Safe Placement)
+  // ====================================================
+  const chartOptions = useMemo(
+    () => ({
+      chart: {
+        id: "realtime-telemetry-chart",
+        type: "line",
+        animations: {
+          enabled: false,
+          easing: "linear",
+          dynamicAnimation: {
+            speed: 350,
+          },
+        },
+        toolbar: { show: false },
+        background: "#ffffff",
+      },
+      xaxis: {
+        categories: labels,
+        labels: {
+          show: true,
+          style: { colors: "#64748b", fontSize: "11px" },
+        },
+        axisBorder: { show: false },
+        axisTicks: { show: false },
+      },
+      yaxis: {
+        labels: {
+          style: { colors: "#64748b" },
+          formatter: (val) => val.toFixed(2),
+        },
+      },
+      stroke: {
+        curve: "smooth",
+        width: 3,
+      },
+      colors: BORDER_COLORS,
+      grid: {
+        borderColor: "#f1f5f9",
+      },
+      legend: {
+        position: "top",
+        horizontalAlign: "center",
+      },
+      dataLabels: { enabled: false },
+      markers: {
+        size: 0,
+        discrete:
+          chartSeries?.map((series) => ({
+            seriesIndex: chartSeries.indexOf(series),
+            dataPointIndex: (series?.data?.length || 1) - 1,
+            fillColor:
+              BORDER_COLORS[chartSeries.indexOf(series) % BORDER_COLORS.length],
+            strokeColor: "#ffffff",
+            size: 6,
+            shape: "circle",
+          })) || [],
+      },
+      tooltip: { x: { show: true } },
+    }),
+    [labels, chartSeries],
+  );
+
+  const downloadDataSets = useMemo(() => {
+    return chartSeries.map((s, i) => ({
+      label: s.name,
+      data: s.data,
+      borderColor: BORDER_COLORS[i],
+    }));
+  }, [chartSeries]);
+
+  // ====================================================
+  // 🔄 SILENT REFRESH DATA HANDLER
+  // ====================================================
+  const fetchdevidata = useCallback(
+    async (isSilent = false) => {
+      if (!device?._id) return;
+      if (!isSilent) setLoading(true);
+
+      try {
+        const resp = await POST(API.DEVICE.LATEST_DATA, {
+          deviceId: device._id,
+          sensorName: sensor,
+          deviceNumber: `${phasevalue - 1}`,
+          startDate,
+          endDate: startDate,
+        });
+
+        console.log(resp.msg);
+
+        const data = Array.isArray(resp?.msg) ? resp.msg : [];
+        const sortedData = [...data].sort(
+          (a, b) =>
+            new Date(`${a.date} ${a.time}`) - new Date(`${b.date} ${b.time}`),
+        );
+        const nextLabels = sortedData.map((item) =>
+          moment(`${item.date} ${item.time}`).format("HH:mm:ss"),
+        );
+
+        if (isSilent && graphData.length > 0) {
+          setLabels(nextLabels);
+          setGraphData(sortedData);
+          ApexCharts.exec(
+            "realtime-telemetry-chart",
+            "updateSeries",
+            chartSeries,
+            true,
+          );
+        } else {
+          setLabels(nextLabels);
+          setGraphData(sortedData);
+        }
+      } catch (error) {
+        console.error("Error fetching graph data:", error);
+      } finally {
+        if (!isSilent) setLoading(false);
+      }
+    },
+    [device?._id, phasevalue, sensor, startDate, graphData.length, chartSeries],
+  );
+
+  useEffect(() => {
+    fetchdevidata(false);
+  }, [device?._id, phasevalue, sensor, startDate]);
+
+  useEffect(() => {
     intervalId.current = setInterval(() => {
-      // console.log("Hit Graph Data render");
-      getData();
-    }, 11000);
-    return () => {
-      clearInterval(intervalId.current);
-    };
-  }, [sensor, startDate]);
+      fetchdevidata(true);
+    }, 5000);
+    return () => clearInterval(intervalId.current);
+  }, [fetchdevidata, intervalId]);
 
-  React.useEffect(() => {
-    // //("DATE TYPE CHANGED by ===>", dateType);
-    if (dateType === 1) {
-      // //("Clear SetInterval", dateType);
-      clearInterval(intervalId.current);
-      // setEndDate(moment(new Date()).format("YYYY-MM-DD"))
-    }
-
-    if (dateType === 0) {
-      // setEndDate(moment(new Date()).format("YYYY-MM-DD"))
-      setStartDate(moment(new Date()).format("YYYY-MM-DD"));
-    }
-  }, [dateType]);
   return (
     <>
       <Grid container className="graph-container mt-32 mb-40">
@@ -413,7 +330,7 @@ export default function Graph({
               <Grid item>
                 <Typography
                   align="center"
-                  className="width100  white-typo ml-12"
+                  className="width100 white-typo ml-12"
                 >
                   Device UID :{" "}
                   <span className="white-typo"> #{device?.nodeUid} </span>
@@ -421,7 +338,7 @@ export default function Graph({
               </Grid>
               <Grid item>
                 <Typography className="white-typo">
-                  Device Name :
+                  Device Name :{" "}
                   <span className="white-typo"> {device?.deviceName} </span>
                 </Typography>
               </Grid>
@@ -442,15 +359,13 @@ export default function Graph({
                   }}
                 >
                   {getTempValue({ msg: device }).toFixed(2)} °C
-
-
-                  
                 </span>
               </Typography>
               <Typography className="white-typo mt-8 ">
                 Humidity :{" "}
                 <span className="white-typo">
-                {getHumValue({ msg: device }).toFixed(2)} %
+                  {" "}
+                  {getHumValue({ msg: device }).toFixed(2)} %{" "}
                 </span>
               </Typography>
               <DewnloadReport
@@ -458,206 +373,105 @@ export default function Graph({
                 sensor={sensor}
                 vmrSensors={phasevalue}
                 device={device}
-                DataSets={DataSets}
+                DataSets={downloadDataSets}
               />
             </Grid>
           </Grid>
         </Grid>
+
         <Grid
           container
           direction="row"
           justifyContent="space-between"
-          className="mt-16  width100  "
+          className="mt-16 width100"
         >
           <Grid item md={2} sx={{ marginLeft: "10px" }}>
-            <FormControl
-              className="MainPageFormControl mt10px grey-border "
-              size="small"
-            >
-              {auth?.user?.role === 0 || auth?.user?.role === 1 ? (
-                <TextField
-                  select
-                  variant="filled"
-                  InputProps={{ disableUnderline: true }}
-                  className="Selectdropstyle"
-                  labelId="demo-select-small"
-                  id="demo-select-small"
-                  defaultValue={"RES"}
-                  inputProps={{ "aria-label": "Without label" }}
-                  onChange={(e) => {
-                    SensorTypeChange(e.target.value);
-                  }}
-                >
-                  <MenuItem
-                    value={"RES"}
-                    // onChange={SensorTypeChange}
-                    className="Selectmenustyle"
-                  >
-                    Resistance
-                  </MenuItem>
-                  <MenuItem
-                    value={"VMR"}
-                    // onChange={SensorTypeChange}
-                    className="Selectmenustyle"
-                  >
-                    Phase Meter
-                  </MenuItem>
-                  <MenuItem
-                    value={"NER"}
-                    // onChange={SensorTypeChange}
-                    className="Selectmenustyle"
-                  >
-                    GN
-                  </MenuItem>
-                  <MenuItem
-                    value={"SPD"}
-                    // onChange={SensorTypeChange}
-                    className="Selectmenustyle"
-                  >
-                    SPD
-                  </MenuItem>
-                  <MenuItem
-                    value={"TEMP"}
-                    // onChange={SensorTypeChange}
-                    className="Selectmenustyle"
-                  >
-                    Temperature
-                  </MenuItem>
-                  <MenuItem
-                    value={"HUM"}
-                    // onChange={SensorTypeChange}
-                    className="Selectmenustyle"
-                  >
-                    Humidity
-                  </MenuItem>
-                </TextField>
-              ) : (
-                <TextField
-                  select
-                  variant="filled"
-                  InputProps={{ disableUnderline: true }}
-                  className="Selectdropstyle"
-                  labelId="demo-select-small"
-                  id="demo-select-small"
-                  defaultValue={"RES"}
-                  inputProps={{ "aria-label": "Without label" }}
-                  onChange={(e) => {
-                    // setSensor(e.target.value);
-                    SensorTypeChange(e.target.value);
-                  }}
-                >
-                  {userDevice?.resistanceNumber?.length > 0 ? (
-                    <MenuItem
-                      value={"RES"}
-                      // onChange={SensorTypeChange}
-                      className="Selectmenustyle"
-                    >
-                      Resistance
-                    </MenuItem>
-                  ) : null}
-                  {userDevice?.phaseNumber?.length > 0 ? (
-                    <MenuItem
-                      value={"VMR"}
-                      // onChange={SensorTypeChange}
-                      className="Selectmenustyle"
-                    >
-                      Phase Meter
-                    </MenuItem>
-                  ) : null}
-                  {userDevice?.gnNumber?.length > 0 ? (
-                    <MenuItem
-                      value={"NER"}
-                      // onChange={SensorTypeChange}
-                      className="Selectmenustyle"
-                    >
-                      GN
-                    </MenuItem>
-                  ) : null}
-                  {userDevice?.spdNumber?.length > 0 ? (
-                    <MenuItem
-                      value={"SPD"}
-                      // onChange={SensorTypeChange}
-                      className="Selectmenustyle"
-                    >
-                      SPD
-                    </MenuItem>
-                  ) : null}
-
-                  {userDevice?.temp?.length > 0 ? (
-                    <MenuItem
-                      value={"TEMP"}
-                      // onChange={SensorTypeChange}
-                      className="Selectmenustyle"
-                    >
-                      Temperature
-                    </MenuItem>
-                  ) : null}
-                  {userDevice?.humidity?.length > 0 ? (
-                    <MenuItem
-                      value={"HUM"}
-                      // onChange={SensorTypeChange}
-                      className="Selectmenustyle"
-                    >
-                      Humidity
-                    </MenuItem>
-                  ) : null}
-                </TextField>
-              )}
-              {/* </TextField> */}
+            <FormControl size="small">
+              <TextField
+                select
+                variant="outlined"
+                defaultValue="RES"
+                onChange={(e) => SensorTypeChange(e.target.value)}
+                sx={{
+                  backgroundColor: "#fff",
+                  borderRadius: "6px",
+                  minWidth: 180,
+                  "& .MuiSelect-select": { color: "#000" },
+                }}
+                SelectProps={{
+                  MenuProps: {
+                    PaperProps: {
+                      sx: {
+                        backgroundColor: "#fff",
+                        "& .MuiMenuItem-root": { color: "#000" },
+                      },
+                    },
+                  },
+                }}
+              >
+                <MenuItem value="RES">Resistance</MenuItem>
+                <MenuItem value="VMR">Phase Meter</MenuItem>
+                <MenuItem value="NER">GN</MenuItem>
+                <MenuItem value="SPD">SPD</MenuItem>
+                <MenuItem value="TEMP">Temperature</MenuItem>
+                <MenuItem value="HUM">Humidity</MenuItem>
+              </TextField>
             </FormControl>
           </Grid>
+
           <Grid item md={3}>
-            {sensor === "VMR" ? (
-              <>
-                <FormControl
-                  className="MainPageFormControl mt10px grey-border "
-                  size="small"
+            {sensor === "VMR" && (
+              <FormControl size="small">
+                <TextField
+                  select
+                  variant="outlined"
+                  defaultValue="1"
+                  onChange={(e) => PhaseValueChange(e.target.value)}
+                  sx={{
+                    backgroundColor: "#fff",
+                    borderRadius: "6px",
+                    minWidth: 120,
+                    "& .MuiSelect-select": { color: "#000" },
+                  }}
+                  SelectProps={{
+                    MenuProps: {
+                      PaperProps: {
+                        sx: {
+                          backgroundColor: "#fff",
+                          "& .MuiMenuItem-root": { color: "#000" },
+                        },
+                      },
+                    },
+                  }}
                 >
-                  <TextField
-                    select
-                    variant="filled"
-                    InputProps={{ disableUnderline: true }}
-                    className="Selectdropstyle"
-                    labelId="demo-select-small"
-                    id="demo-select-small"
-                    defaultValue={1}
-                    inputProps={{ "aria-label": "Without label" }}
-                    onChange={(e) => {
-                      PhaseValueChange(e.target.value);
-                    }}
-                  >
-                    {new Array(device.vmrSensor).map((item, i) => {
-                      return (
-                        <MenuItem
-                          value={i + 1}
-                          className="Selectmenustyle grey-border"
-                        >
-                          <Typography className="heading-black fs13px">
-                            PH{i + 1}
-                          </Typography>
-                        </MenuItem>
-                      );
-                    })}
-                  </TextField>
-                </FormControl>{" "}
-              </>
-            ) : null}
+                  {Array.from({ length: Number(device?.vmrSensor || 0) }).map(
+                    (_, i) => (
+                      <MenuItem key={i} value={String(i + 1)}>
+                        PH{i + 1}
+                      </MenuItem>
+                    ),
+                  )}
+                </TextField>
+              </FormControl>
+            )}
           </Grid>
-          <Grid item md={5} justifyContent="flex-end" alignItems="flex-end">
-            <Typography align="right" className="mr-10 ">
+
+          <Grid
+            item
+            md={5}
+            display="flex"
+            justifyContent="flex-end"
+            alignItems="flex-end"
+          >
+            <Box sx={{ width: "100%", textAlign: "right" }} className="mr-10">
               <LocalizationProvider dateAdapter={AdapterDateFns}>
                 <DesktopDatePicker
                   className="rangepicker width-150"
-                  InputProps={{
-                    disableUnderline: true,
-                  }}
-                  // disabled={!dateType ? true: false}
+                  InputProps={{ disableUnderline: true }}
                   inputFormat="dd/MM/yyyy"
                   value={startDate}
                   maxDate={currentDate}
-                  onChange={(e) => {
-                    handleData(e, "startDate");
-                  }}
+                  onChange={(e) => handleData(e, "startDate")}
                   renderInput={(params) => (
                     <TextField
                       variant="filled"
@@ -671,21 +485,72 @@ export default function Graph({
                   )}
                 />
               </LocalizationProvider>
-            </Typography>
+            </Box>
           </Grid>
-          {DataSets && DataSets?.length > 0 ? (
-            <Line
-              options={options}
-              data={{
-                labels,
-                datasets: DataSets,
+          <Grid item xs={12}>
+            <Box
+              sx={{
+                position: "relative",
+                minHeight: 320,
+                borderRadius: "0 0 8px 8px",
+                overflow: "hidden",
+                backgroundColor: "#fff",
+                padding: "10px",
               }}
-            />
-          ) : (
-            <Grid container justifyContent="center">
-              <img src={hondaGif} />{" "}
-            </Grid>
-          )}
+            >
+              {chartSeries.length > 0 ? (
+                <Chart
+                  options={chartOptions}
+                  series={chartSeries}
+                  type="line"
+                  height={320}
+                />
+              ) : !loading ? (
+                <Grid
+                  container
+                  justifyContent="center"
+                  alignItems="center"
+                  sx={{ minHeight: 320 }}
+                >
+                  <img src={hondaGif} alt="No graph data available" />
+                </Grid>
+              ) : null}
+
+              {loading && (
+                <Box
+                  sx={{
+                    position: "absolute",
+                    inset: 0,
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 1.5,
+                    background:
+                      "linear-gradient(180deg, rgba(247, 248, 253, 0.55) 0%, rgba(247, 248, 253, 0.82) 100%)",
+                    backdropFilter: "blur(3px)",
+                    zIndex: 2,
+                  }}
+                >
+                  <CircularProgress
+                    size={34}
+                    thickness={4.5}
+                    sx={{ color: "#044a70" }}
+                  />
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      color: "#044a70",
+                      fontWeight: 600,
+                      letterSpacing: "0.02em",
+                    }}
+                  >
+                    Loading graph data...
+                  </Typography>
+                </Box>
+              )}
+            </Box>
+          </Grid>
         </Grid>
       </Grid>
     </>

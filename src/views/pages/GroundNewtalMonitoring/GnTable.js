@@ -12,8 +12,9 @@ import {
   Breadcrumbs,
 } from "@mui/material";
 import { Link } from "react-router-dom";
-import { FETCH_URL } from "../../../fetchIp";
 import NodataFound from "../../../assets/img/nodatafound.png";
+import { API } from "../../../lib/endpoint";
+import { GET } from "../../../lib/request";
 
 function createData(name, calories, fat, carbs, protein) {
   return { name, calories, fat, carbs, protein };
@@ -29,24 +30,20 @@ const rows = [
 
 export default function BasicTable() {
   const [groundNewtal, setGroundNewtal] = useState(null);
+
   const getAllSiteGn = async () => {
-    let token = JSON.parse(localStorage.getItem("userData")).token;
-    const response = await fetch(`${FETCH_URL}/api/site/getAllSiteGn`, {
-      method: "GET",
-      headers: {
-        Accept: "application/json",
-        "Content-type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-    });
-    let res = await response.json();
-    if (response.ok) {
-      console.log(" get number Of Site resp ===> ", res.msg);
-      setGroundNewtal(res.msg);
-    } else {
-      // // console.log("Error in get number Of Site ==> ", res);
+    try {
+      const res = await GET(API.SITE.GET_ALL_SITE_GN);
+
+      if (res) {
+        setGroundNewtal(res?.msg || []);
+      }
+    } catch (error) {
+      console.error("Error in getAllSiteGn:", error);
+      setGroundNewtal([]);
     }
   };
+
   useEffect(() => {
     getAllSiteGn();
   }, []);

@@ -1,450 +1,256 @@
-import React, { useContext, useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { styled } from "@mui/material/styles";
-import { Container } from "@mui/system";
+"use client";
 
-import {
-  Box,
-  Grid,
-  List,
-  Badge,
-  Button,
-  Avatar,
-  Tooltip,
-  ListItem,
-  IconButton,
-  Typography,
-  ListItemIcon,
-  ListItemText,
-  ListItemButton,
-  SwipeableDrawer,
-} from "@mui/material";
-import Sound from "react-sound";
-// Logo Images
-import NavbarBgs from "../../assets/img/Navbar-bgs.png";
-import LeftLogo from "../../assets/img/Left-logo.png";
-import RightLogo from "../../assets/img/Right-logo.png";
-import alertSound from "../../assets/sounds/alertsound.mp3";
+import React, { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom"; //  Added useNavigate
 import { FiMenu } from "react-icons/fi";
 import { VscUnmute, VscMute } from "react-icons/vsc";
+import routes from "../../routes/AdminRoutes";
 
-// Internal Import
-import { FETCH_URL } from "../../fetchIp";
+//  FIXED: Context ko hatakar Zustand store import kiya
+import { useAuth } from "../../context/useAuth";
+import { GET, POST } from "../../lib/request";
+import { API } from "../../lib/endpoint";
+
+import LeftLogo from "../../assets/img/Left-logo.png";
+
 import RebootDialog from "./RebootDialog";
 import LogoutDialog from "./LogoutDialog";
-import routes from "../../routes/AdminRoutes";
 import ShutDonwDialog from "./ShutDonwDialog";
-import axiosInstance from "../../api/axiosInstance";
-import { AuthContext } from "../../context/AuthContext";
-//code for change title start here
 
+export default function Navbar() {
+  //   FIXED: Context consumption ko Zustand select queries me badla
+  const user = useAuth((state) => state.user);
+  const clearSessionMemory = useAuth((state) => state.logout);
 
-
-//end here
-
-const StyledToolbar = styled(Box)(({ theme }) => ({
-  backgroundImage: `url(${NavbarBgs})`,
-  backgroundSize: "cover",
-  // Override media queries injected by theme.mixins.toolbar
-  "@media all": {
-    minHeight: 260,
-  },
-}));
-
-export default function ProminentAppBar() {
- 
-  // ============= userRole ============== //
-  const auth = React.useContext(AuthContext);
-  const { token, setToken, user, setUser } = useContext(AuthContext);
   const navigate = useNavigate();
-  const [state, setState] = React.useState({
-    top: false,
-    left: false,
-    bottom: false,
-    right: false,
-  });
-  const [open, setOpen] = React.useState(false);
-  useEffect(() => {
-    const hasDialogBeenOpened = localStorage.getItem("welcomeDialogOpened");
-    if (token && !hasDialogBeenOpened) {
-      setOpen(true);
 
-      localStorage.setItem("welcomeDialogOpened", "true");
-    }
-  }, [token]);
-
-  const [reboot, setReboot] = useState(null);
-
-  const getRebootStatus = async () => {
-    const response = await fetch(`${FETCH_URL}/api/device/reboot`, {
-      method: "GET",
-      headers: {
-        Accept: "application/json",
-        "Content-type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-    });
-    let res = await response.json();
-    if (response.ok) {
-      // // console.log(" getRebootStatus resp ===> ", res.msg);
-      setReboot(res.msg);
-    } else {
-      // // console.log("Error in getRebootStatus ==> ", res);
-    }
-  };
-  const [shutdown, setShutDown] = useState(null);
-  const getShutdownStatus = async () => {
-    const response = await fetch(`${FETCH_URL}/api/device/shutdown`, {
-      method: "GET",
-      headers: {
-        Accept: "application/json",
-        "Content-type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-    });
-    let res = await response.json();
-    if (response.ok) {
-      // // console.log(" getShutdownStatus resp ===> ", res.msg);
-      setShutDown(res.msg);
-    } else {
-      // // console.log("Error in getShutdownStatus ==> ", res);
-    }
-  };
-  const toggleDrawer = (anchor, open) => (event) => {
-    if (
-      event &&
-      event.type === "keydown" &&
-      (event.key === "Tab" || event.key === "Shift")
-    ) {
-      return;
-    }
-    setState({ ...state, [anchor]: open });
-  };
-  const logout = () => {
-    localStorage.removeItem("access_token");
-    localStorage.removeItem("userData");
-    localStorage.removeItem("welcomeDialogOpened");
-    localStorage.clear();
-    window.location.reload();
-  };
-  const list = (anchor) => (
-    <Box
-      sx={{
-        width: anchor === "top" || anchor === "bottom" ? "auto" : 270,
-      }}
-      role="presentation"
-      onClick={toggleDrawer(anchor, false)}
-      onKeyDown={toggleDrawer(anchor, false)}
-    >
-      <ListItemButton
-        sx={{
-          padding: "0px",
-          borderTop: "2px solid #ddd",
-          borderBottom: "2px solid #ddd",
-        }}
-      >
-        <ListItemIcon className="sidebar-icon  text-capitalize pl-6 ">
-          <Avatar sx={{ bgcolor: " #fff" }}>
-            <span className="blue-typo ">{user?.fullName?.slice("a")[0]} </span>
-          </Avatar>
-        </ListItemIcon>
-
-        <ListItemText className="sidebar-text pl-6 ">
-          <Typography className="fs-14  heading-white   text-capitalize ">
-            {user?.fullName}
-          </Typography>
-          <Typography className="fs-14  heading-white   text-capitalize ">
-            #{user?.uid}
-          </Typography>
-        </ListItemText>
-      </ListItemButton>
-      <List>
-        {routes?.map((route, index) => {
-          if (route.invisible === false) {
-            return (
-              <>
-                {auth.user.role === 2 && route.name !== "User Management" ? (
-                  <ListItem
-                    key={route}
-                    disablePadding
-                    component={Link}
-                    to={route.link}
-                  >
-                    <ListItemButton>
-                      <ListItemIcon className="sidebar-icon">
-                        <img src={route.icon} />
-                      </ListItemIcon>
-                      <ListItemText className="sidebar-text">
-                        {route.name}
-                      </ListItemText>
-                    </ListItemButton>
-                  </ListItem>
-                ) : null}
-                {auth.user.role === 0 || auth.user.role === 1 ? (
-                  <ListItem
-                    key={route}
-                    disablePadding
-                    component={Link}
-                    to={route.link}
-                  >
-                    <ListItemButton className="p-7">
-                      <ListItemIcon className="sidebar-icon">
-                        <img src={route.icon} />{" "}
-                      </ListItemIcon>
-                      <ListItemText className="sidebar-text">
-                        {route.name}
-                      </ListItemText>
-                    </ListItemButton>
-                  </ListItem>
-                ) : null}
-              </>
-            );
-          }
-        })}{" "}
-      </List>
-    </Box>
-  );
-
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const [alarmStatus, setAlarmStatus] = useState(null);
+  const [, setNotificationCount] = useState(0);
 
-  const [notificationCount, setNotificationCount] = useState(null);
+  const loadSavedData = () => {
+    const savedData = localStorage.getItem("inputValues");
+    return savedData ? JSON.parse(savedData) : { word1: "INDIAN AIRFORCE" };
+  };
+
+  const [inputValues] = useState(loadSavedData());
+
+  // =================     FIXED LOGOUT PIPELINE =================
+  const logout = async () => {
+    try {
+      // 1.    Using explicit endpoint matrix path from endpoints configuration
+      await GET(API.AUTH.LOGOUT);
+    } catch (err) {
+      console.error("Backend token invalidation failed:", err.message);
+    } finally {
+      // 2. Zustand ki RAM memory ko clear karo (isLoggedIn false ho jayega)
+      clearSessionMemory();
+
+      // 3. Drawer band karo aur safety se clean transition ke sath /signIn portal par bhej do
+      setDrawerOpen(false);
+      navigate("/signIn", { replace: true });
+    }
+  };
+
+  // ================= ALARM =================
   const getGlobalAlarmStatus = async () => {
     try {
-      const response = await axiosInstance.get("/api/alarm/getAlarmStatus");
-      if (response && response.data) {
-        setAlarmStatus(response.data.data);
-      }
-    } catch (error) {
-      console.error("Error fetching global alarm status:", error);
-    }
-  };
-  const updateAlarmStatus = async (status) => {
-    try {
-      await axiosInstance.post("/api/alarm/updateStatus", { status });
-    } catch (error) {
-      console.error("Error updating alarm status:", error);
-      throw error;
+      const res = await GET(API.ALARM.STATUS);
+      setAlarmStatus(res.data);
+    } catch (err) {
+      console.error("Error fetching alarm status", err);
     }
   };
 
   const toggleAlarmStatus = async (status) => {
     try {
-      await updateAlarmStatus(status);
+      await POST(API.ALARM.UPDATE_STATUS, { status });
       getGlobalAlarmStatus();
-    } catch (error) {
-      console.error("Error toggling alarm status:", error);
+    } catch (err) {
+      console.error("Error updating alarm status", err);
     }
   };
 
   const getNotificationCount = async () => {
-    try {
-      const response = await axiosInstance.get(
-        "/api/alarm/getNotificationCount"
-      );
-
-      if (response && response.data) {
-        setNotificationCount(response.data?.count);
-      }
-    } catch (error) {
-      console.error("Error fetching global alarm status:", error);
-    }
+    const resp = await GET(API.ALARM.GET_NOTIFICATION_COUNT);
+    setNotificationCount(resp?.count || 0);
   };
+
   useEffect(() => {
     getGlobalAlarmStatus();
     getNotificationCount();
-    const intervalId = setInterval(() => {
+
+    const interval = setInterval(() => {
       getGlobalAlarmStatus();
       getNotificationCount();
     }, 10000);
-    return () => clearInterval(intervalId);
+
+    return () => clearInterval(interval);
   }, []);
-//code for change title 
-const loadSavedData = () => {
-  const savedData = localStorage.getItem('inputValues');
-  return savedData ? JSON.parse(savedData) : { word1: 'Indian Airforce', word2: '', word3: '' };
-};
-const [showPopup, setShowPopup] = useState(false);
-const [inputValues, setInputValues] = useState(loadSavedData());
 
+  // ================= REBOOT =================
+  const handleReboot = async () => {
+    try {
+      await POST(API.DEVICE.REBOOT);
+    } catch (error) {
+      console.error("Reboot failed", error);
+    }
+  };
 
+  // ================= SHUTDOWN =================
+  const handleShutdown = async () => {
+    try {
+      await POST(API.DEVICE.SHUTDOWN);
+    } catch (error) {
+      console.error("Shutdown failed", error);
+    }
+  };
 
-const handleInputChange = (e) => {
-  const { name, value } = e.target;
-  const newInputValues = { ...inputValues, [name]: value };
-  setInputValues(newInputValues);
-
-  localStorage.setItem('inputValues', JSON.stringify(newInputValues));
-};
-const handleOpenPopup = () => {
-  setShowPopup(true);
-};
-
-const handleClosePopup = () => {
-  setShowPopup(false);}
   return (
-    
     <>
-      <StyledToolbar>
-        <Container maxWidth="xl">
-          <Grid
-            container
-            direction="row"
-            justifyContent="space-between"
-            alignItems="center"
-            className="widthLR-90 "
-            style={{ paddingTop: "42px" }}
-          >
-            <Grid item>
-              <img src={LeftLogo} alt="LeftLogo" className="nav-leftlogo" />
-            </Grid>
-            <Grid item>
-              <Typography align="center" className="white-typo mt-20 fs-50">
-              {inputValues.word1}
-              </Typography>
-              <Typography align="center" className="blue-typo  fs-30">
-                Online Resistance Monitoring System
-              </Typography>
-            </Grid>
-            <Grid item className="nav-rightlogo">
-              <img src={LeftLogo} alt="RightLogo" className="nav-leftlogo" />
-            </Grid>
-          </Grid>
-          <Grid
-            container
-            direction="row"
-            justifyContent="flex-end"
-            alignItems="center"
-            className="widthLR-90"
-            style={{ marginTop: "51px", width: "100%" }}
-          >
-            {["right"].map((anchor) => (
-              <React.Fragment key={anchor}>
-                <Grid item>
-                  {alarmStatus?.status ? (
-                    <>
-                      {alarmStatus?.sound && (
-                        <Sound
-                          url={alertSound}
-                          playStatus={Sound.status.PLAYING}
-                          playFromPosition={300}
-                          loop={true}
-                        />
-                      )}
-                      <Tooltip title="Mute" arrow>
-                        <IconButton
-                          onClick={() => {
-                            toggleAlarmStatus(false);
-                          }}
-                        >
-                          <VscUnmute color="red" />
-                        </IconButton>
-                      </Tooltip>
-                    </>
-                  ) : (
-                    <>
-                      <Tooltip title="Unmute" arrow>
-                        <IconButton
-                          onClick={() => {
-                            toggleAlarmStatus(true);
-                          }}
-                        >
-                          <VscMute />
-                        </IconButton>
-                      </Tooltip>
-                    </>
-                  )}
-                </Grid>
-                <Button onClick={handleOpenPopup} >Change Title </Button>
-                {/* Sidebar */}
-                <Button onClick={toggleDrawer(anchor, true)}>
-                  <FiMenu className="hamburger-menu" />
-                </Button>
-                
-                <SwipeableDrawer
-                  sx={{
-                    flexShrink: 0,
-                    // zIndex: 9999,
-                    "& .MuiDrawer-paper": {
-                      boxSizing: "border-box",
-                      background: " #044a70",
-                    },
-                  }}
-                  anchor={anchor}
-                  open={state[anchor]}
-                  onClose={toggleDrawer(anchor, false)}
-                  onOpen={toggleDrawer(anchor, true)}
-                >
-                  {list(anchor)}
-                  {auth.user.role === 0 || auth.user.role === 1 ? (
-                    <>
-                      <ListItem disablePadding>
-                        <ListItemButton>
-                          <RebootDialog getRebootStatus={getRebootStatus} />
-                        </ListItemButton>
-                      </ListItem>
-
-                      <ListItem disablePadding>
-                        <ListItemButton>
-                          <ShutDonwDialog
-                            getShutdownStatus={getShutdownStatus}
-                          />
-                        </ListItemButton>
-                      </ListItem>
-                    </>
-                  ) : null}
-                  <ListItem
-                    style={{
-                      position: "absolute",
-                      bottom: "0",
-                      cursor: "pointer",
-                      marginTop: "20px",
-                    }}
-                  >
-                    <LogoutDialog logout={logout} />
-                  </ListItem>
-                </SwipeableDrawer>
-              </React.Fragment>
-            ))}
-          </Grid>
-        </Container>
-      </StyledToolbar>
-{/*showpop up code for change title */}
-    {showPopup && (
-        <div style={popupStyles}>
-          <h5>Change Title</h5>
-            <div>
-            <input
-              type="text"
-              name="word1"
-              value={inputValues.word1}
-              onChange={handleInputChange}
-              placeholder="Enter word 1"
-            />
+      {/* ================= TOP NAVBAR ================= */}
+      <div
+        className="fixed top-0 left-0 w-full z-40
+  bg-gradient-to-b from-[#0a192f] to-[#0f3057] 
+  border-b-2 border-[#4da8da] 
+  shadow-md py-2"
+      >
+        <div className="w-full px-6 flex items-center justify-between">
+          {/* LEFT LOGO */}
+          <div className="w-1/4">
+            <img src={LeftLogo} alt="logo" className="h-12 ml-2" />
           </div>
-          <Button onClick={handleClosePopup}>Submit</Button>
+
+          {/* CENTER TITLE */}
+          <div className="w-1/2 text-center">
+            <h1 className="text-white font-bold text-xl tracking-widest">
+              {inputValues.word1}
+            </h1>
+            <p className="text-white text-xs tracking-wide">
+              ONLINE RESISTANCE MONITORING SYSTEM
+            </p>
+          </div>
+
+          {/* RIGHT CONTROLS */}
+          <div className="w-1/4 flex justify-end items-center gap-4">
+            {/* USER ROLE */}
+            <span className="bg-[#4da8da] text-[#0a192f] text-xs font-semibold px-3 py-1 rounded-full uppercase tracking-wide">
+              {user?.role}
+            </span>
+
+            {/* Alarm */}
+            {alarmStatus?.status ? (
+              <button
+                onClick={() => toggleAlarmStatus(false)}
+                className="text-red-500 hover:scale-110 transition"
+                title="Mute Alarm"
+              >
+                <VscUnmute size={22} />
+              </button>
+            ) : (
+              <button
+                onClick={() => toggleAlarmStatus(true)}
+                className="text-white hover:scale-110 transition"
+                title="Unmute Alarm"
+              >
+                <VscMute size={22} />
+              </button>
+            )}
+
+            {/* Menu */}
+            <button onClick={() => setDrawerOpen(true)} className="text-white">
+              <FiMenu size={25} />
+            </button>
+          </div>
         </div>
-      )}
+      </div>
 
-    {/* Display entered values */}
-    {/* <div>
-      <h3>Entered Words:</h3>
-      <p>Word 1: {inputValues.word1}</p>
-      <p>Word 2: {inputValues.word2}</p>
-      <p>Word 3: {inputValues.word3}</p>
-    </div>
-   */}
-{/*code end for the change title */}
+      {/* ================= SIDEBAR ================= */}
+      <div
+        className={`fixed inset-0 z-50 ${
+          drawerOpen ? "pointer-events-auto" : "pointer-events-none"
+        }`}
+      >
+        {/* Overlay */}
+        <div
+          onClick={() => setDrawerOpen(false)}
+          className={`absolute inset-0 bg-black/40 backdrop-blur-sm
+      transition-opacity duration-300
+      ${drawerOpen ? "opacity-100" : "opacity-0"}`}
+        />
 
+        {/* Drawer */}
+        <div
+          className={`absolute top-0 right-0 h-full w-72
+      bg-gradient-to-b from-[#0a192f] to-[#0f3057]
+      text-white shadow-2xl
+      flex flex-col justify-between
+      transform transition-transform duration-300 ease-in-out
+      ${drawerOpen ? "translate-x-0" : "translate-x-full"}`}
+          style={{ willChange: "transform" }}
+        >
+          {/* TOP SECTION */}
+          <div>
+            {/* USER PROFILE */}
+            <div className="flex items-center gap-3 p-4 border-b border-gray-700">
+              <div className="w-10 h-10 rounded-full bg-[#4da8da] flex items-center justify-center font-bold">
+                {user?.fullName?.charAt(0)?.toUpperCase() || "A"}
+              </div>
+
+              <div>
+                <p className="font-semibold">{user?.fullName || "Admin"}</p>
+                <p className="text-xs text-gray-300">#{user?.uid || "admin"}</p>
+              </div>
+            </div>
+
+            {/* ROUTES */}
+            <div className="mt-2 space-y-1">
+              {routes
+                .filter((r) => {
+                  if (r.invisible) return false;
+
+                  // user role ko user-management hide
+                  if (r.id === "user-management" && user?.role === "user") {
+                    return false;
+                  }
+
+                  return r.name;
+                })
+                .map((route, i) => (
+                  <Link
+                    key={i}
+                    to={route.link}
+                    onClick={() => setDrawerOpen(false)}
+                    className="block px-4 py-2 hover:bg-[#1f4068] transition"
+                  >
+                    {route.name}
+                  </Link>
+                ))}
+            </div>
+
+            {/* REBOOT / SHUTDOWN */}
+            <div className="mt-4 border-t border-gray-700 pt-2 space-y-1 px-4">
+              {(user?.role === "admin" ||
+                user?.role === "technician" ||
+                user?.role === "user") && (
+                <div className="hover:bg-[#1f4068] p-2 rounded cursor-pointer">
+                  <RebootDialog getRebootStatus={handleReboot} />
+                </div>
+              )}
+              {(user?.role === "admin" || user?.role === "technician") && (
+                <div className="hover:bg-[#1f4068] p-2 rounded cursor-pointer">
+                  <ShutDonwDialog getShutdownStatus={handleShutdown} />
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* LOGOUT */}
+          <div className="p-4 border-t border-gray-700">
+            <LogoutDialog logout={logout} />
+          </div>
+        </div>
+      </div>
     </>
   );
 }
-const popupStyles = {
-  position: 'fixed',
-  top: '50%',
-  left: '50%',
-  transform: 'translate(-50%, -50%)',
-  padding: '20px',
-  backgroundColor: 'white',
-  border: '1px solid #ccc',
-  boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)',
-};

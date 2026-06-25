@@ -11,31 +11,24 @@ import {
   Typography,
   Breadcrumbs,
 } from "@mui/material";
-import { FETCH_URL } from "../../../fetchIp";
 import NodataFound from "../../../assets/img/nodatafound.png";
 import { Link } from "react-router-dom";
-
+import { API } from "../../../lib/endpoint";
+import { GET } from "../../../lib/request";
 export default function BasicTable() {
   const [phase, setPhase] = useState(null);
 
   const getAllSiteVmr = async () => {
-    let token = JSON.parse(localStorage.getItem("userData")).token;
-    const response = await fetch(`${FETCH_URL}/api/site/getAllSiteVmr`, {
-      method: "GET",
-      headers: {
-        Accept: "application/json",
-        "Content-type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-    });
-    let res = await response.json();
-    if (response.ok) {
-      console.log(" get number Of Site resp ===> ", res.msg);
-      setPhase(res.msg);
-    } else {
-      // // console.log("Error in get number Of Site ==> ", res);
+    try {
+      const res = await GET(API.SITE.GET_ALL_SITE_VMR);
+
+      setPhase(res?.msg || []);
+    } catch (error) {
+      console.error("getAllSiteVmr error:", error);
+      setPhase([]);
     }
   };
+
   useEffect(() => {
     getAllSiteVmr();
   }, []);
@@ -183,11 +176,6 @@ export default function BasicTable() {
                         {row?.vmrValue?.map((data, i) => {
                           const value = Object.values(row.vmrSensorsThreshold);
                           let vmrSThreshold = value;
-                          console.log(
-                            " vmrSThreshold Check Object Key Data String",
-                            vmrSThreshold
-                          );
-                          console.log(" vmrSThreshold Array", data.value);
 
                           return (
                             <>

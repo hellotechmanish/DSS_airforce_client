@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   Button,
   Step,
@@ -9,13 +9,13 @@ import {
   DialogActions,
   Snackbar,
 } from "@mui/material";
-import { Link, useNavigate } from "react-router-dom";
 //core components that
 import MuiAlert from "@mui/material/Alert";
 
 import AssignDevice from "./DeviceShow";
 import AssignSensors from "./DeviceSensor";
-import { FETCH_URL } from "../../../../../../../../../fetchIp";
+import { API } from "../../../../../../../../../lib/endpoint";
+import { GET, POST } from "../../../../../../../../../lib/request";
 
 const steps = ["Select Device", "Select Sensors"];
 const Alert = React.forwardRef(function Alert(props, ref) {
@@ -180,8 +180,6 @@ export default function Clusterhead({
               gnNumber,
               phaseNumber,
               state,
-              sitesDeviceData,
-              siteDeviceUid,
               selectUid,
             }}
             storeResValue={storeResValue}
@@ -190,68 +188,45 @@ export default function Clusterhead({
             storePhaseValue={storePhaseValue}
           />
         );
+      default:
+        return null;
     }
   }
+  const getdeviceListbysite = useCallback(async () => {
+    try {
+      const res = await GET(API.DEVICE.LIST_BY_SITEID(siteId));
+      setDevice(res.msg);
+    } catch (err) {
+      console.error("Error fetching device list by site", err);
+    }
+  }, [siteId]);
+
   useEffect(() => {
     getdeviceListbysite();
-  }, []);
-
-  const getdeviceListbysite = async () => {
-    let token = JSON.parse(localStorage.getItem("userData")).token;
-    const response = await fetch(
-      `${FETCH_URL}/api/device/getdeviceListbysiteId/${siteId}`,
-      {
-        method: "GET",
-        headers: {
-          Accept: "application/json",
-          "Content-type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
-    let res = await response.json();
-    if (response.ok) {
-      // // console.log(" get device List by site Id resp ===> ", res.msg);
-      setDevice(res.msg);
-    } else {
-      // console.log("Error in get device List by site Id ==> ", res);
-    }
-  };
+  }, [getdeviceListbysite]);
 
   const AssingDevice = async () => {
-    let token = JSON.parse(localStorage.getItem("userData")).token;
     try {
-      const response = await fetch(`${FETCH_URL}/api/user/assignDeviceSensor`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          userId: UserId,
-          deviceId: originalDeviceData,
-          resistanceNumber: resValue,
-          spdNumber: spdNumber,
-          gnNumber: gnNumber,
-          phaseNumber: phaseNumber,
-        }),
+      const res = await POST(API.USERS.ASSIGN_DEVICE_SENSOR, {
+        userId: UserId,
+        deviceId: originalDeviceData,
+        resistanceNumber: resValue,
+        spdNumber,
+        gnNumber,
+        phaseNumber,
       });
-      const res = await response.json();
-      if (response.ok) {
-        setSnackOpen(true);
-        setSnackMsg(res.msg);
-        getdevicebyuserId();
-        setOpen(false);
-      } else {
-        // console.log("Else block ====>");
-        setSnackerropen(true);
-        setSnackErrMsg(res.err);
-        setOpen(false);
-      }
-    } catch (error) {
-      // console.log("Catch block ====>", error);
+
+      setSnackOpen(true);
+      setSnackMsg(res.msg);
+      getdevicebyuserId();
+      setOpen(false);
+    } catch (err) {
+      setSnackerropen(true);
+      setSnackErrMsg(err?.msg || "Something went wrong");
+      setOpen(false);
     }
   };
+
   return (
     <>
       <Snackbar open={snackopen} autoHideDuration={3000} onClose={SnanbarClose}>
@@ -315,7 +290,7 @@ export default function Clusterhead({
                   Previous
                 </Button>
 
-                {activeStep == 1 ? null : (
+                {activeStep === 1 ? null : (
                   <Button
                     onClick={handleNext}
                     // className="purplebtn"
@@ -327,11 +302,11 @@ export default function Clusterhead({
                     }
                   >
                     {/* {activeStep === steps.length - 1 ? null : "Next"} */}
-                    {activeStep == 1 ? null : "next"}
+                    {activeStep === 1 ? null : "next"}
                   </Button>
                 )}
 
-                {activeStep == 1 && (
+                {activeStep === 1 && (
                   <Button
                     onClick={handleNext}
                     className={

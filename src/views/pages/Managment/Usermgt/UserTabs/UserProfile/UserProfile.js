@@ -1,114 +1,75 @@
-import React, { useState, useEffect } from "react";
-import PropTypes from "prop-types";
-
-import {
-  Grid,
-  Breadcrumbs,
-  Typography,
-  Container,
-  Tabs,
-  Tab,
-  Box,
-} from "@mui/material";
+import React, { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
+
 import PersonalTab from "./PersonalTab/PersonalTab";
 import AssignedTab from "./AssignedTab/AssiginedTab";
-function TabPanel(props) {
-  const { children, value, index, ...other } = props;
 
-  return (
-    <div
-      role="tabpanel"
-      hidden={value !== index}
-      id={`simple-tabpanel-${index}`}
-      aria-labelledby={`simple-tab-${index}`}
-      {...other}
-    >
-      {value === index && <Typography>{children}</Typography>}
-    </div>
-  );
-}
-
-TabPanel.propTypes = {
-  children: PropTypes.node,
-  index: PropTypes.number.isRequired,
-  value: PropTypes.number.isRequired,
-};
 export default function UserManagment() {
   const { state } = useLocation();
-  // console.log("Chck USer Id ROe", state);
-  const [value, setValue] = React.useState(0);
-  const TabChange = (event, newValue) => {
-    setValue(newValue);
-  };
+  const [activeTab, setActiveTab] = useState(0);
+
   return (
-    <>
-      <Container maxWidth="xl">
-        <Grid container direction="row" className="widthLR-90 mt-24">
-          <Breadcrumbs separator="›" aria-label="breadcrumb">
-            <Link
-              to="/dashboard"
-              className="linkcolor"
-              underline="hover"
-              key="1"
-            >
-              <Typography className="sky-typo fs-16">Dashboard</Typography>
+    <div className="p-6 bg-slate-100 min-h-screen">
+      {/* 🔥 HEADER */}
+      <div className="bg-gradient-to-br from-[#0a192f] to-[#0f3057] rounded-xl p-5 mb-5 shadow">
+        <div className="flex justify-between items-center">
+          {/* Breadcrumb */}
+          <nav className="text-sm text-white/80">
+            <Link to="/dashboard" className="hover:text-white">
+              Dashboard
             </Link>
-            ,
-            <Link
-              to="/user-management"
-              className="linkcolor"
-              underline="hover"
-              key="1"
-            >
-              <Typography className="heading-black   ">
-                User Management
-              </Typography>
+
+            <span className="mx-2">›</span>
+
+            <Link to="/user-management" className="hover:text-white">
+              User Management
             </Link>
-            <Link
-              to="/user-management"
-              state={1}
-              className="linkcolor"
-              underline="hover"
-            >
-              <Typography className="heading-black cursor">User</Typography>{" "}
-            </Link>
-            <Typography className="heading-black  ">
-              {state?.fullName}
-            </Typography>
-          </Breadcrumbs>
-          <Grid container className="mt-16">
-            <Box className="width100 ">
-              <Tabs
-                value={value}
-                onChange={TabChange}
-                className="Tabs-dashboard2"
-              >
-                <Tab
-                  className="Tab-dashboardlabel3  mr-20 fs-16  hover"
-                  label={
-                    <Typography className="sitesname ">
-                      Personal Information
-                    </Typography>
-                  }
-                />
-                <Tab
-                  className="Tab-dashboardlabel3  fs-16 hover"
-                  label={
-                    <Typography className="sitesname ">Assigned</Typography>
-                  }
-                />
-              </Tabs>
-              <TabPanel value={value} index={0}>
-                <PersonalTab state={state} />
-              </TabPanel>
-              <TabPanel value={value} index={1}>
-                <AssignedTab state={state} />
-              </TabPanel>
-            </Box>
-          </Grid>
-        </Grid>
-      </Container>
-    </>
+
+            <span className="mx-2">›</span>
+
+            <span className="font-semibold text-white">
+              {state?.fullName} ( {state?.uid} )
+            </span>
+          </nav>
+
+          {/* Title */}
+          <h2 className="text-white text-lg font-semibold">User Details</h2>
+        </div>
+      </div>
+
+      {/* 🔥 MAIN CARD */}
+      <div className="bg-white rounded-xl shadow border border-gray-200 p-6">
+        {/* 🔥 TABS */}
+        <div className="flex gap-3 mb-6">
+          <button
+            onClick={() => setActiveTab(0)}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
+              activeTab === 0
+                ? "bg-gray-700 text-white shadow"
+                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+            }`}
+          >
+            User Information
+          </button>
+
+          <button
+            onClick={() => setActiveTab(1)}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
+              activeTab === 1
+                ? "bg-gray-700 text-white shadow"
+                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+            }`}
+          >
+            Assigned
+          </button>
+        </div>
+
+        {/* 🔥 CONTENT */}
+        <div className="bg-slate-50 rounded-lg p-4 border">
+          {activeTab === 0 && <PersonalTab state={state} />}
+          {activeTab === 1 && <AssignedTab state={state} />}
+        </div>
+      </div>
+    </div>
   );
 }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   Grid,
   Dialog,
@@ -6,10 +6,8 @@ import {
   DialogContent,
   DialogTitle,
   Button,
-  Box,
   IconButton,
   Typography,
-  Tooltip,
   Snackbar,
   Input,
   TextField,
@@ -17,15 +15,13 @@ import {
 import MuiAlert from "@mui/material/Alert";
 
 import PropTypes from "prop-types";
-import { FETCH_URL } from "../../../../../fetchIp";
 import { useForm } from "react-hook-form";
 import { ErrorMessage } from "@hookform/error-message";
-import SuccessDialog from "../../../Dialog/SuceedFullDialog";
-import WrongDiloag from "../../../Dialog/WrongDialog";
 import { styled } from "@mui/material/styles";
 import CloseIcon from "@mui/icons-material/Close";
 //React Icons
-import { RiDeleteBin6Line } from "react-icons/ri";
+import { POST } from "../../../../../lib/request";
+import { API } from "../../../../../lib/endpoint";
 
 const BootstrapDialog = styled(Dialog)(({ theme }) => ({
   "& .MuiDialogContent-root": {
@@ -82,7 +78,7 @@ export default function MaxWidthDialog({
     formState: { errors },
     handleSubmit,
   } = useForm();
-  const [deviceName, setDeviceName] = useState(null);
+  const [deviceName, setDeviceName] = useState("");
   const [nodeUid, setNodeUid] = useState(null);
   const [vmrSensors, setVmrSensors] = useState(null);
   const [resSensors, setResSensors] = useState(null);
@@ -142,80 +138,73 @@ export default function MaxWidthDialog({
     setSnackerropen(false);
     setSnackErrMsg("");
   };
-  const [openDialogName, setOpenDialog] = React.useState(null);
 
-  const CraeteDevice = async () => {
-    let token = JSON.parse(localStorage.getItem("userData")).token;
-    console.log("i am running");
+  const CreateDevice = async () => {
+    if (!state?._id) {
+      console.warn("Site ID missing");
+      return;
+    }
+
+    if (!uidMatch) {
+      setSnackErrMsg("Node UID already exists");
+      setSnackerropen(true);
+      return;
+    }
+
     try {
-      const response = await fetch(`${FETCH_URL}/api/device/createDevice`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          siteId: state._id,
-          deviceName: deviceName,
-          nodeUid: nodeUid,
-          vmrSensors: +vmrSensors,
-          resSensors: +resSensors,
-          spdSensors: +spdSensors,
-          nerSensors: +nerSensors,
-          vmrSensorsThreshold: vmrSensorsThreshold,
-          resSensorsThreshold: +resSensorsThreshold,
-          spdSensorsThreshold: +spdSensorsThreshold,
-          nerSensorsThreshold: +nerSensorsThreshold,
-        }),
+      const resp = await POST(API.DEVICE.CREATE, {
+        siteId: state._id,
+        deviceName,
+        nodeUid,
+        vmrSensors: +vmrSensors,
+        resSensors: +resSensors,
+        spdSensors: +spdSensors,
+        nerSensors: +nerSensors,
+        vmrSensorsThreshold: +vmrSensorsThreshold,
+        resSensorsThreshold: +resSensorsThreshold,
+        spdSensorsThreshold: +spdSensorsThreshold,
+        nerSensorsThreshold: +nerSensorsThreshold,
       });
-      const res = await response.json();
-      if (response.ok) {
-        clearData();
-        setSnackOpen(true);
-        setSnackMsg(res.msg);
-        setOpen(false);
-        getdeviceListbysite();
-        getnumberOfSite();
-      } else {
-        setOpenDialog("reject");
-        setSnackerropen(true);
-        setSnackErrMsg(res.err);
-      }
+
+
+      clearData();
+      setSnackOpen(true);
+      setSnackMsg(resp?.msg || "Device Created Successfully");
+      setOpen(false);
+
+      getdeviceListbysite();
+      getnumberOfSite();
     } catch (error) {
-      console.log("Catch block ====>", error);
+      console.error("Create Device Error =>", error);
+
+      setSnackerropen(true);
+      setSnackErrMsg(error?.msg || "Something went wrong");
     }
   };
 
   const [uidMatch, setUidMatch] = useState(true);
-  const CheckDeviceUid = async () => {
-    let token = JSON.parse(localStorage.getItem("userData")).token;
+
+  const CheckDeviceUid = useCallback(async () => {
+    if (!nodeUid) return; // 🔥 null guard
 
     try {
-      const response = await fetch(`${FETCH_URL}/api/device/checkDeviceUid`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          uid: nodeUid,
-        }),
+      const resp = await POST(API.DEVICE.CHECK_UID, {
+        uid: nodeUid,
       });
-      const res = await response.json();
-      if (response.ok) {
-        // console.log("Check Uid Match Status", res.msg);
-        setUidMatch(res.status);
-      } else {
-      }
+
+
+      setUidMatch(resp?.status);
     } catch (error) {
-      console.log("Catch block ====>", error);
-    }
-  };
-  useEffect(() => {
-    if (open && nodeUid) {
-      CheckDeviceUid(nodeUid);
+      console.error("Check UID Error =>", error);
     }
   }, [nodeUid]);
+
+  useEffect(() => {
+    if (open && nodeUid) {
+      CheckDeviceUid();
+    }
+  }, [nodeUid, open, CheckDeviceUid]);
+
   return (
     <React.Fragment>
       <Snackbar open={snackopen} autoHideDuration={3000} onClose={SnanbarClose}>
@@ -233,8 +222,22 @@ export default function MaxWidthDialog({
         </Alert>
       </Snackbar>
       <Button
-        sx={{ width: "150px" }}
-        className=" skyblue-bg-button fs-16 hover "
+        variant="outlined"
+        sx={{
+          // width: "150px",
+          color: "#1e4976",
+          borderColor: "#1e4976",
+          borderRadius: "6px",
+          fontSize: "16px",
+          fontWeight: 500,
+          textTransform: "none",
+
+          "&:hover": {
+            // backgroundColor: "#1e4976",
+            // color: "#fff",
+            borderColor: "#1e4976",
+          },
+        }}
         onClick={handleClickOpen}
       >
         Add Device
@@ -258,7 +261,7 @@ export default function MaxWidthDialog({
           onClose={handleClose}
         ></BootstrapDialogTitle>
         <div>
-          <form onSubmit={handleSubmit(CraeteDevice)}>
+          <form onSubmit={handleSubmit(CreateDevice)}>
             <DialogContent>
               <Grid container justifyContent="space-between">
                 <Grid item md={5.8}>

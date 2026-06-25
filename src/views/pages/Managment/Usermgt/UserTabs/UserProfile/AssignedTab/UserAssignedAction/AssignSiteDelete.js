@@ -16,13 +16,13 @@ import {
 import MuiAlert from "@mui/material/Alert";
 
 import PropTypes from "prop-types";
-import { FETCH_URL } from "../../../../../fetchIp";
 
 import { styled } from "@mui/material/styles";
 import CloseIcon from "@mui/icons-material/Close";
 //React Icons
 import { RiDeleteBin6Line } from "react-icons/ri";
-
+import { POST } from "../../../../../../../../lib/request";
+import { API } from "../../../../../../../../lib/endpoint";
 const BootstrapDialog = styled(Dialog)(({ theme }) => ({
   "& .MuiDialogContent-root": {
     padding: theme.spacing(2),
@@ -93,31 +93,26 @@ export default function MaxWidthDialog({ SiteId, getnumberOftechnician }) {
   };
 
   const DeleteSite = async () => {
-    let token = JSON.parse(localStorage.getItem("userData")).token;
     try {
-      const response = await fetch(`${FETCH_URL}/api/site/deleteSite`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          siteId: SiteId,
-        }),
+      const res = await POST(API.SITE.DELETE, {
+        siteId: SiteId,
       });
-      const res = await response.json();
-      if (response.ok) {
-        // // console.log(" Delete site resp ===> ", res.msg);
+
+      if (res) {
         setSnackOpen(true);
-        setSnackMsg(res.msg);
+        setSnackMsg(res?.msg || "Site deleted successfully");
+
         setOpen(false);
         getnumberOftechnician();
       } else {
         setSnackerropen(true);
-        setSnackErrMsg(res.err);
+        setSnackErrMsg(res?.err || "Failed to delete site");
       }
     } catch (error) {
-      // console.log("Catch block ====>", error);
+      console.error("DeleteSite error:", error);
+
+      setSnackerropen(true);
+      setSnackErrMsg(error?.msg || "Failed to delete site");
     }
   };
 
@@ -173,7 +168,8 @@ export default function MaxWidthDialog({ SiteId, getnumberOftechnician }) {
             sx={{ padding: "5px 0px" }}
             className="red-br-button width-100 hover-shodow-red"
             onClick={() => {
-              DeleteAlarm();
+              // DeleteAlarm();
+              DeleteSite();
               setOpen(false);
             }}
           >

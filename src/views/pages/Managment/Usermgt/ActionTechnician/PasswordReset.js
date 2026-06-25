@@ -1,347 +1,251 @@
-import React, { useState, useEffect } from "react";
-import {
-  Grid,
-  Backdrop,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  Button,
-  Box,
-  IconButton,
-  Typography,
-  Tooltip,
-  Snackbar,
-  Input,
-} from "@mui/material";
-import MuiAlert from "@mui/material/Alert";
-import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
+"use client";
 
-import PropTypes from "prop-types";
-import { FETCH_URL } from "../../../../../fetchIp";
-import { styled } from "@mui/material/styles";
-import CloseIcon from "@mui/icons-material/Close";
-//React Icons
+import { useState } from "react";
+import { useForm } from "react-hook-form";
 import { RiLockPasswordLine } from "react-icons/ri";
+import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
+import toast from "react-hot-toast";
 
-const BootstrapDialog = styled(Dialog)(({ theme }) => ({
-  "& .MuiDialogContent-root": {
-    padding: theme.spacing(2),
-  },
-  "& .MuiDialogActions-root": {
-    padding: theme.spacing(),
-  },
-}));
+import { POST } from "../../../../../lib/request";
+import { API } from "../../../../../lib/endpoint";
 
-const BootstrapDialogTitle = (props) => {
-  const { children, onClose, ...other } = props;
-
-  return (
-    <DialogTitle className="dialog-title-add" sx={{ m: 0, p: 1.2 }} {...other}>
-      {children}
-      <Typography className="white-typo">
-        {" "}
-        Reset Technician Password{" "}
-      </Typography>
-      {onClose ? (
-        <IconButton
-          aria-label="close"
-          onClick={onClose}
-          className="dialogcrossicon-white"
-        >
-          <CloseIcon />
-        </IconButton>
-      ) : null}
-    </DialogTitle>
-  );
-};
-
-BootstrapDialogTitle.propTypes = {
-  children: PropTypes.node,
-  onClose: PropTypes.func.isRequired,
-};
-const Alert = React.forwardRef(function Alert(props, ref) {
-  return <MuiAlert elevation={6} ref={ref} variant="filled" {...props} />;
-});
-export default function MaxWidthDialog({ techID, getnumberOftechnician }) {
-  const [open, setOpen] = React.useState(false);
-  const [fullWidth] = React.useState(true);
-  const [maxWidth] = React.useState("md");
-  const handleClickOpen = () => {
-    setOpen(true);
-  };
-
-  // SnackBar
-  const [snackopen, setSnackOpen] = useState(false);
-  const [snackmsg, setSnackMsg] = useState("");
-  const [snackErrMsg, setSnackErrMsg] = useState();
-  const [snackerropen, setSnackerropen] = useState(false);
-
-  const SnanbarClose = (event, reason) => {
-    if (reason === "clickaway") {
-      return;
-    }
-    setSnackOpen(false);
-    setSnackMsg("");
-  };
-
-  const SnackbarErrorClose = (event, reason) => {
-    if (reason === "clickaway") {
-      return;
-    }
-    setSnackerropen(false);
-    setSnackErrMsg("");
-  };
+export default function ResetTechnicianPassword({
+  techID,
+  getnumberOftechnician,
+}) {
+  const [open, setOpen] = useState(false);
   const [show, setShow] = useState(false);
-  const [showconfrim, setShowConfrim] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
-  const [passwordValue, setPasswordValue] = useState(null);
-  const [confirmPasswordValue, setConfirmPasswordValue] = useState(null);
-  const [passwordError, setPasswordErr] = useState("");
-  const [confirmPasswordError, setConfirmPasswordError] = useState("");
-  const [passwordInput, setPasswordInput] = useState({
-    password: "",
-    confirmPassword: "",
-  });
+  const {
+    register,
+    handleSubmit,
+    watch,
+    reset,
+    formState: { errors },
+  } = useForm();
 
-  const handlePasswordChange = (evnt) => {
-    const passwordInputValue = evnt.target.value.trim();
-    const passwordInputFieldName = evnt.target.name;
-    const NewPasswordInput = {
-      ...passwordInput,
-      [passwordInputFieldName]: passwordInputValue,
-    };
-    setPasswordInput(NewPasswordInput);
+  const password = watch("password") || "";
+
+  // 🔥 Live validation logic
+  const validations = {
+    length: password.length >= 8,
+    upper: /[A-Z]/.test(password),
+    lower: /[a-z]/.test(password),
+    number: /\d/.test(password),
+    special: /[#?!@$%^&*-]/.test(password),
   };
-  const handleValidation = (evnt) => {
-    const passwordInputValue = evnt.target.value.trim();
-    const passwordInputFieldName = evnt.target.name;
-    //for password
-    if (passwordInputFieldName === "password") {
-      const uppercaseRegExp = /(?=.*?[A-Z])/;
-      const lowercaseRegExp = /(?=.*?[a-z])/;
-      const digitsRegExp = /(?=.*?[0-8])/;
-      const specialCharRegExp = /(?=.*?[#?!@$%^&*-])/;
-      const minLengthRegExp = /.{6,}/;
-      const passwordLength = passwordInputValue.length;
-      const uppercasePassword = uppercaseRegExp.test(passwordInputValue);
-      const lowercasePassword = lowercaseRegExp.test(passwordInputValue);
-      const digitsPassword = digitsRegExp.test(passwordInputValue);
-      const specialCharPassword = specialCharRegExp.test(passwordInputValue);
-      const minLengthPassword = minLengthRegExp.test(passwordInputValue);
-      let errMsg = "";
-      if (passwordLength === 0) {
-        errMsg = "Password can not  empty";
-      } else if (!uppercasePassword) {
-        errMsg = "At least one Uppercase";
-      } else if (!lowercasePassword) {
-        errMsg = "At least one Lowercase";
-      } else if (!digitsPassword) {
-        errMsg = "At least one digit";
-      } else if (!specialCharPassword) {
-        errMsg = "At least one Special Characters";
-      } else if (!minLengthPassword) {
-        errMsg = "At least minumum 6 characters";
-      } else {
-        errMsg = "";
-      }
-      setPasswordErr(errMsg);
-    }
-    // for confirm password
-    if (
-      passwordInputFieldName === "confirmPassword" ||
-      (passwordInputFieldName === "password" &&
-        passwordInput.confirmPassword.length > 0)
-    ) {
-      if (passwordInput.confirmPassword !== passwordInput.password) {
-        setConfirmPasswordError("Confirm password is not matched");
-      } else {
-        setConfirmPasswordError("");
-      }
-    }
-  };
-  const newPassword = passwordInput.confirmPassword;
 
-  const CraeteTechnician = async () => {
-    let token = JSON.parse(localStorage.getItem("userData")).token;
-    if (
-      passwordInput.password.length === 0 &&
-      passwordInput.confirmPassword.length === 0
-    ) {
-      setPasswordErr("Password is required");
-      setConfirmPasswordError(" Confirm password is required");
-      return;
-    }
-    if (passwordInput.confirmPassword !== passwordInput.password) {
-      setConfirmPasswordError("Confirm password is not matched");
-      return;
-    }
-    if (passwordInput.confirmPassword.length < 8) {
-      setConfirmPasswordError("At least minumum 8 characters");
-      return;
-    }
-    if (passwordInput.confirmPassword.length < 8) {
-      setConfirmPasswordError("At least minumum 8 characters");
-      return;
-    }
+  const isPasswordValid =
+    validations.length &&
+    validations.upper &&
+    validations.lower &&
+    validations.number &&
+    validations.special;
+
+  const onSubmit = async (data) => {
     try {
-      const response = await fetch(`${FETCH_URL}/api/user/resetPassword`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          userId: techID,
-          password: newPassword,
-        }),
+      const res = await POST(API.USERS.RESET_PASSWORD, {
+        userId: techID,
+        password: data.password,
       });
-      const res = await response.json();
-      if (response.ok) {
-        setSnackOpen(true);
-        setSnackMsg(res.msg);
+
+      if (res) {
+        toast.success(res?.msg || "Password reset successfully");
         setOpen(false);
+        reset();
         getnumberOftechnician();
       } else {
-        setSnackerropen(true);
-        setSnackErrMsg(res.err);
+        toast.error(res?.err || "Failed to reset password");
       }
     } catch (error) {
-      // console.log("Catch block ====>", error);
+      console.error(error);
+      toast.error("Something went wrong");
     }
   };
+
   const handleClose = () => {
     setOpen(false);
+    reset();
     setShow(false);
-    setShowConfrim(false);
-    setPasswordInput({ password: "", confirmPassword: "" });
+    setShowConfirm(false);
   };
+
   return (
-    <React.Fragment>
-      <Snackbar open={snackopen} autoHideDuration={3000} onClose={SnanbarClose}>
-        <Alert onClose={SnanbarClose} severity={"success"}>
-          {snackmsg}
-        </Alert>
-      </Snackbar>
-      <Snackbar
-        open={snackerropen}
-        autoHideDuration={8000}
-        onClose={SnackbarErrorClose}
+    <>
+      {/* Button */}
+      <button
+        onClick={() => setOpen(true)}
+        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition"
+        title="Reset Password"
       >
-        <Alert onClose={SnackbarErrorClose} severity={"error"}>
-          {snackErrMsg}
-        </Alert>
-      </Snackbar>
-      <Tooltip title="Password" className="tooltipheight">
-        <IconButton className="mt-5px icons-blue" onClick={handleClickOpen}>
-          <RiLockPasswordLine />
-        </IconButton>
-      </Tooltip>
+        <RiLockPasswordLine size={20} />
+      </button>
 
-      <BootstrapDialog
-        fullWidth={fullWidth}
-        maxWidth={maxWidth}
-        open={open}
-        onClose={handleClose}
-        PaperProps={{
-          className: "SmallDialog",
-        }}
-      >
-        <BootstrapDialogTitle onClose={handleClose}> </BootstrapDialogTitle>
-        <DialogContent className="mt-16">
-          <Grid container justifyContent="space-between">
-            <Grid item md={5.8}>
-              <Typography className="heading-black mt-12">
-                New Password
-              </Typography>
-              <Grid sx={{ position: "relative" }}>
-                <Input
-                  className=" input-style-1c mt-12 width100"
-                  type={show ? "text" : "password"}
-                  // type="password"
-                  disableUnderline
-                  //   onChange={passwordChange}
-                  // {...register("singleErrorInput", {
-                  //   required: "This is required.",
-                  // })}
-                  value={passwordValue}
-                  onChange={handlePasswordChange}
-                  onKeyUp={handleValidation}
-                  name="password"
-                />
-                <Typography
-                  sx={{ position: "absolute", top: 18, right: 5 }}
-                  align="right"
-                  className="fs-24 cursor-point "
-                  onClick={() => setShow(!show)}
-                >
-                  {show ? (
-                    <AiOutlineEye color="grey" />
-                  ) : (
-                    <AiOutlineEyeInvisible color="grey" />
-                  )}
-                </Typography>
-                <Typography className="red-typo">{passwordError}</Typography>{" "}
-              </Grid>
-            </Grid>
+      {/* Modal */}
+      {open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="bg-white w-full max-w-lg rounded-xl shadow-xl p-6">
+            {/* Header */}
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-lg font-semibold text-gray-800">
+                Reset Technician Password
+              </h2>
 
-            <Grid item md={5.8}>
-              <Typography className="heading-black mt-12">
-                Confirm password
-              </Typography>
-              <Grid sx={{ position: "relative" }}>
-                <Input
-                  className=" input-style-1c mt-12 width100"
-                  type={showconfrim ? "text" : "password"}
-                  disableUnderline
-                  value={confirmPasswordValue}
-                  onChange={handlePasswordChange}
-                  onKeyUp={handleValidation}
-                  name="confirmPassword"
-                />
-                <Typography
-                  sx={{ position: "absolute", top: 18, right: 5 }}
-                  align="right"
-                  className="fs-24 cursor-point "
-                  onClick={() => setShowConfrim(!showconfrim)}
-                >
-                  {showconfrim ? (
-                    <AiOutlineEye color="grey" />
-                  ) : (
-                    <AiOutlineEyeInvisible color="grey" />
+              <button
+                onClick={handleClose}
+                className="text-gray-500 hover:text-gray-700 text-lg"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmit(onSubmit)}>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Password */}
+                <div>
+                  <label className="text-sm text-gray-600">New Password</label>
+
+                  <div className="relative mt-2">
+                    <input
+                      type={show ? "text" : "password"}
+                      placeholder="Enter strong password"
+                      className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none"
+                      {...register("password", {
+                        required: "Password is required",
+                        pattern: {
+                          value:
+                            /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[#?!@$%^&*-]).{8,}$/,
+                          // message:
+                          //   "Min 8 chars with uppercase, lowercase, number & special character",
+                        },
+                      })}
+                    />
+
+                    <button
+                      type="button"
+                      onClick={() => setShow(!show)}
+                      className="absolute right-3 top-2 text-gray-500"
+                    >
+                      {show ? (
+                        <AiOutlineEye size={20} />
+                      ) : (
+                        <AiOutlineEyeInvisible size={20} />
+                      )}
+                    </button>
+                  </div>
+
+                  {errors.password && (
+                    <p className="text-red-500 text-xs mt-1">
+                      {errors.password.message}
+                    </p>
                   )}
-                </Typography>
-                <Typography className="red-typo">
-                  {confirmPasswordError}
-                </Typography>{" "}
-              </Grid>
-            </Grid>
-          </Grid>
-        </DialogContent>
-        <DialogActions className="hgt-40" sx={{ marginBottom: "10px" }}>
-          <Button
-            sx={{ marginRight: "10px" }}
-            className="  grey-br-button width-100 hover "
-            onClick={handleClose}
-          >
-            Cancel
-          </Button>
-          <Button
-            sx={{ padding: "3px 0px" }}
-            type="submit"
-            className={
-              passwordInput?.confirmPassword?.length < 6
-                ? "skyblue-br-button  width-100 hover"
-                : "skyblue-bg-button   width-100  hover"
-            }
-            onClick={() => {
-              CraeteTechnician();
-            }}
-          >
-            Submit
-          </Button>
-        </DialogActions>
-      </BootstrapDialog>
-    </React.Fragment>
+
+                  {/* 🔥 Live Password Checklist */}
+                  <div className="mt-2 space-y-1 text-xs">
+                    <p
+                      className={
+                        validations.length ? "text-green-600" : "text-gray-400"
+                      }
+                    >
+                      {validations.length ? "✔" : "✖"} At least 8 characters
+                    </p>
+                    <p
+                      className={
+                        validations.upper ? "text-green-600" : "text-gray-400"
+                      }
+                    >
+                      {validations.upper ? "✔" : "✖"} One uppercase letter
+                    </p>
+                    <p
+                      className={
+                        validations.lower ? "text-green-600" : "text-gray-400"
+                      }
+                    >
+                      {validations.lower ? "✔" : "✖"} One lowercase letter
+                    </p>
+                    <p
+                      className={
+                        validations.number ? "text-green-600" : "text-gray-400"
+                      }
+                    >
+                      {validations.number ? "✔" : "✖"} One number
+                    </p>
+                    <p
+                      className={
+                        validations.special ? "text-green-600" : "text-gray-400"
+                      }
+                    >
+                      {validations.special ? "✔" : "✖"} One special character
+                    </p>
+                  </div>
+                </div>
+
+                {/* Confirm Password */}
+                <div>
+                  <label className="text-sm text-gray-600">
+                    Confirm Password
+                  </label>
+
+                  <div className="relative mt-2">
+                    <input
+                      type={showConfirm ? "text" : "password"}
+                      placeholder="Re-enter password"
+                      className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none"
+                      {...register("confirmPassword", {
+                        required: "Confirm password is required",
+                        validate: (value) =>
+                          value === password || "Passwords do not match",
+                      })}
+                    />
+
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirm(!showConfirm)}
+                      className="absolute right-3 top-2 text-gray-500"
+                    >
+                      {showConfirm ? (
+                        <AiOutlineEye size={20} />
+                      ) : (
+                        <AiOutlineEyeInvisible size={20} />
+                      )}
+                    </button>
+                  </div>
+
+                  {errors.confirmPassword && (
+                    <p className="text-red-500 text-xs mt-1">
+                      {errors.confirmPassword.message}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Buttons */}
+              <div className="flex justify-end gap-3 mt-8">
+                <button
+                  type="button"
+                  onClick={handleClose}
+                  className="px-4 py-2 border rounded-lg hover:bg-gray-100 transition"
+                >
+                  Cancel
+                </button>
+
+                <button
+                  type="submit"
+                  disabled={!isPasswordValid}
+                  className={`px-4 py-2 text-white rounded-lg transition shadow-md ${
+                    isPasswordValid
+                      ? "bg-gradient-to-br from-[#0a192f] to-[#0f3057] hover:opacity-90"
+                      : "bg-gray-400 cursor-not-allowed"
+                  }`}
+                >
+                  Submit
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </>
   );
 }

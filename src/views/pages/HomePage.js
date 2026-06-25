@@ -1,209 +1,335 @@
-// Import Server Component
-import React, { useState, useEffect } from "react";
-import PropTypes from "prop-types";
-import { Tabs, Tab, Typography, Grid } from "@mui/material";
-// Import Custom Component
-import { FETCH_URL } from "../../fetchIp";
+"use client";
+
+import React, { useState, useEffect, useRef } from "react";
 
 import DeviceTab from "./HomePageTab/Devicetab/Device";
-import { Container } from "@mui/system";
 import NodataFound from "../../assets/img/nodatafound.png";
 import AddDevice from "./HomePageTab/AddDevice/AddDevice";
 import AddSiteDialog from "./Managment/SitesMgt/AddSite/SitesAddDialog";
 
-function TabPanel(props) {
-  const { children, value, index, ...other } = props;
-  return (
-    <div
-      role="tabpanel"
-      hidden={value !== index}
-      id={`simple-tabpanel-${index}`}
-      aria-labelledby={`simple-tab-${index}`}
-      {...other}
-    >
-      {value === index && <Typography>{children}</Typography>}
-    </div>
-  );
-}
-TabPanel.propTypes = {
-  children: PropTypes.node,
-  index: PropTypes.number.isRequired,
-  value: PropTypes.number.isRequired,
-};
-function a11yProps(index) {
-  return {
-    id: `simple-tab-${index}`,
-    "aria-controls": `simple-tabpanel-${index}`,
-  };
-}
-function App() {
-  const [loading, setLoading] = useState(false);
-  const [value1, setValue1] = React.useState(0);
-  const [value, setValue] = React.useState(0);
-  const [sites, setSites] = useState(null);
-  const [sitesID, setSetID] = useState(null);
+//   FIXED: Import the hook directly instead of individual helper items
+import { useAuth } from "../../context/useAuth";
+
+import { GET } from "../../lib/request";
+import { API } from "../../lib/endpoint";
+
+function Homepage() {
+  const [, setLoading] = useState(false);
+
+  const [value, setValue] = useState(0);
+  const [value1, setValue1] = useState(0);
+
+  const [sites, setSites] = useState([]);
+  const [sitesID, setSitesID] = useState(null);
+
   const [selectSiteData, setSelectSiteData] = useState(null);
   const [sitezero, setSiteZero] = useState(null);
+
   const [deviceID, setDevice] = useState([]);
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 10,
+    total: 0,
+    totalPages: 1,
+  });
 
-  const getnumberOfSite = async () => {
-    setLoading(true);
-    let token = JSON.parse(localStorage.getItem("userData")).token;
-    const response = await fetch(`${FETCH_URL}/api/site/getnumberOfSite`, {
-      method: "GET",
-      headers: {
-        Accept: "application/json",
-        "Content-type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-    });
-    let res = await response.json();
+  //   FIXED: Fetch the active live user state profile from Zustand memory directly
+  const user = useAuth((state) => state.user);
+  const scrollRef = useRef(null);
 
-    if (response.ok) {
-      setSites(res.msg);
-      setSetID(res.msg[0]._id);
-      setSiteZero(res.msg[0]);
-      setLoading(false);
-    } else {
-      // // console.log("Error in get number Of Site ==> ", res);
-    }
-  };
+  // ================= SITE FETCH =================
 
-  const getdeviceListbysite = async (sitesID) => {
-    setLoading(true);
-    let token = JSON.parse(localStorage.getItem("userData")).token;
+  const getnumberOfSite = async (page = 1) => {
     try {
-      const response = await fetch(
-        `${FETCH_URL}/api/device/getdeviceListbysiteId/${sitesID}`,
-        {
-          method: "GET",
-          headers: {
-            Accept: "application/json",
-            "Content-type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
+      setLoading(true);
+
+      const resp = await GET(`${API.SITE.COUNT}?page=${page}&limit=10`);
+
+      if (Array.isArray(resp?.msg)) {
+        setSites(resp.msg);
+        setPagination(resp.pagination);
+
+        if (resp.msg.length > 0) {
+          const firstActiveSite =
+            resp.msg.find((site) => site.deviceCount > 0) || resp.msg[0];
+          setSitesID(firstActiveSite?._id);
+          setSiteZero(firstActiveSite);
+          setSelectSiteData(firstActiveSite);
+          const index = resp.msg.findIndex(
+            (site) => site._id === firstActiveSite._id,
+          );
+          setValue(index);
         }
-      );
-      let res = await response.json();
-      if (response.ok) {
-        setDevice(res.msg);
-        setLoading(false);
-      } else {
-        // // console.log("Error in get device List by site Id ==> ", res);
       }
     } catch (err) {
-      console.log("Error in get device List by site Id ==> ", err);
+      console.error("Error loading telemetry sites grid:", err);
+    } finally {
+      setLoading(false);
     }
   };
+
+  // ================= DEVICE FETCH =================
+
+  const getdeviceListbysite = async (siteId) => {
+    if (!siteId) return;
+
+    try {
+      setLoading(true);
+
+      const resp = await GET(API.DEVICE.LIST_BY_SITEID(siteId));
+      setDevice(Array.isArray(resp?.msg) ? resp.msg : []);
+    } catch (err) {
+      console.error("Error reading hardware nodes dataset:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ================= EFFECTS =================
+
   useEffect(() => {
     getnumberOfSite();
   }, []);
+
+  useEffect(() => {
+    if (sitesID) {
+      getdeviceListbysite(sitesID);
+    }
+  }, [sitesID]);
+
   useEffect(() => {
     setValue1(0);
   }, [value, deviceID]);
-  const TabChange = (event, newValue) => {
-    setValue(newValue);
-    setSelectSiteData(sites[newValue]);
-    getdeviceListbysite(sites[newValue]._id);
+
+  // ================= TAB CHANGE =================
+
+  const TabChange = (index) => {
+    setValue(index);
+    const selectedSite = sites[index];
+    setSelectSiteData(selectedSite);
+    setSitesID(selectedSite?._id);
   };
-  useEffect(() => {
-    getnumberOfSite();
-  }, [selectSiteData]);
-  useEffect(() => {
-    getdeviceListbysite(sitesID);
-  }, [sitesID]);
+
+  // ================= UI =================
 
   return (
-    <>
+    <div className="mx-auto px-4 py-6">
       {sites?.length > 0 ? (
-        <Container maxWidth="xl">
-          <Grid container className="widthLR-80">
-            <Tabs
-              value={value}
-              onChange={TabChange}
-              className="Tabs-dashboard hgt-48"
-              variant="scrollable"
-              scrollButtons="auto"
-              aria-label="scrollable auto tabs example"
-            >
-              {sites?.length > 0 &&
-                sites?.map((data, index) => {
-                  return (
-                    <Tab
-                      className="Tab-dashboardlabel fs-20  mr-20 hover hgt-40"
-                      {...a11yProps(index)}
-                      label={
-                        <>
-                          <Typography className="sitesname">
-                            {data?.siteName}
-                            <span className="count-bg">
-                              {data?.deviceCount}
-                            </span>
-                          </Typography>
-                        </>
-                      }
-                    />
-                  );
-                })}
-            </Tabs>
-          </Grid>
-          {deviceID && deviceID?.length > 0 ? (
-            <TabPanel value={value} index={value} className="width100">
+        <>
+          {/* ================= SITE SECTION ================= */}
+          <div
+            className="rounded-xl p-5 mb-6
+  bg-gradient-to-r from-[#0a192f] to-[#0f3057]
+  shadow-lg border border-[#1f4068]"
+          >
+            {/* Header row */}
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-semibold text-white">Sites</h2>
+
+              {/*   Secure matrix handles dynamic roles filtering safely now */}
+              {user?.role !== "user" && user?.role !== "technician" && (
+                <AddSiteDialog
+                  getnumberOfSite={getnumberOfSite}
+                  buttonClass="px-4 py-1.5
+          border border-white
+          text-white text-sm font-semibold
+          rounded-lg
+          hover:bg-blue-900 transition-colors duration-200"
+                />
+              )}
+            </div>
+
+            {/* Tabs Container */}
+            <div className="flex items-center gap-2">
+              <div
+                ref={scrollRef}
+                className="flex-1 flex justify-center gap-2 overflow-x-auto scroll-smooth py-0.5"
+                style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+              >
+                <style>{`.tab-track::-webkit-scrollbar{display:none}`}</style>
+
+                {sites.map((site, index) => (
+                  <button
+                    key={site._id}
+                    onClick={() => TabChange(index)}
+                    className={`flex-shrink-0 flex items-center gap-6
+            px-4 py-2 rounded-lg whitespace-nowrap
+            transition-all duration-200 font-medium text-sm
+            ${
+              value === index
+                ? "bg-white text-[#0f3057] shadow-md"
+                : "bg-[#1f4068] text-white hover:bg-[#274c77]"
+            }`}
+                  >
+                    <span className="max-w-[200px] truncate">
+                      {site.siteName}
+                    </span>
+                    <span
+                      className={`text-xs px-2 py-0.5 rounded-full font-semibold flex-shrink-0
+              ${
+                value === index
+                  ? "bg-[#0f3057] text-white"
+                  : "bg-white text-[#0f3057]"
+              }`}
+                    >
+                      {site.deviceCount}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Pagination Controls */}
+            {pagination.totalPages > 1 && (
+              <div className="flex items-center justify-between mt-5 pt-4 border-t border-[#1f4068]">
+                <span className="text-sm text-white">
+                  Page {pagination.page} of {pagination.totalPages}
+                  <span className="ml-2 text-white">
+                    ({pagination.total} sites total)
+                  </span>
+                </span>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    disabled={pagination.page === 1}
+                    onClick={() => getnumberOfSite(1)}
+                    className="px-3 py-1.5 rounded text-sm font-medium border border-[#274c77] text-white disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[#274c77] transition"
+                  >
+                    «
+                  </button>
+
+                  <button
+                    disabled={pagination.page === 1}
+                    onClick={() => getnumberOfSite(pagination.page - 1)}
+                    className="px-3 py-1.5 rounded text-sm font-medium border border-[#274c77] text-white disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[#274c77] transition"
+                  >
+                    ‹
+                  </button>
+
+                  {Array.from(
+                    { length: pagination.totalPages },
+                    (_, i) => i + 1,
+                  )
+                    .filter((p) => {
+                      const cur = pagination.page;
+                      return (
+                        p === 1 ||
+                        p === pagination.totalPages ||
+                        Math.abs(p - cur) <= 1
+                      );
+                    })
+                    .reduce((acc, p, idx, arr) => {
+                      if (idx > 0 && p - arr[idx - 1] > 1) acc.push("...");
+                      acc.push(p);
+                      return acc;
+                    }, [])
+                    .map((p, idx) =>
+                      p === "..." ? (
+                        <span
+                          key={`ellipsis-${idx}`}
+                          className="px-2 text-blue-400/60 text-sm"
+                        >
+                          …
+                        </span>
+                      ) : (
+                        <button
+                          key={p}
+                          onClick={() => getnumberOfSite(p)}
+                          className={`w-9 h-9 rounded text-sm font-semibold border transition ${
+                            pagination.page === p
+                              ? "bg-white text-[#0f3057] border-white"
+                              : "border-[#274c77] text-white hover:bg-[#274c77]"
+                          }`}
+                        >
+                          {p}
+                        </button>
+                      ),
+                    )}
+
+                  <button
+                    disabled={pagination.page === pagination.totalPages}
+                    onClick={() => getnumberOfSite(pagination.page + 1)}
+                    className="px-3 py-1.5 rounded text-sm font-medium border border-[#274c77] text-white disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[#274c77] transition"
+                  >
+                    ›
+                  </button>
+
+                  <button
+                    disabled={pagination.page === pagination.totalPages}
+                    onClick={() => getnumberOfSite(pagination.totalPages)}
+                    className="px-3 py-1.5 rounded text-sm font-medium border border-[#274c77] text-white disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[#274c77] transition"
+                  >
+                    »
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* ================= DEVICE SECTION ================= */}
+          <div className="bg-white rounded-xl shadow border p-5">
+            <div className="flex justify-between items-center">
+              <h2 className="text-lg font-bold text-[#0f3057]">Devices</h2>
+
+              {user?.role !== "user" && user?.role !== "technician" && (
+                <AddDevice
+                  getnumberOfSite={getnumberOfSite}
+                  getdeviceListbysite={getdeviceListbysite}
+                  state={selectSiteData}
+                  sitezero={sitezero}
+                  value={value}
+                />
+              )}
+            </div>
+
+            {/* Device List Grid Rendering */}
+            {deviceID?.length > 0 ? (
               <DeviceTab
                 deviceID={deviceID}
                 value1={value1}
                 setValue1={setValue1}
               />
-            </TabPanel>
-          ) : (
-            <Grid
-              container
-              direction="row"
-              justifyContent="center"
-              alignItems="center"
-              sx={{ height: "80vh" }}
-            >
-              <Grid item>
-                <img alt="NodataFound" src={NodataFound} />
-                <Typography align="center" className="mt-16 blue-typo">
-                  No Device found! <br />
-                  Click below button to add Device
-                </Typography>
-                <Typography align="center" className="mt-16 blue-typo">
-                  <AddDevice
-                    getnumberOfSite={getnumberOfSite}
-                    getdeviceListbysite={getdeviceListbysite}
-                    state={selectSiteData}
-                    sitezero={sitezero}
-                    value={value}
-                  />
-                </Typography>
-              </Grid>
-            </Grid>
-          )}
-        </Container>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-16">
+                <img
+                  src={NodataFound}
+                  alt="No Device"
+                  className="w-48 opacity-70"
+                />
+                <p className="mt-4 text-gray-600">No Device found</p>
+
+                {user?.role !== "user" && user?.role !== "technician" && (
+                  <div className="mt-4">
+                    <AddDevice
+                      getnumberOfSite={getnumberOfSite}
+                      getdeviceListbysite={getdeviceListbysite}
+                      state={selectSiteData}
+                      sitezero={sitezero}
+                      value={value}
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </>
       ) : (
-        <Grid
-          container
-          direction="row"
-          justifyContent="center"
-          alignItems="center"
-          sx={{ height: "80vh" }}
-        >
-          <Grid item>
-            <img alt="NodataFound" src={NodataFound} />
-            <Typography align="center" className="mt-16 blue-typo">
-              No Site found!
-              <br />
-              Click below button to add Site
-            </Typography>
-            <Typography align="center" className="mt-16">
-              <AddSiteDialog getnumberOfSite={getnumberOfSite} />
-            </Typography>
-          </Grid>
-        </Grid>
+        <div className="flex flex-col items-center justify-center h-[80vh]">
+          <img src={NodataFound} alt="No Site" className="w-52 opacity-70" />
+          <p className="mt-4 text-gray-600">No Site found</p>
+
+          {user?.role !== "user" && user?.role !== "technician" && (
+            <div className="mt-4">
+              <AddSiteDialog
+                getnumberOfSite={getnumberOfSite}
+                buttonClass="px-5 py-2 bg-blue-400 border border-white-900 text-white text-sm font-semibold bg-blue-800 rounded-lg transition-all duration-200 hover:bg-blue-900 hover:text-white"
+              />
+            </div>
+          )}
+        </div>
       )}
-    </>
+    </div>
   );
 }
-export default App;
+
+export default Homepage;

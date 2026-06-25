@@ -1,606 +1,265 @@
-import React, { useState, useEffect } from "react";
-import {
-  Grid,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  Button,
-  Box,
-  IconButton,
-  Typography,
-  Snackbar,
-  RadioGroup,
-  FormLabel,
-  ListItemButton,
-  FormControlLabel,
-  Radio,
-  Checkbox,
-  Tab,
-  Tabs,
-  Tooltip,
-} from "@mui/material";
-import MuiAlert from "@mui/material/Alert";
-import PropTypes from "prop-types";
-import { FETCH_URL } from "../../../../../../../../fetchIp";
-import { styled } from "@mui/material/styles";
-import CloseIcon from "@mui/icons-material/Close";
+"use client";
+
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { POST } from "../../../../../../../../lib/request";
+import { API } from "../../../../../../../../lib/endpoint";
 import { CiEdit } from "react-icons/ci";
+import toast from "react-hot-toast";
 
-const BootstrapDialog = styled(Dialog)(({ theme }) => ({
-  "& .MuiDialogContent-root": {
-    padding: theme.spacing(2),
-  },
-  "& .MuiDialogActions-root": {
-    padding: theme.spacing(),
-  },
-}));
-
-const BootstrapDialogTitle = (props) => {
-  const { children, onClose, ...other } = props;
-
-  return (
-    <DialogTitle className="dialog-title-add" sx={{ m: 0, p: 1.2 }} {...other}>
-      {children}
-      <Typography className="white-typo">Edit Sensor </Typography>{" "}
-      {onClose ? (
-        <IconButton
-          aria-label="close"
-          onClick={onClose}
-          className="dialogcrossicon-white"
-        >
-          <CloseIcon className="fs-20" />
-        </IconButton>
-      ) : null}
-    </DialogTitle>
-  );
-};
-
-BootstrapDialogTitle.propTypes = {
-  children: PropTypes.node,
-  onClose: PropTypes.func.isRequired,
-};
-const Alert = React.forwardRef(function Alert(props, ref) {
-  return <MuiAlert elevation={6} ref={ref} variant="filled" {...props} />;
-});
-
-function TabPanel(props) {
-  const { children, value, index, ...other } = props;
-
-  return (
-    <div
-      role="tabpanel"
-      hidden={value !== index}
-      id={`simple-tabpanel-${index}`}
-      aria-labelledby={`simple-tab-${index}`}
-      {...other}
-    >
-      {value === index && <Typography>{children}</Typography>}
-    </div>
-  );
-}
-
-TabPanel.propTypes = {
-  children: PropTypes.node,
-  index: PropTypes.number.isRequired,
-  value: PropTypes.number.isRequired,
-};
-
-export default function MaxWidthDialog({
+export default function EditSensorDialog({
   getdevicebyuserId,
   UserId,
   device,
   SiteName,
   selectUid,
 }) {
-  const [open, setOpen] = React.useState(false);
-  const [fullWidth] = React.useState(true);
-  const [maxWidth] = React.useState("md");
-  const handleClickOpen = () => {
-    setOpen(true);
-  };
+  const [open, setOpen] = useState(false);
+  const [tab, setTab] = useState(0);
 
-  const handleClose = () => {
-    setOpen(false);
-  };
-
-  const [value, setValue] = React.useState(0);
-  const TabChange = (event, newValue) => {
-    setValue(newValue);
-  };
-
-  // SnackBar
-  const [snackopen, setSnackOpen] = useState(false);
-  const [snackmsg, setSnackMsg] = useState("");
-  const [snackErrMsg, setSnackErrMsg] = useState();
-  const [snackerropen, setSnackerropen] = useState(false);
-
-  const SnanbarClose = (event, reason) => {
-    if (reason === "clickaway") {
-      return;
-    }
-    setSnackOpen(false);
-    setSnackMsg("");
-  };
-
-  const SnackbarErrorClose = (event, reason) => {
-    if (reason === "clickaway") {
-      return;
-    }
-    setSnackerropen(false);
-    setSnackErrMsg("");
-  };
-  const [siteid, setSitesid] = useState(null);
-  // For Last Step
-  // Data For Backend
-  const [resValue, setResValue] = React.useState([]);
+  const [resValue, setResValue] = useState([]);
   const [spdNumber, setSpdNumber] = useState([]);
   const [gnNumber, setGnNumber] = useState([]);
   const [phaseNumber, setPhaseNumber] = useState([]);
-  // // console.log("Check Save  resValue", resValue);
-  function storeResValue(e, data, i) {
-    let storeArr = [...resValue];
-    let Element = storeArr.findIndex((item) => item === data);
-    if (Element >= 0) {
-      storeArr.splice(Element, 1);
-    } else {
-      storeArr.push(data);
-    }
-    setResValue(storeArr);
-  }
 
-  function storeSpdValue(e, data, i) {
-    let storeArr = [...spdNumber];
-    let Element = storeArr.findIndex((item) => item === data);
-    if (Element >= 0) {
-      storeArr.splice(Element, 1);
-    } else {
-      storeArr.push(data);
-    }
-    setSpdNumber(storeArr);
-  }
+  //    FIX: default empty array (NOT null)
+  const [getSelectSensor, setGetSelectSensor] = useState([]);
 
-  function storeGnValue(e, data, i) {
-    let storeArr = [...gnNumber];
-    let Element = storeArr.findIndex((item) => item === data);
-    if (Element >= 0) {
-      storeArr.splice(Element, 1);
-    } else {
-      storeArr.push(data);
-    }
-    setGnNumber(storeArr);
-  }
+  // ================= VALUES =================
+  const rValue = useMemo(
+    () =>
+      Array.from(
+        { length: Number(device?.resSensors || 0) },
+        (_, i) => `R${i + 1}`,
+      ),
+    [device?.resSensors],
+  );
 
-  function storePhaseValue(e, data, i) {
-    let storeArr = [...phaseNumber];
-    let Element = storeArr.findIndex((item) => item === data);
-    if (Element >= 0) {
-      storeArr.splice(Element, 1);
-    } else {
-      storeArr.push(data);
-    }
-    setPhaseNumber(storeArr);
-  }
+  const gnValue = useMemo(
+    () =>
+      Array.from(
+        { length: Number(device?.nerSensors || 0) },
+        (_, i) => `GN${i + 1}`,
+      ),
+    [device?.nerSensors],
+  );
 
-  const [getSelectSensor, setGetSelectSensor] = useState(null);
+  const vmrValue = useMemo(
+    () =>
+      Array.from(
+        { length: Number(device?.vmrSensors || 0) },
+        (_, i) => `PH${i + 1}`,
+      ),
+    [device?.vmrSensors],
+  );
+
+  const spValue = useMemo(
+    () =>
+      Array.from(
+        { length: Number(device?.spdSensors || 0) },
+        (_, i) => `SPD${i + 1}`,
+      ),
+    [device?.spdSensors],
+  );
+
+  // ================= FETCH =================
+  const EditDeviceData = useCallback(async () => {
+    try {
+      const res = await POST(API.USERS.GET_ASSIGNED_SENSOR, {
+        userId: UserId,
+        deviceId: device?._id,
+      });
+
+      // console.log("API RESPONSE:", res);
+      toast.success("Sensor data fetched successfully");
+      //    FIX: always array
+      setGetSelectSensor(Array.isArray(res?.msg) ? res.msg : []);
+    } catch (err) {
+      setGetSelectSensor([]);
+    }
+  }, [UserId, device?._id]);
+
   useEffect(() => {
-    EditDeviceData();
-  }, []);
+    if (open) EditDeviceData();
+  }, [open, EditDeviceData]);
 
-  // Sensor Value Show Function Start
-  const [rValue, setRValue] = useState([]);
-  function setResSensor() {
-    let arr = [];
-    for (let i = 0; i < new Array(device?.resSensors).length; i++) {
-      arr.push(`R${i + 1}`);
-    }
-    setRValue(arr);
-  }
+  // ================= SET VALUES =================
+  useEffect(() => {
+    if (Array.isArray(getSelectSensor) && getSelectSensor.length > 0) {
+      const sensor = getSelectSensor[0];
 
-  const [gnValue, setGnValue] = useState([]);
-  function setGnSensor() {
-    let arr = [];
-    for (let i = 0; i < new Array(device?.nerSensors).length; i++) {
-      arr.push(`GN${i + 1}`);
-    }
-    setGnValue(arr);
-  }
-  const [vmrValue, setVmrValue] = useState([]);
-  function setVmrSensor() {
-    let arr = [];
-    for (let i = 0; i < new Array(device?.vmrSensors).length; i++) {
-      arr.push(`PH${i + 1}`);
-    }
-    setVmrValue(arr);
-  }
-  const [spValue, setSPalue] = useState([]);
-  function setSpdSensor() {
-    let arr = [];
-    for (let i = 0; i < new Array(device?.spdSensors).length; i++) {
-      arr.push(`SPD${i + 1}`);
-    }
-    setSPalue(arr);
-  }
-
-  React.useEffect(() => {
-    setResSensor();
-    setVmrSensor();
-    setSpdSensor();
-    setGnSensor();
-  }, [device]);
-
-  const EditDeviceData = async () => {
-    let token = JSON.parse(localStorage.getItem("userData")).token;
-    try {
-      const response = await fetch(`${FETCH_URL}/api/user/getassignSensor`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          userId: UserId,
-          deviceId: device?._id,
-        }),
-      });
-      const res = await response.json();
-      if (response.ok) {
-        // console.log("Check Res EditDevice Data", res.msg);
-        setGetSelectSensor(res.msg);
-      } else {
-        // // console.log
-        setSnackErrMsg(res.err);
-      }
-    } catch (error) {
-      // console.log("Catch block ====>", error);
-    }
-  };
-  const EditDevice = async () => {
-    let token = JSON.parse(localStorage.getItem("userData")).token;
-    try {
-      const response = await fetch(`${FETCH_URL}/api/user/assignDeviceSensor`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          userId: UserId,
-          deviceId: device?._id,
-          phaseNumber: phaseNumber,
-          resistanceNumber: resValue,
-          spdNumber: spdNumber,
-          gnNumber: gnNumber,
-        }),
-      });
-      const res = await response.json();
-      if (response.ok) {
-        setSnackOpen(true);
-        setSnackMsg(res.msg);
-        setOpen(false);
-        EditDeviceData();
-      } else {
-        setSnackerropen(true);
-        setSnackErrMsg(res.err);
-      }
-    } catch (error) {
-      // console.log("Catch block ====>", error);
-    }
-  };
-
-  React.useEffect(() => {
-    // console.log("React.useEffect  getSelectSensor", getSelectSensor?.length);
-    if (getSelectSensor?.length > 0) {
-      // console.log("getSelectSensor ===> ", getSelectSensor);
-      setResValue(getSelectSensor[0]?.resistanceNumber);
-      setSpdNumber(getSelectSensor[0]?.spdNumber);
-      setGnNumber(getSelectSensor[0]?.gnNumber);
-      setPhaseNumber(getSelectSensor[0]?.phaseNumber);
+      setResValue(sensor?.resistanceNumber || []);
+      setSpdNumber(sensor?.spdNumber || []);
+      setGnNumber(sensor?.gnNumber || []);
+      setPhaseNumber(sensor?.phaseNumber || []);
+    } else {
+      //    reset if no data
+      setResValue([]);
+      setSpdNumber([]);
+      setGnNumber([]);
+      setPhaseNumber([]);
     }
   }, [getSelectSensor]);
 
-  return (
-    <React.Fragment>
-      <Snackbar open={snackopen} autoHideDuration={3000} onClose={SnanbarClose}>
-        <Alert onClose={SnanbarClose} severity={"success"}>
-          {snackmsg}
-        </Alert>
-      </Snackbar>
-      <Snackbar
-        open={snackerropen}
-        autoHideDuration={8000}
-        onClose={SnackbarErrorClose}
-      >
-        <Alert onClose={SnackbarErrorClose} severity={"error"}>
-          {snackErrMsg}
-        </Alert>
-      </Snackbar>
-      <Tooltip title="Edit" className="tooltipheight">
-        <IconButton className="mt-5px icons-blue" onClick={handleClickOpen}>
-          <CiEdit />
-        </IconButton>
-      </Tooltip>
-      <BootstrapDialog
-        fullWidth={fullWidth}
-        maxWidth={maxWidth}
-        open={open}
-        onClose={handleClose}
-        PaperProps={{
-          className: "SmallDialog",
-        }}
-      >
-        <BootstrapDialogTitle
-          id="customized-dialog-title"
-          onClose={handleClose}
-        ></BootstrapDialogTitle>{" "}
-        <DialogContent sx={{ m: 0 }}>
-          <Grid container className="mt-32">
-            <Grid item>
-              <RadioGroup
-                row
-                aria-labelledby="demo-radio-buttons-group-label"
-                name="radio-buttons-group"
-                className="width100"
-              >
-                <Typography
-                  sx={{ marginLeft: "20px" }}
-                  className="heading-black width100"
-                >
-                  Selected Site
-                </Typography>
-                <Grid
-                  item
-                  sx={{
-                    border: "1px solid #dddddd",
-                    marginLeft: "20px",
-                  }}
-                  className="access-radio-grid-no-mt mt-8"
-                >
-                  <Grid container justifyContent="space-between">
-                    <FormLabel>
-                      <ListItemButton>
-                        <Typography className=" heading-black">
-                          {SiteName}
-                          <Typography className="subheading-grey600">
-                            {selectUid}
-                          </Typography>
-                        </Typography>
-                      </ListItemButton>
-                    </FormLabel>
-                    <FormControlLabel
-                      // value={sitesData}
-                      className="radiostyle access-radio-formcontrolabel"
-                      control={<Radio checked={true} />}
-                      style={{ justifyContent: "space-between" }}
-                      // key={sitesData}
-                    />
-                  </Grid>
-                </Grid>
-              </RadioGroup>{" "}
-            </Grid>
-            <Grid item>
-              <RadioGroup
-                row
-                aria-labelledby="demo-radio-buttons-group-label"
-                name="radio-buttons-group"
-                className="width100"
-              >
-                <Typography className="heading-black width100">
-                  Selected Device
-                </Typography>
-                <Grid
-                  item
-                  sx={{
-                    border: "1px solid #dddddd",
-                  }}
-                  className="access-radio-grid-no-mt mt-8"
-                >
-                  <Grid container justifyContent="space-between">
-                    <FormLabel>
-                      <ListItemButton>
-                        <Typography className=" heading-black">
-                          {device.deviceName}
-                          <Typography className="subheading-grey600">
-                            {device.nodeUid}{" "}
-                          </Typography>
-                        </Typography>
-                      </ListItemButton>
-                    </FormLabel>
-                    <FormControlLabel
-                      value={device.deviceName}
-                      className="radiostyle access-radio-formcontrolabel"
-                      control={<Radio checked={true} />}
-                      style={{ justifyContent: "space-between" }}
-                      key={device.deviceName}
-                    />
-                  </Grid>
-                </Grid>
-              </RadioGroup>
-            </Grid>
-          </Grid>
+  // ================= UPDATE =================
+  const EditDevice = async () => {
+    try {
+      await POST(API.USERS.ASSIGN_DEVICE_SENSOR, {
+        userId: UserId,
+        deviceId: device?._id,
+        phaseNumber,
+        resistanceNumber: resValue,
+        spdNumber,
+        gnNumber,
+      });
 
-          <Box className="tab-user-box mt-24">
-            <Tabs
-              value={value}
-              onChange={TabChange}
-              className="Tabs-dashboard2"
-              style={{ padding: "0px 10px" }}
-            >
-              <Tab
-                className="Tab-dashboardlabel-sensor  fs-16"
-                label="Resistance "
-              />
-              <Tab className="Tab-dashboardlabel-sensor  fs-16" label="GN " />
-              <Tab
-                className="Tab-dashboardlabel-sensor  fs-16"
-                label="Phase  "
-              />
-              <Tab className="Tab-dashboardlabel-sensor  fs-16" label="SPD " />
-            </Tabs>
-          </Box>
-          <TabPanel value={value} index={0}>
-            <Grid container direction="row">
-              <Grid container className="widthLR-90 ">
-                {rValue?.map((data, i) => {
-                  // // console.log("Check data==========>", data);
-                  return (
-                    <>
-                      <Grid item>
-                        <FormControlLabel
-                          style={{
-                            width: "160px",
-                          }}
-                          className="billboard-screencheckbox  mt-16"
-                          value={data}
-                          control={
-                            <Checkbox
-                              className="icons-blue"
-                              checked={resValue?.includes(data)}
-                            />
-                          }
-                          onChange={(e) => storeResValue(e, data, i)}
-                          label={
-                            <React.Fragment>
-                              <Typography className=" mt-8 fw-500">
-                                {data}
-                              </Typography>
-                            </React.Fragment>
-                          }
-                        />
-                      </Grid>
-                    </>
-                  );
-                })}
-              </Grid>
-            </Grid>{" "}
-          </TabPanel>
-          <TabPanel value={value} index={1}>
-            <Grid container direction="row">
-              <Grid container className="widthLR-90 ">
-                {gnValue?.map((data, i) => {
-                  return (
-                    <>
-                      <Grid item>
-                        <FormControlLabel
-                          style={{
-                            width: "160px",
-                          }}
-                          className="billboard-screencheckbox  mt-16"
-                          value={data}
-                          control={
-                            <Checkbox
-                              className="icons-blue"
-                              checked={gnNumber?.includes(data)}
-                            />
-                          }
-                          onChange={(e) => storeGnValue(e, data, i)}
-                          label={
-                            <React.Fragment>
-                              <Typography className=" mt-8 fw-500">
-                                {data}
-                              </Typography>
-                            </React.Fragment>
-                          }
-                        />
-                      </Grid>
-                    </>
-                  );
-                })}
-              </Grid>
-            </Grid>{" "}
-          </TabPanel>
-          <TabPanel value={value} index={2}>
-            <Grid container direction="row">
-              <Grid container className="widthLR-90 ">
-                {vmrValue?.map((data, i) => {
-                  return (
-                    <>
-                      <Grid item>
-                        <FormControlLabel
-                          style={{
-                            width: "160px",
-                          }}
-                          className="billboard-screencheckbox  mt-16"
-                          value={data}
-                          control={
-                            <Checkbox
-                              className="icons-blue"
-                              checked={phaseNumber?.includes(data)}
-                            />
-                          }
-                          onChange={(e) => storePhaseValue(e, data, i)}
-                          label={
-                            <React.Fragment>
-                              <Typography className=" mt-8 fw-500">
-                                {data}
-                              </Typography>
-                            </React.Fragment>
-                          }
-                        />
-                      </Grid>
-                    </>
-                  );
-                })}
-              </Grid>
-            </Grid>{" "}
-          </TabPanel>
-          <TabPanel value={value} index={3}>
-            <Grid container direction="row">
-              <Grid container className="widthLR-90 ">
-                {spValue?.map((data, i) => {
-                  return (
-                    <>
-                      <Grid item>
-                        <FormControlLabel
-                          style={{
-                            width: "160px",
-                          }}
-                          className="billboard-screencheckbox  mt-16"
-                          value={data}
-                          control={
-                            <Checkbox
-                              className="icons-blue"
-                              checked={spdNumber?.includes(data)}
-                            />
-                          }
-                          onChange={(e) => storeSpdValue(e, data, i)}
-                          label={
-                            <React.Fragment>
-                              <Typography className=" mt-8 fw-500">
-                                {data}
-                              </Typography>
-                            </React.Fragment>
-                          }
-                        />
-                      </Grid>
-                    </>
-                  );
-                })}
-              </Grid>
-            </Grid>{" "}
-          </TabPanel>
-        </DialogContent>
-        <DialogActions className="hgt-40" sx={{ marginBottom: "10px" }}>
-          <Button
-            sx={{ marginRight: "10px" }}
-            className="  grey-br-button width-100 hover "
-            onClick={handleClose}
-          >
-            Cancel
-          </Button>
-          <Button
-            sx={{ padding: "3px 0px" }}
-            type="submit"
-            className="skyblue-br-button  width-100 hover"
-            onClick={() => {
-              EditDevice();
-              setOpen(false);
-            }}
-          >
-            Update
-          </Button>
-        </DialogActions>
-      </BootstrapDialog>
-    </React.Fragment>
+      setOpen(false);
+      getdevicebyuserId();
+      toast.success("Device sensors updated successfully");
+    } catch (err) {
+      toast.error("Failed to update device sensors");
+    }
+  };
+
+  const tabs = ["Resistance", "GN", "Phase", "SPD"];
+
+  return (
+    <>
+      <button onClick={() => setOpen(true)} className="text-blue-600">
+        <CiEdit size={18} />
+      </button>
+
+      {open && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4">
+          <div className="w-full max-w-3xl bg-white rounded-xl shadow-2xl overflow-hidden">
+            {/* Header */}
+            <div className="flex justify-between items-center px-6 py-4 bg-gradient-to-r from-[#0a192f] to-[#0f3057]">
+              <h2 className="text-white text-sm font-semibold uppercase">
+                Edit Sensor
+              </h2>
+              <button
+                onClick={() => setOpen(false)}
+                className="text-white text-lg"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Info */}
+            <div className="p-4 space-y-3 bg-gray-50 text-sm">
+              <div>
+                <p className="text-gray-500 text-xs">Selected Site</p>
+                <div className="border rounded p-2 bg-white">
+                  <p className="font-medium">{SiteName}</p>
+                  <p className="text-gray-500 text-xs">{selectUid}</p>
+                </div>
+              </div>
+
+              <div>
+                <p className="text-gray-500 text-xs">Selected Device</p>
+                <div className="border rounded p-2 bg-white">
+                  <p className="font-medium">{device?.deviceName}</p>
+                  <p className="text-gray-500 text-xs">{device?.nodeUid}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Tabs */}
+            <div className="flex border-b">
+              {tabs.map((t, i) => (
+                <button
+                  key={i}
+                  onClick={() => setTab(i)}
+                  className={`px-4 py-2 text-sm ${
+                    tab === i
+                      ? "border-b-2 border-blue-600 text-blue-600"
+                      : "text-gray-500"
+                  }`}
+                >
+                  {t}
+                </button>
+              ))}
+            </div>
+
+            {/* Body */}
+            <div className="p-6 min-h-[200px]">
+              {tab === 0 && (
+                <SensorGrid
+                  data={rValue}
+                  selected={resValue}
+                  set={setResValue}
+                />
+              )}
+              {tab === 1 && (
+                <SensorGrid
+                  data={gnValue}
+                  selected={gnNumber}
+                  set={setGnNumber}
+                />
+              )}
+              {tab === 2 && (
+                <SensorGrid
+                  data={vmrValue}
+                  selected={phaseNumber}
+                  set={setPhaseNumber}
+                />
+              )}
+              {tab === 3 && (
+                <SensorGrid
+                  data={spValue}
+                  selected={spdNumber}
+                  set={setSpdNumber}
+                />
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="flex justify-end gap-3 p-4 border-t">
+              <button
+                onClick={() => setOpen(false)}
+                className="px-4 py-2 border rounded-md text-gray-600"
+              >
+                Cancel
+              </button>
+
+              <button
+                onClick={EditDevice}
+                className="px-4 py-2 bg-blue-600 text-white rounded-md"
+              >
+                Update
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+/* Grid */
+function SensorGrid({ data = [], selected = [], set }) {
+  const toggle = (item) => {
+    if (selected.includes(item)) {
+      set(selected.filter((i) => i !== item));
+    } else {
+      set([...selected, item]);
+    }
+  };
+
+  return (
+    <div className="flex flex-wrap gap-3">
+      {data.map((item, i) => (
+        <label
+          key={i}
+          className="flex items-center gap-2 px-3 py-2 border rounded-lg bg-gray-50 cursor-pointer"
+        >
+          <input
+            type="checkbox"
+            checked={selected.includes(item)}
+            onChange={() => toggle(item)}
+          />
+          <span>{item}</span>
+        </label>
+      ))}
+    </div>
   );
 }

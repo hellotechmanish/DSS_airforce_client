@@ -3,10 +3,10 @@ import HomeApp from "./App";
 import { routes } from "./RouterConfig";
 
 export function Fallback() {
-  return <p>Loading</p>;
+  return <p>Loading...</p>;
 }
 
-let router = createBrowserRouter([
+const router = createBrowserRouter([
   {
     path: "/",
     element: <HomeApp />,
@@ -15,10 +15,7 @@ let router = createBrowserRouter([
 ]);
 
 const AllRoutes = () => {
-  return (
-    <RouterProvider router={router} fallbackElement={<Fallback />}>
-      <HomeApp />
-    </RouterProvider>
-  );
+  return <RouterProvider router={router} fallbackElement={<Fallback />} />;
 };
+
 export default AllRoutes;

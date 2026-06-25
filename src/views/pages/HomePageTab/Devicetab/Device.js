@@ -1,12 +1,14 @@
 // Import Server Component
-import React, { useState, useEffect } from "react";
+import React, { Suspense, lazy, useEffect, useState } from "react";
 import PropTypes from "prop-types";
 import { Tabs, Tab, Typography, Grid } from "@mui/material";
 
 // Import Custom Component
-import { FETCH_URL } from "../../../../fetchIp";
-import DeviceGraph from "./DeviceGraph";
 import Viewprofile from "../viewprofielDiialog";
+import { API } from "../../../../lib/endpoint";
+import { GET } from "../../../../lib/request";
+
+const DeviceGraph = lazy(() => import("./DeviceGraph"));
 
 function TabPanel(props) {
   const { children, value, index, ...other } = props;
@@ -39,52 +41,95 @@ function App({ deviceID, value1, setValue1, value }) {
   const [deviceID2, setDeviceID2] = useState(null);
   const [sensor, setSensor] = useState("RES");
   const [sensorValue, setSensorValue] = useState(null);
+  const [showGraph, setShowGraph] = useState(false);
   const intervalId = React.useRef(sensor);
 
   const getDeviceById = async (deviceID) => {
-    let token = JSON.parse(localStorage.getItem("userData")).token;
-    const response = await fetch(
-      `${FETCH_URL}/api/device/getDeviceById/${deviceID}`,
-      {
-        method: "GET",
-        headers: {
-          Accept: "application/json",
-          "Content-type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
+    if (!deviceID) {
+      console.warn("Skipped API call, invalid deviceID:", deviceID);
+      return;
+    }
+    try {
+      const res = await GET(API.DEVICE.GET_BY_ID(deviceID));
+
+      if (!res || res.msg === "deviceID not found") {
+        console.warn("Device not found:", deviceID);
+        setSensorValue({});
+        return;
       }
-    );
-    let res = await response.json();
-    if (response.ok) {
-      setSensorValue(res.msg);
-    } else {
-      // //("Error in getDeviceById ==> ", res);
+
+      setSensorValue(res?.msg || {});
+    } catch (error) {
+      console.error("API call failed:", error);
+      setSensorValue({});
     }
   };
+
   const handleChange2 = (event, newValue) => {
     setValue1(newValue);
-    getDeviceById(deviceID[newValue]?._id);
-    setDeviceID2(deviceID[newValue]?._id);
+
+    const selectedId = deviceID[newValue]?._id;
+
+    if (!selectedId) {
+      console.warn("Invalid selection:", newValue);
+      return;
+    }
+
+    setDeviceID2(selectedId);
     setSensor("RES");
   };
+
   useEffect(() => {
-    // //("deviceId  ===>", deviceID);
-    setDeviceID2(deviceID[0]?._id);
+    if (deviceID?.length > 0) {
+      setDeviceID2(deviceID[0]._id);
+    }
   }, [deviceID]);
 
   useEffect(() => {
-    getDeviceById(deviceID2);
+    if (deviceID2) {
+      getDeviceById(deviceID2);
+    }
   }, [deviceID2]);
 
   useEffect(() => {
-    let interval = setInterval(() => {
+    setShowGraph(false);
+  }, [deviceID2]);
+
+  useEffect(() => {
+    if (showGraph) {
+      return undefined;
+    }
+
+    setShowGraph(false);
+
+    if (!sensorValue?._id || deviceID2 !== sensorValue._id) {
+      return undefined;
+    }
+
+    if ("requestIdleCallback" in window) {
+      const idleId = window.requestIdleCallback(() => setShowGraph(true), {
+        timeout: 1500,
+      });
+
+      return () => window.cancelIdleCallback(idleId);
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setShowGraph(true);
+    }, 200);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [deviceID2, sensorValue, showGraph]);
+
+  useEffect(() => {
+    if (!deviceID2) return;
+
+    const interval = setInterval(() => {
       getDeviceById(deviceID2);
     }, 10000);
 
-    return () => {
-      clearInterval(interval);
-    };
-  }, [deviceID2, value1]);
+    return () => clearInterval(interval);
+  }, [deviceID2]);
 
   const SensorTypeChange = (newValue) => {
     setSensor(newValue);
@@ -93,48 +138,61 @@ function App({ deviceID, value1, setValue1, value }) {
   return (
     <>
       <Grid container className="widthLR-90 ">
+        {/* show device name and view profile button in device tab */}
+
         <Grid
           container
           direction="row"
           justifyContent="space-between"
           alignItems="center"
         >
-          <Grid item>
-            <>
-              <Tabs
-                value={value1}
-                onChange={handleChange2}
-                className="Tabs-dashboard2"
-                variant={value1 == 0 ? null : "scrollable"}
-                scrollButtons={value1 == 0 ? null : "auto"}
-                aria-label="scrollable auto tabs example"
-              >
-                {deviceID?.length > 0 ? (
-                  deviceID?.map((item, index) => {
-                    return (
-                      <Tab
-                        className="Tab-dashboardlabel2 fs-16 mr-20 hover "
-                        {...a11yProps(index)}
-                        label={
-                          <>
-                            <Typography className="sitesname ">
-                              {item?.deviceName}
-                            </Typography>
-                          </>
-                        }
-                      />
-                    );
-                  })
-                ) : (
-                  <Tab
-                    className="Tab-dashboardlabel2 fs-16 mr-20 hover"
-                    label={<Typography>No Device Assign</Typography>}
-                  />
-                )}
-              </Tabs>
-            </>
+          <Grid item xs={12}>
+            {" "}
+            {/*  full width */}
+            <Tabs
+              value={value1}
+              onChange={handleChange2}
+              className="Tabs-dashboard2"
+              variant="scrollable" //  always scrollable
+              scrollButtons="auto" //  left/right buttons auto
+              allowScrollButtonsMobile //  mobile pe bhi arrows
+              aria-label="scrollable auto tabs example"
+              sx={{
+                width: "100%", //  full parent width
+                minHeight: "48px",
+                "& .MuiTabs-flexContainer": {
+                  alignItems: "center",
+                },
+              }}
+            >
+              {deviceID?.length > 0 ? (
+                deviceID?.map((item, index) => {
+                  return (
+                    <Tab
+                      key={index}
+                      style={{ minWidth: 100 }} //  thoda proper width
+                      className="Tab-dashboardlabel2 fs-16 mr-20 hover"
+                      {...a11yProps(index)}
+                      label={
+                        <span className="text-sm font-semibold text-gray-800 tracking-wide">
+                          {item?.deviceName}
+                        </span>
+                      }
+                    />
+                  );
+                })
+              ) : (
+                <Tab
+                  className="Tab-dashboardlabel2 fs-16 mr-20 hover"
+                  label={<Typography>No Device Assign</Typography>}
+                />
+              )}
+            </Tabs>
           </Grid>
         </Grid>
+
+        {/* chat pi line  */}
+
         <Grid container className="mt-16">
           {value1 === 0 ? (
             <TabPanel value={value1} index={0} className="width100">
@@ -187,32 +245,35 @@ function App({ deviceID, value1, setValue1, value }) {
                       sensorValue.vmrSensors
                         ? 1.3
                         : 0 ||
-                          (sensorValue?.nerSensors &&
-                            sensorValue?.resSensors &&
-                            sensorValue?.spdSensors)
-                        ? 3.5
-                        : 0 ||
-                          (sensorValue?.nerSensors &&
-                            sensorValue?.resSensors &&
-                            sensorValue?.vmrSensors)
-                        ? 1.5
-                        : 0 ||
-                          (sensorValue?.spdSensors &&
-                            sensorValue?.resSensors &&
-                            sensorValue?.vmrSensors)
-                        ? 1.7
-                        : 0 ||
-                          (sensorValue?.nerSensors && sensorValue?.resSensors)
-                        ? 5.25
-                        : 0 ||
-                          (sensorValue?.spdSensors && sensorValue?.resSensors)
-                        ? 5.25
-                        : 0 ||
-                          (sensorValue?.vmrSensors && sensorValue?.resSensors)
-                        ? 1.5
-                        : 0 || sensorValue?.resSensors
-                        ? 10.5
-                        : 0
+                            (sensorValue?.nerSensors &&
+                              sensorValue?.resSensors &&
+                              sensorValue?.spdSensors)
+                          ? 3.5
+                          : 0 ||
+                              (sensorValue?.nerSensors &&
+                                sensorValue?.resSensors &&
+                                sensorValue?.vmrSensors)
+                            ? 1.5
+                            : 0 ||
+                                (sensorValue?.spdSensors &&
+                                  sensorValue?.resSensors &&
+                                  sensorValue?.vmrSensors)
+                              ? 1.7
+                              : 0 ||
+                                  (sensorValue?.nerSensors &&
+                                    sensorValue?.resSensors)
+                                ? 5.25
+                                : 0 ||
+                                    (sensorValue?.spdSensors &&
+                                      sensorValue?.resSensors)
+                                  ? 5.25
+                                  : 0 ||
+                                      (sensorValue?.vmrSensors &&
+                                        sensorValue?.resSensors)
+                                    ? 1.5
+                                    : 0 || sensorValue?.resSensors
+                                      ? 10.5
+                                      : 0
                     }
                   >
                     <Typography
@@ -225,27 +286,29 @@ function App({ deviceID, value1, setValue1, value }) {
                       className="table-freecell"
                       sx={{ borderLeft: "2px solid #dddddd" }}
                     ></Typography>
-                    <Grid item>
-                      {sensorValue?.ResValues?.DATASTREAMS?.map(
-                        (item, index) => {
-                          return (
-                            <>
+                    <Grid item xs={12}>
+                      <div style={{ textAlign: "center" }}>
+                        {sensorValue?.ResValues?.DATASTREAMS?.map(
+                          (item, index) => {
+                            return (
                               <Typography
+                                key={index}
                                 align="center"
+                                style={{ display: "block" }}
                                 className={
                                   sensorValue.resSensorsThreshold <
                                   Object.values(item)[1]
-                                    ? "width100 table-cell table-cellbg fw-500 fs-14 "
-                                    : "width100  table-cell fw-500 fs-14 "
+                                    ? "width100 table-cell table-cellbg fw-500 fs-14"
+                                    : "width100 table-cell fw-500 fs-14"
                                 }
                               >
                                 R{index + 1} :
-                                <span>{Object.values(item)[1]} Ω</span>
+                                <span> {Object.values(item)[1]} Ω</span>
                               </Typography>
-                            </>
-                          );
-                        }
-                      )}
+                            );
+                          },
+                        )}
+                      </div>
                     </Grid>
                   </Grid>
                 ) : null}
@@ -259,32 +322,35 @@ function App({ deviceID, value1, setValue1, value }) {
                       sensorValue.vmrSensors
                         ? 1.3
                         : 0 ||
-                          (sensorValue?.nerSensors &&
-                            sensorValue?.resSensors &&
-                            sensorValue?.spdSensors)
-                        ? 3.5
-                        : 0 ||
-                          (sensorValue?.nerSensors &&
-                            sensorValue?.resSensors &&
-                            sensorValue?.vmrSensors)
-                        ? 1.5
-                        : 0 ||
-                          (sensorValue?.nerSensors &&
-                            sensorValue?.spdSensors &&
-                            sensorValue?.vmrSensors)
-                        ? 1.5
-                        : 0 ||
-                          (sensorValue?.nerSensors && sensorValue?.resSensors)
-                        ? 5.25
-                        : 0 ||
-                          (sensorValue?.nerSensors && sensorValue?.spdSensors)
-                        ? 5.25
-                        : 0 ||
-                          (sensorValue?.nerSensors && sensorValue?.vmrSensors)
-                        ? 1.5
-                        : 0 || sensorValue?.nerSensors
-                        ? 10.5
-                        : 0
+                            (sensorValue?.nerSensors &&
+                              sensorValue?.resSensors &&
+                              sensorValue?.spdSensors)
+                          ? 3.5
+                          : 0 ||
+                              (sensorValue?.nerSensors &&
+                                sensorValue?.resSensors &&
+                                sensorValue?.vmrSensors)
+                            ? 1.5
+                            : 0 ||
+                                (sensorValue?.nerSensors &&
+                                  sensorValue?.spdSensors &&
+                                  sensorValue?.vmrSensors)
+                              ? 1.5
+                              : 0 ||
+                                  (sensorValue?.nerSensors &&
+                                    sensorValue?.resSensors)
+                                ? 5.25
+                                : 0 ||
+                                    (sensorValue?.nerSensors &&
+                                      sensorValue?.spdSensors)
+                                  ? 5.25
+                                  : 0 ||
+                                      (sensorValue?.nerSensors &&
+                                        sensorValue?.vmrSensors)
+                                    ? 1.5
+                                    : 0 || sensorValue?.nerSensors
+                                      ? 10.5
+                                      : 0
                     }
                   >
                     <Typography
@@ -297,28 +363,37 @@ function App({ deviceID, value1, setValue1, value }) {
                       className="table-freecell"
                       sx={{ borderLeft: "2px solid #dddddd" }}
                     ></Typography>
-                    <Grid item>
+                    <Grid
+                      item
+                      xs={12}
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
                       {sensorValue?.NerValues?.DATASTREAMS?.map(
                         (item, index) => {
                           return (
-                            <>
-                              <Typography
-                                align="center"
-                                className={
-                                  sensorValue.nerSensorsThreshold <
-                                  Object.values(item)[1]
-                                    ? "width100 table-cell table-cellbg fw-500  fs-14"
-                                    : "width100  table-cell fw-500  fs-14"
-                                }
-                              >
-                                GN{index + 1} :
-                                <span className="width100    fw-500">
-                                  {Object.values(item)[1]} V
-                                </span>
-                              </Typography>
-                            </>
+                            <Typography
+                              key={index}
+                              align="center"
+                              className={
+                                sensorValue.nerSensorsThreshold <
+                                Object.values(item)[1]
+                                  ? "width100 table-cell table-cellbg fw-500 fs-14"
+                                  : "width100 table-cell fw-500 fs-14"
+                              }
+                            >
+                              GN{index + 1} :
+                              <span className="fw-500">
+                                {" "}
+                                {Object.values(item)[1]} V
+                              </span>
+                            </Typography>
                           );
-                        }
+                        },
                       )}
                     </Grid>
                   </Grid>
@@ -334,37 +409,40 @@ function App({ deviceID, value1, setValue1, value }) {
                       sensorValue.vmrSensors
                         ? 6.4
                         : 0 ||
-                          (sensorValue?.nerSensors &&
-                            sensorValue?.resSensors &&
-                            sensorValue?.spdSensors)
-                        ? 3.3
-                        : 0 ||
-                          (sensorValue?.nerSensors &&
-                            sensorValue?.resSensors &&
-                            sensorValue?.vmrSensors)
-                        ? 7.5
-                        : 0 ||
-                          (sensorValue?.nerSensors &&
-                            sensorValue?.spdSensors &&
-                            sensorValue?.vmrSensors)
-                        ? 7.5
-                        : 0 ||
-                          (sensorValue?.spdSensors &&
-                            sensorValue?.resSensors &&
-                            sensorValue?.vmrSensors)
-                        ? 7
-                        : 0 ||
-                          (sensorValue?.vmrSensors && sensorValue?.resSensors)
-                        ? 9
-                        : 0 ||
-                          (sensorValue?.vmrSensors && sensorValue?.spdSensors)
-                        ? 8
-                        : 0 ||
-                          (sensorValue?.vmrSensors && sensorValue?.nerSensors)
-                        ? 9
-                        : 0 || sensorValue?.vmrSensors
-                        ? 10.5
-                        : 0
+                            (sensorValue?.nerSensors &&
+                              sensorValue?.resSensors &&
+                              sensorValue?.spdSensors)
+                          ? 3.3
+                          : 0 ||
+                              (sensorValue?.nerSensors &&
+                                sensorValue?.resSensors &&
+                                sensorValue?.vmrSensors)
+                            ? 7.5
+                            : 0 ||
+                                (sensorValue?.nerSensors &&
+                                  sensorValue?.spdSensors &&
+                                  sensorValue?.vmrSensors)
+                              ? 7.5
+                              : 0 ||
+                                  (sensorValue?.spdSensors &&
+                                    sensorValue?.resSensors &&
+                                    sensorValue?.vmrSensors)
+                                ? 7
+                                : 0 ||
+                                    (sensorValue?.vmrSensors &&
+                                      sensorValue?.resSensors)
+                                  ? 9
+                                  : 0 ||
+                                      (sensorValue?.vmrSensors &&
+                                        sensorValue?.spdSensors)
+                                    ? 8
+                                    : 0 ||
+                                        (sensorValue?.vmrSensors &&
+                                          sensorValue?.nerSensors)
+                                      ? 9
+                                      : 0 || sensorValue?.vmrSensors
+                                        ? 10.5
+                                        : 0
                     }
                   >
                     <Typography
@@ -405,7 +483,7 @@ function App({ deviceID, value1, setValue1, value }) {
                                   </Grid>{" "}
                                 </>
                               );
-                            }
+                            },
                           )}
                         </Grid>
                       </Grid>
@@ -440,7 +518,7 @@ function App({ deviceID, value1, setValue1, value }) {
                                   </Grid>{" "}
                                 </>
                               );
-                            }
+                            },
                           )}
                         </Grid>
                       </Grid>
@@ -476,7 +554,7 @@ function App({ deviceID, value1, setValue1, value }) {
                                   </Grid>{" "}
                                 </>
                               );
-                            }
+                            },
                           )}
                         </Grid>
                       </Grid>
@@ -512,7 +590,7 @@ function App({ deviceID, value1, setValue1, value }) {
                                   </Grid>{" "}
                                 </>
                               );
-                            }
+                            },
                           )}
                         </Grid>
                       </Grid>
@@ -548,7 +626,7 @@ function App({ deviceID, value1, setValue1, value }) {
                                   </Grid>{" "}
                                 </>
                               );
-                            }
+                            },
                           )}
                         </Grid>
                       </Grid>
@@ -584,7 +662,7 @@ function App({ deviceID, value1, setValue1, value }) {
                                   </Grid>{" "}
                                 </>
                               );
-                            }
+                            },
                           )}
                         </Grid>
                       </Grid>
@@ -602,32 +680,35 @@ function App({ deviceID, value1, setValue1, value }) {
                       sensorValue.vmrSensors
                         ? 1.5
                         : 0 ||
-                          (sensorValue?.nerSensors &&
-                            sensorValue?.resSensors &&
-                            sensorValue?.spdSensors)
-                        ? 3.5
-                        : 0 ||
-                          (sensorValue?.spdSensors &&
-                            sensorValue?.resSensors &&
-                            sensorValue?.vmrSensors)
-                        ? 1.8
-                        : 0 ||
-                          (sensorValue?.nerSensors &&
-                            sensorValue?.spdSensors &&
-                            sensorValue?.vmrSensors)
-                        ? 1.5
-                        : 0 ||
-                          (sensorValue?.spdSensors && sensorValue?.resSensors)
-                        ? 5.25
-                        : 0 ||
-                          (sensorValue?.nerSensors && sensorValue?.spdSensors)
-                        ? 5.25
-                        : 0 ||
-                          (sensorValue?.vmrSensors && sensorValue?.spdSensors)
-                        ? 2.5
-                        : 0 || sensorValue?.spdSensors
-                        ? 10.5
-                        : 0
+                            (sensorValue?.nerSensors &&
+                              sensorValue?.resSensors &&
+                              sensorValue?.spdSensors)
+                          ? 3.5
+                          : 0 ||
+                              (sensorValue?.spdSensors &&
+                                sensorValue?.resSensors &&
+                                sensorValue?.vmrSensors)
+                            ? 1.8
+                            : 0 ||
+                                (sensorValue?.nerSensors &&
+                                  sensorValue?.spdSensors &&
+                                  sensorValue?.vmrSensors)
+                              ? 1.5
+                              : 0 ||
+                                  (sensorValue?.spdSensors &&
+                                    sensorValue?.resSensors)
+                                ? 5.25
+                                : 0 ||
+                                    (sensorValue?.nerSensors &&
+                                      sensorValue?.spdSensors)
+                                  ? 5.25
+                                  : 0 ||
+                                      (sensorValue?.vmrSensors &&
+                                        sensorValue?.spdSensors)
+                                    ? 2.5
+                                    : 0 || sensorValue?.spdSensors
+                                      ? 10.5
+                                      : 0
                     }
                   >
                     <Typography align="center" className=" table-head fw-500">
@@ -655,12 +736,13 @@ function App({ deviceID, value1, setValue1, value }) {
                               </Typography>
                             </>
                           );
-                        }
+                        },
                       )}
                     </Grid>
                   </Grid>
                 ) : null}
               </Grid>
+
               {sensorValue &&
                 sensor &&
                 deviceID2 === sensorValue._id &&
@@ -675,7 +757,10 @@ function App({ deviceID, value1, setValue1, value }) {
                   />
                 )}
             </TabPanel>
+
           ) : (
+
+
             <TabPanel value={value1} index={value1} className="width100">
               <Typography align="right"></Typography>
               <Grid container className=" mt-24 border-grey">
@@ -723,32 +808,35 @@ function App({ deviceID, value1, setValue1, value }) {
                       sensorValue.vmrSensors
                         ? 1.3
                         : 0 ||
-                          (sensorValue?.nerSensors &&
-                            sensorValue?.resSensors &&
-                            sensorValue?.spdSensors)
-                        ? 3.5
-                        : 0 ||
-                          (sensorValue?.nerSensors &&
-                            sensorValue?.resSensors &&
-                            sensorValue?.vmrSensors)
-                        ? 1.5
-                        : 0 ||
-                          (sensorValue?.spdSensors &&
-                            sensorValue?.resSensors &&
-                            sensorValue?.vmrSensors)
-                        ? 1.7
-                        : 0 ||
-                          (sensorValue?.nerSensors && sensorValue?.resSensors)
-                        ? 5.25
-                        : 0 ||
-                          (sensorValue?.spdSensors && sensorValue?.resSensors)
-                        ? 5.25
-                        : 0 ||
-                          (sensorValue?.vmrSensors && sensorValue?.resSensors)
-                        ? 1.5
-                        : 0 || sensorValue?.resSensors
-                        ? 10.5
-                        : 0
+                            (sensorValue?.nerSensors &&
+                              sensorValue?.resSensors &&
+                              sensorValue?.spdSensors)
+                          ? 3.5
+                          : 0 ||
+                              (sensorValue?.nerSensors &&
+                                sensorValue?.resSensors &&
+                                sensorValue?.vmrSensors)
+                            ? 1.5
+                            : 0 ||
+                                (sensorValue?.spdSensors &&
+                                  sensorValue?.resSensors &&
+                                  sensorValue?.vmrSensors)
+                              ? 1.7
+                              : 0 ||
+                                  (sensorValue?.nerSensors &&
+                                    sensorValue?.resSensors)
+                                ? 5.25
+                                : 0 ||
+                                    (sensorValue?.spdSensors &&
+                                      sensorValue?.resSensors)
+                                  ? 5.25
+                                  : 0 ||
+                                      (sensorValue?.vmrSensors &&
+                                        sensorValue?.resSensors)
+                                    ? 1.5
+                                    : 0 || sensorValue?.resSensors
+                                      ? 10.5
+                                      : 0
                     }
                   >
                     <Typography
@@ -780,7 +868,7 @@ function App({ deviceID, value1, setValue1, value }) {
                               </Typography>
                             </>
                           );
-                        }
+                        },
                       )}
                     </Grid>
                   </Grid>
@@ -795,32 +883,35 @@ function App({ deviceID, value1, setValue1, value }) {
                       sensorValue.vmrSensors
                         ? 1.3
                         : 0 ||
-                          (sensorValue?.nerSensors &&
-                            sensorValue?.resSensors &&
-                            sensorValue?.spdSensors)
-                        ? 3.5
-                        : 0 ||
-                          (sensorValue?.nerSensors &&
-                            sensorValue?.resSensors &&
-                            sensorValue?.vmrSensors)
-                        ? 1.5
-                        : 0 ||
-                          (sensorValue?.nerSensors &&
-                            sensorValue?.spdSensors &&
-                            sensorValue?.vmrSensors)
-                        ? 1.5
-                        : 0 ||
-                          (sensorValue?.nerSensors && sensorValue?.resSensors)
-                        ? 5.25
-                        : 0 ||
-                          (sensorValue?.nerSensors && sensorValue?.spdSensors)
-                        ? 5.25
-                        : 0 ||
-                          (sensorValue?.nerSensors && sensorValue?.vmrSensors)
-                        ? 1.5
-                        : 0 || sensorValue?.nerSensors
-                        ? 10.5
-                        : 0
+                            (sensorValue?.nerSensors &&
+                              sensorValue?.resSensors &&
+                              sensorValue?.spdSensors)
+                          ? 3.5
+                          : 0 ||
+                              (sensorValue?.nerSensors &&
+                                sensorValue?.resSensors &&
+                                sensorValue?.vmrSensors)
+                            ? 1.5
+                            : 0 ||
+                                (sensorValue?.nerSensors &&
+                                  sensorValue?.spdSensors &&
+                                  sensorValue?.vmrSensors)
+                              ? 1.5
+                              : 0 ||
+                                  (sensorValue?.nerSensors &&
+                                    sensorValue?.resSensors)
+                                ? 5.25
+                                : 0 ||
+                                    (sensorValue?.nerSensors &&
+                                      sensorValue?.spdSensors)
+                                  ? 5.25
+                                  : 0 ||
+                                      (sensorValue?.nerSensors &&
+                                        sensorValue?.vmrSensors)
+                                    ? 1.5
+                                    : 0 || sensorValue?.nerSensors
+                                      ? 10.5
+                                      : 0
                     }
                   >
                     <Typography
@@ -855,7 +946,7 @@ function App({ deviceID, value1, setValue1, value }) {
                               </Typography>
                             </>
                           );
-                        }
+                        },
                       )}
                     </Grid>
                   </Grid>
@@ -871,37 +962,40 @@ function App({ deviceID, value1, setValue1, value }) {
                       sensorValue.vmrSensors
                         ? 6.4
                         : 0 ||
-                          (sensorValue?.nerSensors &&
-                            sensorValue?.resSensors &&
-                            sensorValue?.spdSensors)
-                        ? 3.3
-                        : 0 ||
-                          (sensorValue?.nerSensors &&
-                            sensorValue?.resSensors &&
-                            sensorValue?.vmrSensors)
-                        ? 7.5
-                        : 0 ||
-                          (sensorValue?.nerSensors &&
-                            sensorValue?.spdSensors &&
-                            sensorValue?.vmrSensors)
-                        ? 7.5
-                        : 0 ||
-                          (sensorValue?.spdSensors &&
-                            sensorValue?.resSensors &&
-                            sensorValue?.vmrSensors)
-                        ? 7
-                        : 0 ||
-                          (sensorValue?.vmrSensors && sensorValue?.resSensors)
-                        ? 9
-                        : 0 ||
-                          (sensorValue?.vmrSensors && sensorValue?.spdSensors)
-                        ? 8
-                        : 0 ||
-                          (sensorValue?.vmrSensors && sensorValue?.nerSensors)
-                        ? 9
-                        : 0 || sensorValue?.vmrSensors
-                        ? 10.5
-                        : 0
+                            (sensorValue?.nerSensors &&
+                              sensorValue?.resSensors &&
+                              sensorValue?.spdSensors)
+                          ? 3.3
+                          : 0 ||
+                              (sensorValue?.nerSensors &&
+                                sensorValue?.resSensors &&
+                                sensorValue?.vmrSensors)
+                            ? 7.5
+                            : 0 ||
+                                (sensorValue?.nerSensors &&
+                                  sensorValue?.spdSensors &&
+                                  sensorValue?.vmrSensors)
+                              ? 7.5
+                              : 0 ||
+                                  (sensorValue?.spdSensors &&
+                                    sensorValue?.resSensors &&
+                                    sensorValue?.vmrSensors)
+                                ? 7
+                                : 0 ||
+                                    (sensorValue?.vmrSensors &&
+                                      sensorValue?.resSensors)
+                                  ? 9
+                                  : 0 ||
+                                      (sensorValue?.vmrSensors &&
+                                        sensorValue?.spdSensors)
+                                    ? 8
+                                    : 0 ||
+                                        (sensorValue?.vmrSensors &&
+                                          sensorValue?.nerSensors)
+                                      ? 9
+                                      : 0 || sensorValue?.vmrSensors
+                                        ? 10.5
+                                        : 0
                     }
                   >
                     <Typography
@@ -944,7 +1038,7 @@ function App({ deviceID, value1, setValue1, value }) {
                                   </Grid>{" "}
                                 </>
                               );
-                            }
+                            },
                           )}
                         </Grid>
                       </Grid>
@@ -980,7 +1074,7 @@ function App({ deviceID, value1, setValue1, value }) {
                                   </Grid>{" "}
                                 </>
                               );
-                            }
+                            },
                           )}
                         </Grid>
                       </Grid>
@@ -1016,7 +1110,7 @@ function App({ deviceID, value1, setValue1, value }) {
                                   </Grid>{" "}
                                 </>
                               );
-                            }
+                            },
                           )}
                         </Grid>
                       </Grid>
@@ -1052,7 +1146,7 @@ function App({ deviceID, value1, setValue1, value }) {
                                   </Grid>{" "}
                                 </>
                               );
-                            }
+                            },
                           )}
                         </Grid>
                       </Grid>
@@ -1088,7 +1182,7 @@ function App({ deviceID, value1, setValue1, value }) {
                                   </Grid>{" "}
                                 </>
                               );
-                            }
+                            },
                           )}
                         </Grid>
                       </Grid>
@@ -1124,7 +1218,7 @@ function App({ deviceID, value1, setValue1, value }) {
                                   </Grid>{" "}
                                 </>
                               );
-                            }
+                            },
                           )}
                         </Grid>
                       </Grid>
@@ -1142,32 +1236,35 @@ function App({ deviceID, value1, setValue1, value }) {
                       sensorValue.vmrSensors
                         ? 1.5
                         : 0 ||
-                          (sensorValue?.nerSensors &&
-                            sensorValue?.resSensors &&
-                            sensorValue?.spdSensors)
-                        ? 3.5
-                        : 0 ||
-                          (sensorValue?.spdSensors &&
-                            sensorValue?.resSensors &&
-                            sensorValue?.vmrSensors)
-                        ? 1.8
-                        : 0 ||
-                          (sensorValue?.nerSensors &&
-                            sensorValue?.spdSensors &&
-                            sensorValue?.vmrSensors)
-                        ? 1.5
-                        : 0 ||
-                          (sensorValue?.spdSensors && sensorValue?.resSensors)
-                        ? 5.25
-                        : 0 ||
-                          (sensorValue?.nerSensors && sensorValue?.spdSensors)
-                        ? 5.25
-                        : 0 ||
-                          (sensorValue?.vmrSensors && sensorValue?.spdSensors)
-                        ? 2.5
-                        : 0 || sensorValue?.spdSensors
-                        ? 10.5
-                        : 0
+                            (sensorValue?.nerSensors &&
+                              sensorValue?.resSensors &&
+                              sensorValue?.spdSensors)
+                          ? 3.5
+                          : 0 ||
+                              (sensorValue?.spdSensors &&
+                                sensorValue?.resSensors &&
+                                sensorValue?.vmrSensors)
+                            ? 1.8
+                            : 0 ||
+                                (sensorValue?.nerSensors &&
+                                  sensorValue?.spdSensors &&
+                                  sensorValue?.vmrSensors)
+                              ? 1.5
+                              : 0 ||
+                                  (sensorValue?.spdSensors &&
+                                    sensorValue?.resSensors)
+                                ? 5.25
+                                : 0 ||
+                                    (sensorValue?.nerSensors &&
+                                      sensorValue?.spdSensors)
+                                  ? 5.25
+                                  : 0 ||
+                                      (sensorValue?.vmrSensors &&
+                                        sensorValue?.spdSensors)
+                                    ? 2.5
+                                    : 0 || sensorValue?.spdSensors
+                                      ? 10.5
+                                      : 0
                     }
                   >
                     <Typography align="center" className=" table-head fw-500">
@@ -1195,22 +1292,33 @@ function App({ deviceID, value1, setValue1, value }) {
                               </Typography>
                             </>
                           );
-                        }
+                        },
                       )}
                     </Grid>
                   </Grid>
                 ) : null}
               </Grid>
               {sensorValue && sensor && deviceID2 === sensorValue._id && (
-                <DeviceGraph
-                  device={sensorValue}
-                  deviceID2={deviceID2}
-                  sensor={sensor}
-                  setSensor={setSensor}
-                  SensorTypeChange={SensorTypeChange}
-                  intervalId={intervalId}
-                />
+                showGraph ? (
+                  <Suspense
+                    fallback={
+                      <div className="mt-8 h-80 rounded-xl bg-slate-100 animate-pulse" />
+                    }
+                  >
+                    <DeviceGraph
+                      device={sensorValue}
+                      deviceID2={deviceID2}
+                      sensor={sensor}
+                      setSensor={setSensor}
+                      SensorTypeChange={SensorTypeChange}
+                      intervalId={intervalId}
+                    />
+                  </Suspense>
+                ) : (
+                  <div className="mt-8 h-80 rounded-xl bg-slate-100 animate-pulse" />
+                )
               )}
+
             </TabPanel>
           )}
         </Grid>
@@ -1219,4 +1327,6 @@ function App({ deviceID, value1, setValue1, value }) {
   );
 }
 
+
 export default App;
+

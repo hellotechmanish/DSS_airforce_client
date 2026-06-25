@@ -1,28 +1,25 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
-  Grid,
-  Backdrop,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
   Button,
-  Box,
   IconButton,
   Typography,
-  Tooltip,
   Snackbar,
 } from "@mui/material";
 import MuiAlert from "@mui/material/Alert";
 
 import PropTypes from "prop-types";
-import { FETCH_URL } from "../../../../../fetchIp";
 
 import { styled } from "@mui/material/styles";
 import CloseIcon from "@mui/icons-material/Close";
 //React Icons
-import { RiDeleteBin6Line } from "react-icons/ri";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+import { API } from "../../../../../lib/endpoint";
+
+import { POST } from "../../../../../lib/request";
 
 const BootstrapDialog = styled(Dialog)(({ theme }) => ({
   "& .MuiDialogContent-root": {
@@ -96,33 +93,29 @@ export default function MaxWidthDialog({ sensorValue, handleCloseProfile }) {
   };
 
   const deleteDevice = async () => {
-    let token = JSON.parse(localStorage.getItem("userData")).token;
-
     try {
-      const response = await fetch(`${FETCH_URL}/api/device/deleteDevice`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          deviceID: sensorValue?._id,
-        }),
-      });
-      const res = await response.json();
-      if (response.ok) {
-        // console.log(" Delete site resp ===> ", res.msg);
+      const body = {
+        deviceID: sensorValue?._id,
+      };
+
+      const res = await POST(API.DEVICE.DELETE, body);
+
+      if (res) {
         setSnackOpen(true);
-        setSnackMsg(res.msg);
+        setSnackMsg(res?.msg || "Device deleted successfully");
+
         navigate("/sites-mgt");
         handleCloseProfile();
         setOpen(false);
       } else {
         setSnackerropen(true);
-        setSnackErrMsg(res.err);
+        setSnackErrMsg(res?.err || "Failed to delete device");
       }
     } catch (error) {
-      // console.log("Catch block ====>", error);
+      console.error("deleteDevice error:", error);
+
+      setSnackerropen(true);
+      setSnackErrMsg(error?.msg || "Failed to delete device");
     }
   };
 

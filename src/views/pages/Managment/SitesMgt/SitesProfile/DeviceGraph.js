@@ -1,5 +1,7 @@
 import React, { useState } from "react";
 import {
+  Box,
+  CircularProgress,
   Grid,
   Typography,
   FormControl,
@@ -25,8 +27,9 @@ import {
 } from "chart.js";
 import dayjs from "dayjs";
 import { AuthContext } from "../../../../../context/AuthContext";
-import { FETCH_URL } from "../../../../../fetchIp";
 import hondaGif from "../../../../../assets/img/hondagif.gif";
+import { POST } from "../../../../../lib/request";
+import { API } from "../../../../../lib/endpoint";
 
 let interval;
 ChartJS.register(
@@ -36,22 +39,22 @@ ChartJS.register(
   LineElement,
   Title,
   Tooltip,
-  Legend
+  Legend,
 );
 const getTempValue = (row) =>
   Number(
     row?.msg?.TempValues?.DATASTREAMS?.[0]?.value ??
-    row?.msg?.DATASTREAMS?.[0]?.value ??
-    row?.temp ??
-    0
+      row?.msg?.DATASTREAMS?.[0]?.value ??
+      row?.temp ??
+      0,
   );
 
 const getHumValue = (row) =>
   Number(
     row?.msg?.HumValues?.DATASTREAMS?.[0]?.value ??
-    row?.msg?.DATASTREAMS?.[0]?.value ??
-    row?.humidity ??
-    0
+      row?.msg?.DATASTREAMS?.[0]?.value ??
+      row?.humidity ??
+      0,
   );
 export const options = {
   responsive: true,
@@ -75,17 +78,17 @@ export default function Graph({
   const getTempValue = (row) =>
     Number(
       row?.msg?.TempValues?.DATASTREAMS?.[0]?.value ??
-      row?.msg?.DATASTREAMS?.[0]?.value ??
-      row?.temp ??
-      0
+        row?.msg?.DATASTREAMS?.[0]?.value ??
+        row?.temp ??
+        0,
     );
-  
+
   const getHumValue = (row) =>
     Number(
       row?.msg?.HumValues?.DATASTREAMS?.[0]?.value ??
-      row?.msg?.DATASTREAMS?.[0]?.value ??
-      row?.humidity ??
-      0
+        row?.msg?.DATASTREAMS?.[0]?.value ??
+        row?.humidity ??
+        0,
     );
   const auth = React.useContext(AuthContext);
   const currentDate = dayjs().toDate();
@@ -93,7 +96,7 @@ export default function Graph({
   const [dateType, setDateType] = useState(0);
 
   const [startDate, setStartDate] = useState(
-    moment(new Date()).format("YYYY-MM-DD")
+    moment(new Date()).format("YYYY-MM-DD"),
   );
 
   const handleData = (data, datatype) => {
@@ -110,6 +113,7 @@ export default function Graph({
   const [labels, setLabels] = React.useState([]);
   const [graphData, setGraphData] = React.useState([]);
   const [DataSets, setDataSets] = React.useState([]);
+  const [loading, setLoading] = React.useState(false);
   const [borderColorArray] = React.useState([
     "rgb(255, 99, 132)",
     "rgb(230, 230, 0)",
@@ -147,7 +151,7 @@ export default function Graph({
             let obj = {};
             obj["label"] = `R${i + 1}`;
             obj["data"] = graphData?.map(
-              (item) => item.msg.DATASTREAMS[i]?.value
+              (item) => item.msg.DATASTREAMS[i]?.value,
             );
             obj["borderColor"] = borderColorArray[i];
             obj["backgroundColor"] = backgroundColorArray[i];
@@ -158,7 +162,7 @@ export default function Graph({
             let obj = {};
             obj["label"] = `R${i + 1}`;
             obj["data"] = graphData?.map(
-              (item) => item.msg.DATASTREAMS[i]?.value
+              (item) => item.msg.DATASTREAMS[i]?.value,
             );
             obj["borderColor"] = borderColorArray[i];
             obj["backgroundColor"] = backgroundColorArray[i];
@@ -176,7 +180,7 @@ export default function Graph({
             let obj = {};
             obj["label"] = `SPD${i + 1}`;
             obj["data"] = graphData?.map(
-              (item) => item.msg.DATASTREAMS[i]?.value
+              (item) => item.msg.DATASTREAMS[i]?.value,
             );
             obj["borderColor"] = borderColorArray[i];
             obj["backgroundColor"] = backgroundColorArray[i];
@@ -187,7 +191,7 @@ export default function Graph({
             let obj = {};
             obj["label"] = `SPD${i + 1}`;
             obj["data"] = graphData?.map(
-              (item) => item.msg.DATASTREAMS[i]?.value
+              (item) => item.msg.DATASTREAMS[i]?.value,
             );
             obj["borderColor"] = borderColorArray[i];
             obj["backgroundColor"] = backgroundColorArray[i];
@@ -204,7 +208,7 @@ export default function Graph({
             let obj = {};
             obj["label"] = `GN${i + 1}`;
             obj["data"] = graphData?.map(
-              (item) => item.msg.DATASTREAMS[i]?.value
+              (item) => item.msg.DATASTREAMS[i]?.value,
             );
             obj["borderColor"] = borderColorArray[i];
             obj["backgroundColor"] = backgroundColorArray[i];
@@ -215,7 +219,7 @@ export default function Graph({
             let obj = {};
             obj["label"] = `GN${i + 1}`;
             obj["data"] = graphData?.map(
-              (item) => item.msg.DATASTREAMS[i]?.value
+              (item) => item.msg.DATASTREAMS[i]?.value,
             );
             obj["borderColor"] = borderColorArray[i];
             obj["backgroundColor"] = backgroundColorArray[i];
@@ -284,33 +288,37 @@ export default function Graph({
 
   React.useEffect(() => {
     let user = auth.user.deviceSensors.find(
-      (item) => item.deviceId === device._id
+      (item) => item.deviceId === device._id,
     );
     setUserDevice(user);
   }, [auth]);
 
   // function get Graph data
   async function getData() {
-    if (device) {
-      try {
-        let resp = await axios.post(`${FETCH_URL}/api/device/latestData`, {
-          deviceId: device._id,
-          sensorName: sensor,
-          deviceNumber: `${phasevalue - 1}`,
-          startDate: startDate,
-          endDate: startDate,
-        });
+    if (!device) return;
 
-        // // console.log("resp from graph data ==>", resp.data.msg);
-        setLabels([...new Set(resp.data.msg.map((item) => item.time))]);
+    setLoading(true);
 
-        setGraphData(resp.data.msg);
-      } catch (error) {
-        // // console.log("error from getData () ", error);
-      }
+    try {
+      const res = await POST(API.DEVICE.LATEST_DATA, {
+        deviceId: device._id,
+        sensorName: sensor,
+        deviceNumber: `${phasevalue - 1}`,
+        startDate,
+        endDate: startDate,
+      });
+
+      // console.log("res of latest data ", res);
+
+      // res already = response.data (interceptor ke baad)
+      setLabels([...new Set(res.msg.map((item) => item.time))]);
+      setGraphData(res.msg);
+    } catch (error) {
+      console.error("Error fetching graph data", error);
+    } finally {
+      setLoading(false);
     }
   }
-
   React.useEffect(() => {
     getData();
   }, [sensor, startDate, value > 0, phasevalue]);
@@ -384,7 +392,7 @@ export default function Graph({
               <Typography className="white-typo mt-8 ">
                 Humidity :{" "}
                 <span className="white-typo">
-                {getHumValue({ msg: device }).toFixed(2)} %
+                  {getHumValue({ msg: device }).toFixed(2)} %
                 </span>
               </Typography>
               <DewnloadReport
@@ -490,41 +498,42 @@ export default function Graph({
             </FormControl>{" "}
           </Grid>
           <Grid item md={3}>
-            {sensor === "VMR" ? (
-              <>
-                <FormControl
-                  className="MainPageFormControl mt10px grey-border "
-                  size="small"
+            {sensor === "VMR" && (
+              <FormControl size="small">
+                <TextField
+                  select
+                  variant="outlined"
+                  defaultValue="1"
+                  onChange={(e) => PhaseValueChange(Number(e.target.value))}
+                  sx={{
+                    backgroundColor: "#fff",
+                    borderRadius: "6px",
+                    minWidth: 120,
+                    "& .MuiSelect-select": {
+                      color: "#000",
+                    },
+                  }}
+                  MenuProps={{
+                    PaperProps: {
+                      sx: {
+                        backgroundColor: "#fff",
+                        "& .MuiMenuItem-root": {
+                          color: "#000",
+                        },
+                      },
+                    },
+                  }}
                 >
-                  <TextField
-                    select
-                    variant="filled"
-                    InputProps={{ disableUnderline: true }}
-                    className="Selectdropstyle"
-                    labelId="demo-select-small"
-                    id="demo-select-small"
-                    defaultValue={1}
-                    inputProps={{ "aria-label": "Without label" }}
-                    onChange={(e) => {
-                      PhaseValueChange(e.target.value);
-                    }}
-                  >
-                    {new Array(device.vmrSensor).map((item, i) => {
-                      return (
-                        <MenuItem
-                          value={i + 1}
-                          className="Selectmenustyle grey-border"
-                        >
-                          <Typography className="heading-black fs13px">
-                            PH{i + 1}
-                          </Typography>
-                        </MenuItem>
-                      );
-                    })}
-                  </TextField>
-                </FormControl>{" "}
-              </>
-            ) : null}
+                  {Array.from({ length: Number(device?.vmrSensor || 0) }).map(
+                    (_, i) => (
+                      <MenuItem key={i} value={String(i + 1)}>
+                        PH{i + 1}
+                      </MenuItem>
+                    ),
+                  )}
+                </TextField>
+              </FormControl>
+            )}
           </Grid>
           <Grid item md={5} justifyContent="flex-end" alignItems="flex-end">
             <Typography align="right" className="mr-10 ">
@@ -555,19 +564,71 @@ export default function Graph({
               </LocalizationProvider>
             </Typography>
           </Grid>
-          {DataSets && DataSets?.length > 0 ? (
-            <Line
-              options={options}
-              data={{
-                labels,
-                datasets: DataSets,
+          <Grid item xs={12}>
+            <Box
+              sx={{
+                position: "relative",
+                minHeight: 320,
+                borderRadius: "0 0 8px 8px",
+                overflow: "hidden",
+                transition: "background-color 0.25s ease",
               }}
-            />
-          ) : (
-            <Grid container justifyContent="center">
-              <img src={hondaGif} />{" "}
-            </Grid>
-          )}
+            >
+              {DataSets && DataSets?.length > 0 ? (
+                <Line
+                  options={options}
+                  data={{
+                    labels,
+                    datasets: DataSets,
+                  }}
+                />
+              ) : !loading ? (
+                <Grid
+                  container
+                  justifyContent="center"
+                  alignItems="center"
+                  sx={{ minHeight: 320 }}
+                >
+                  <img src={hondaGif} alt="No graph data available" />
+                </Grid>
+              ) : null}
+
+              {loading && (
+                <Box
+                  sx={{
+                    position: "absolute",
+                    inset: 0,
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 1.5,
+                    background:
+                      "linear-gradient(180deg, rgba(247, 248, 253, 0.55) 0%, rgba(247, 248, 253, 0.82) 100%)",
+                    backdropFilter: "blur(3px)",
+                    zIndex: 2,
+                    transition: "opacity 0.25s ease",
+                  }}
+                >
+                  <CircularProgress
+                    size={34}
+                    thickness={4.5}
+                    sx={{ color: "#044a70" }}
+                  />
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      color: "#044a70",
+                      fontWeight: 600,
+                      letterSpacing: "0.02em",
+                    }}
+                  >
+                    Loading graph data...
+                  </Typography>
+                </Box>
+              )}
+            </Box>
+          </Grid>
         </Grid>
       </Grid>
     </>

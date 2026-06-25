@@ -1,345 +1,199 @@
-import React, { useState, useEffect } from "react";
-import {
-  Grid,
-  Backdrop,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  Button,
-  Box,
-  IconButton,
-  Typography,
-  Tooltip,
-  Snackbar,
-  Input,
-} from "@mui/material";
-import MuiAlert from "@mui/material/Alert";
+import React, { useEffect } from "react";
 import { useForm } from "react-hook-form";
-import { ErrorMessage } from "@hookform/error-message";
-import PropTypes from "prop-types";
-import { FETCH_URL } from "../../../../../fetchIp";
+import { POST } from "../../../../../lib/request";
+import { API } from "../../../../../lib/endpoint";
+import { toast } from "react-hot-toast";
 
-import { styled } from "@mui/material/styles";
-import CloseIcon from "@mui/icons-material/Close";
-//React Icons
-import { CiEdit } from "react-icons/ci";
-
-const BootstrapDialog = styled(Dialog)(({ theme }) => ({
-  "& .MuiDialogContent-root": {
-    padding: theme.spacing(2),
-  },
-  "& .MuiDialogActions-root": {
-    padding: theme.spacing(),
-  },
-}));
-
-const BootstrapDialogTitle = (props) => {
-  const { children, onClose, ...other } = props;
-
-  return (
-    <DialogTitle className="dialog-title-add" sx={{ m: 0, p: 1.2 }} {...other}>
-      {children}
-      <Typography className="white-typo">Edit Site </Typography>{" "}
-      {onClose ? (
-        <IconButton
-          aria-label="close"
-          onClick={onClose}
-          className="dialogcrossicon-white"
-        >
-          <CloseIcon />
-        </IconButton>
-      ) : null}
-    </DialogTitle>
-  );
-};
-
-BootstrapDialogTitle.propTypes = {
-  children: PropTypes.node,
-  onClose: PropTypes.func.isRequired,
-};
-const Alert = React.forwardRef(function Alert(props, ref) {
-  return <MuiAlert elevation={6} ref={ref} variant="filled" {...props} />;
-});
-export default function MaxWidthDialog({ row, getnumberOfSite, sitesID }) {
-  const [open, setOpen] = React.useState(false);
-  const [fullWidth] = React.useState(true);
-  const [maxWidth] = React.useState("md");
-  const handleClickOpen = () => {
-    setOpen(true);
-  };
-  const handleClose = () => {
-    setOpen(false);
-  };
+export default function EditDialog({ row, getnumberOfSite, sitesID, onClose }) {
   const {
     register,
-    formState: { errors },
     handleSubmit,
+    reset,
+    formState: { errors, isSubmitting },
   } = useForm();
-  const [siteName, setSiteName] = useState(null);
-  const [uid, setUid] = useState(null);
-  const [location, setLocation] = useState(null);
-  const [pincode, setPincode] = useState(null);
-  const [state, setState] = useState(null);
-  const [country, setCountry] = useState(null);
 
-  // SnackBar
-  const [snackopen, setSnackOpen] = useState(false);
-  const [snackmsg, setSnackMsg] = useState("");
-  const [snackErrMsg, setSnackErrMsg] = useState();
-  const [snackerropen, setSnackerropen] = useState(false);
-
-  const SnanbarClose = (event, reason) => {
-    if (reason === "clickaway") {
-      return;
-    }
-    setSnackOpen(false);
-    setSnackMsg("");
-  };
-
-  const SnackbarErrorClose = (event, reason) => {
-    if (reason === "clickaway") {
-      return;
-    }
-    setSnackerropen(false);
-    setSnackErrMsg("");
-  };
-
+  /* ---------- Populate Form ---------- */
   useEffect(() => {
     if (row) {
-      setSiteName(row.siteName);
-      setUid(row.uid ?? "");
-      setLocation(row.location);
-      setPincode(row.pincode ?? "");
-      setState(row.state ?? "");
-      setCountry(row.country ?? "");
-    }
-  }, [row]);
-  const EditSite = async () => {
-    let token = JSON.parse(localStorage.getItem("userData")).token;
-
-    try {
-      const response = await fetch(`${FETCH_URL}/api/site/editSite`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          siteId: sitesID,
-          siteName: siteName,
-          uid: uid,
-          location: location,
-          pincode: pincode,
-          country: country,
-        }),
+      reset({
+        siteName: row.siteName || "",
+        uid: row.uid || "",
+        location: row.location || "",
+        pincode: row.pincode || "",
+        state: row.state || "",
+        country: row.country || "",
       });
-      const res = await response.json();
-      if (response.ok) {
-        setSnackOpen(true);
-        setSnackMsg(res.msg);
-        setOpen(false);
+    }
+  }, [row, reset]);
+
+  /* ---------- Update Site ---------- */
+  const updateSite = async (data) => {
+    try {
+      const res = await POST(API.SITE.EDIT, {
+        siteId: sitesID,
+        ...data,
+      });
+
+      if (res) {
+        toast.success("Site updated successfully");
         getnumberOfSite();
-      } else {
-        setSnackerropen(true);
-        setSnackErrMsg(res.err);
+        onClose();
       }
     } catch (error) {
-      // console.log("Catch block ====>", error);
+      console.error(error);
+      toast.error("Failed to update site");
     }
   };
 
   return (
-    <React.Fragment>
-      <Snackbar open={snackopen} autoHideDuration={3000} onClose={SnanbarClose}>
-        <Alert onClose={SnanbarClose} severity={"success"}>
-          {snackmsg}
-        </Alert>
-      </Snackbar>
-      <Snackbar
-        open={snackerropen}
-        autoHideDuration={8000}
-        onClose={SnackbarErrorClose}
-      >
-        <Alert onClose={SnackbarErrorClose} severity={"error"}>
-          {snackErrMsg}
-        </Alert>
-      </Snackbar>
-      <Tooltip title="Edit" className="tooltipheight">
-        <IconButton className="mt-5px icons-blue" onClick={handleClickOpen}>
-          <CiEdit />
-        </IconButton>
-      </Tooltip>
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[9999]">
+      <div className="bg-white w-full max-w-2xl rounded-xl shadow-2xl">
+        {/* Header */}
+        <div className="flex justify-between items-center px-6 py-4 border-b">
+          <h2 className="text-lg font-semibold text-gray-800">Edit Site</h2>
+          <button
+            onClick={onClose}
+            className="text-gray-500 hover:text-red-500 text-xl"
+          >
+            ✕
+          </button>
+        </div>
 
-      <BootstrapDialog
-        fullWidth={fullWidth}
-        maxWidth={maxWidth}
-        open={open}
-        onClose={handleClose}
-        PaperProps={{
-          className: "SmallDialog",
-        }}
-      >
-        <BootstrapDialogTitle
-          id="customized-dialog-title"
-          onClose={handleClose}
-        ></BootstrapDialogTitle>
-        <form onSubmit={handleSubmit(EditSite)}>
-          <DialogContent className="mt-16">
-            <Grid container justifyContent="space-between">
-              <Grid item md={5.8}>
-                <Typography className="heading-black mt-16">
-                  Site Name
-                </Typography>
-                <Input
-                  className=" input-style-1c mt-12 width100"
-                  disableUnderline
-                  value={siteName}
-                  {...register("Site-Name-ErrorInput", {
-                    required: "Site  Name is required.",
-                    onChange: (e) => {
-                      setSiteName(e.target.value);
-                    },
-                  })}
-                />
-                <ErrorMessage
-                  errors={errors}
-                  name="Site-Name-ErrorInput"
-                  render={({ message }) => (
-                    <Typography className="red-typo">{message}</Typography>
-                  )}
-                />
-              </Grid>
-              <Grid item md={5.8}>
-                <Typography className="heading-black mt-16">UID</Typography>
-                <Input
-                  className="input-style-1c mt-12 width100"
-                  disableUnderline
-                  value={uid}
-                  {...register("Uid-ErrorInput", {
-                    required: "UID  is required.",
-                    onChange: (e) => {
-                      setUid(e.target.value);
-                    },
-                  })}
-                />
-                <ErrorMessage
-                  errors={errors}
-                  name="Uid-ErrorInput"
-                  render={({ message }) => (
-                    <Typography className="red-typo">{message}</Typography>
-                  )}
-                />
-              </Grid>
-              <Grid item md={5.8}>
-                <Typography className="heading-black mt-12">
-                  Location
-                </Typography>
-                <Input
-                  className=" input-style-1c mt-12 width100"
-                  disableUnderline
-                  value={location}
-                  {...register("Location-ErrorInput", {
-                    required: "Location  is required.",
-                    onChange: (e) => {
-                      setLocation(e.target.value);
-                    },
-                  })}
-                />
-                <ErrorMessage
-                  errors={errors}
-                  name="Location-ErrorInput"
-                  render={({ message }) => (
-                    <Typography className="red-typo">{message}</Typography>
-                  )}
-                />
-              </Grid>
-              <Grid item md={5.8}>
-                <Typography className="heading-black mt-12">Pincode</Typography>
-                <Input
-                  className="input-style-1c mt-12 width100"
-                  disableUnderline
-                  value={pincode}
-                  minlength="4"
-                  maxlength="8"
-                  type="number"
-                  {...register("Pincode-ErrorInput", {
-                    required: "Pincode  is required.",
-                    onChange: (e) => {
-                      setPincode(e.target.value);
-                    },
-                  })}
-                />
-                <ErrorMessage
-                  errors={errors}
-                  name="Pincode-ErrorInput"
-                  render={({ message }) => (
-                    <Typography className="red-typo">{message}</Typography>
-                  )}
-                />
-              </Grid>
-              <Grid item md={5.8}>
-                <Typography className="heading-black mt-12">State</Typography>
-                <Input
-                  className=" input-style-1c mt-12 width100"
-                  disableUnderline
-                  value={state}
-                  {...register("State-ErrorInput", {
-                    required: "State  is required.",
-                    onChange: (e) => {
-                      setState(e.target.value);
-                    },
-                  })}
-                />
-                <ErrorMessage
-                  errors={errors}
-                  name="State-ErrorInput"
-                  render={({ message }) => (
-                    <Typography className="red-typo">{message}</Typography>
-                  )}
-                />
-              </Grid>
-              <Grid item md={5.8}>
-                <Typography className="heading-black mt-12">Country</Typography>
-                <Input
-                  className="input-style-1c mt-12 width100"
-                  disableUnderline
-                  value={country}
-                  {...register("Country-ErrorInput", {
-                    required: "Country  is required.",
-                    onChange: (e) => {
-                      setCountry(e.target.value);
-                    },
-                  })}
-                />
-                <ErrorMessage
-                  errors={errors}
-                  name="Country-ErrorInput"
-                  render={({ message }) => (
-                    <Typography className="red-typo">{message}</Typography>
-                  )}
-                />
-              </Grid>
-            </Grid>
-          </DialogContent>
-          <DialogActions className="hgt-40" sx={{ marginBottom: "10px" }}>
-            <Button
-              sx={{ marginRight: "10px" }}
-              className="  grey-br-button width-100  hover"
-              onClick={handleClose}
+        {/* Form */}
+        <form onSubmit={handleSubmit(updateSite)}>
+          <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-5">
+            {/* Site Name */}
+            <div>
+              <label className="text-sm font-medium text-gray-700">
+                Site Name
+              </label>
+              <input
+                {...register("siteName", {
+                  required: "Site Name is required",
+                })}
+                placeholder="Enter site name"
+                className="w-full mt-2 px-3 py-2 border rounded-md focus:ring-2 focus:ring-indigo-500"
+              />
+              {errors.siteName && (
+                <p className="text-red-500 text-xs mt-1">
+                  {errors.siteName.message}
+                </p>
+              )}
+            </div>
+
+            {/* UID */}
+            <div>
+              <label className="text-sm font-medium text-gray-700">UID</label>
+              <input
+                {...register("uid", {
+                  required: "UID is required",
+                })}
+                placeholder="Enter UID"
+                className="w-full mt-2 px-3 py-2 border rounded-md focus:ring-2 focus:ring-indigo-500"
+              />
+              {errors.uid && (
+                <p className="text-red-500 text-xs mt-1">
+                  {errors.uid.message}
+                </p>
+              )}
+            </div>
+
+            {/* Location */}
+            <div>
+              <label className="text-sm font-medium text-gray-700">
+                Location
+              </label>
+              <input
+                {...register("location", {
+                  required: "Location is required",
+                })}
+                placeholder="Enter location"
+                className="w-full mt-2 px-3 py-2 border rounded-md focus:ring-2 focus:ring-indigo-500"
+              />
+              {errors.location && (
+                <p className="text-red-500 text-xs mt-1">
+                  {errors.location.message}
+                </p>
+              )}
+            </div>
+
+            {/* Pincode */}
+            <div>
+              <label className="text-sm font-medium text-gray-700">
+                Pincode
+              </label>
+              <input
+                type="number"
+                {...register("pincode", {
+                  required: "Pincode is required",
+                })}
+                placeholder="Enter pincode"
+                className="w-full mt-2 px-3 py-2 border rounded-md focus:ring-2 focus:ring-indigo-500"
+              />
+              {errors.pincode && (
+                <p className="text-red-500 text-xs mt-1">
+                  {errors.pincode.message}
+                </p>
+              )}
+            </div>
+
+            {/* State */}
+            <div>
+              <label className="text-sm font-medium text-gray-700">State</label>
+              <input
+                {...register("state", {
+                  required: "State is required",
+                })}
+                placeholder="Enter state"
+                className="w-full mt-2 px-3 py-2 border rounded-md focus:ring-2 focus:ring-indigo-500"
+              />
+              {errors.state && (
+                <p className="text-red-500 text-xs mt-1">
+                  {errors.state.message}
+                </p>
+              )}
+            </div>
+
+            {/* Country */}
+            <div>
+              <label className="text-sm font-medium text-gray-700">
+                Country
+              </label>
+              <input
+                {...register("country", {
+                  required: "Country is required",
+                })}
+                placeholder="Enter country"
+                className="w-full mt-2 px-3 py-2 border rounded-md focus:ring-2 focus:ring-indigo-500"
+              />
+              {errors.country && (
+                <p className="text-red-500 text-xs mt-1">
+                  {errors.country.message}
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Footer */}
+          <div className="flex justify-end gap-3 px-6 py-4 border-t bg-gray-50 rounded-b-xl">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 text-sm bg-gray-200 rounded-md hover:bg-gray-300"
             >
               Cancel
-            </Button>
-            <Button
-              sx={{ padding: "5px 0px" }}
-              className="skyblue-br-button width-100 hover"
+            </button>
+
+            <button
               type="submit"
+              disabled={isSubmitting}
+              className="px-4 py-2 text-sm bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:bg-gray-400"
             >
-              Update
-            </Button>
-          </DialogActions>{" "}
+              {isSubmitting ? "Updating..." : "Update"}
+            </button>
+          </div>
         </form>
-      </BootstrapDialog>
-    </React.Fragment>
+      </div>
+    </div>
   );
 }

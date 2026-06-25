@@ -27,6 +27,90 @@
   color: #61dafb;
 }
 
+.server-connection-screen {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background:
+    radial-gradient(circle at top, rgba(89, 50, 234, 0.16), transparent 42%),
+    linear-gradient(180deg, #f7f8fc 0%, #edf1f7 100%);
+}
+
+.server-connection-card {
+  width: min(100%, 460px);
+  padding: 40px 32px;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 20px 60px rgba(15, 23, 42, 0.12);
+  text-align: center;
+}
+
+.server-connection-loader {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.server-connection-card h1 {
+  margin: 0 0 12px;
+  font-size: 28px;
+  color: #111827;
+}
+
+.server-connection-card p {
+  margin: 0;
+  line-height: 1.6;
+  color: #4b5563;
+}
+
+.server-connection-meta {
+  margin-top: 18px;
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.server-connection-actions {
+  margin-top: 24px;
+}
+
+.server-connection-button {
+  border: none;
+  border-radius: 999px;
+  padding: 12px 22px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #ffffff;
+  background: #5932ea;
+  cursor: pointer;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    opacity 0.2s ease;
+  box-shadow: 0 12px 24px rgba(89, 50, 234, 0.24);
+}
+
+.server-connection-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.server-connection-button:disabled {
+  opacity: 0.7;
+  cursor: wait;
+  box-shadow: none;
+}
+
+@media (max-width: 600px) {
+  .server-connection-card {
+    padding: 32px 24px;
+  }
+
+  .server-connection-card h1 {
+    font-size: 24px;
+  }
+}
+
 @keyframes App-logo-spin {
   from {
     transform: rotate(0deg);
@@ -35,3 +119,5 @@
     transform: rotate(360deg);
   }
 }
+
+

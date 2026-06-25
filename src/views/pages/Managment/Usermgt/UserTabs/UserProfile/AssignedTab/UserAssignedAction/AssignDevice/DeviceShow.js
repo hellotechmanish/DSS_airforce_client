@@ -1,5 +1,4 @@
-import React, { useState, useEffect } from "react";
-import { styled } from "@mui/material/styles";
+import React from "react";
 import Radio from "@mui/material/Radio";
 import RadioGroup from "@mui/material/RadioGroup";
 import {
@@ -7,56 +6,10 @@ import {
   Typography,
   DialogContent,
   FormControlLabel,
-  InputBase,
   ListItemButton,
   FormLabel,
 } from "@mui/material";
 //React Icons
-
-import SearchIcon from "@mui/icons-material/Search";
-import { FETCH_URL } from "../../../../../../../../../fetchIp";
-
-const Search = styled("div")(({ theme }) => ({
-  position: "relative",
-  borderRadius: "0px",
-  backgroundColor: "rgba(247, 248, 253, 1)",
-  "&:hover": {
-    backgroundColor: "rgba(247, 248, 253, 1)",
-  },
-  marginLeft: 0,
-  width: "100%",
-  fontWeight: "400",
-  // [theme.breakpoints.up("lg")]: {
-  //   marginLeft: theme.spacing(1),
-  //   width: "auto",
-  // },
-  width: "36%",
-}));
-const SearchIconWrapper = styled("div")(({ theme }) => ({
-  padding: theme.spacing(0, 2),
-  height: "100%",
-  position: "absolute",
-  pointerEvents: "none",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-}));
-const StyledInputBase = styled(InputBase)(({ theme }) => ({
-  color: "inherit",
-  "& .MuiInputBase-input": {
-    padding: theme.spacing(1, 1, 1, 0),
-    // vertical padding + font size from searchIcon
-    paddingLeft: `calc(1em + ${theme.spacing(4)})`,
-    transition: theme.transitions.create("width"),
-    width: "100%",
-    [theme.breakpoints.up("sm")]: {
-      width: "100%",
-      "&:focus": {
-        width: "93%",
-      },
-    },
-  },
-}));
 
 export default function Device(props) {
   const {
@@ -67,12 +20,7 @@ export default function Device(props) {
   // // console.log("Check Orignal Data", sitesData);
   //=================================================//
 
-  const [sites, setSites] = useState(null);
-
-  const [value, setValue] = React.useState(0);
-  const TabChange = (event, newValue) => {
-    setValue(newValue);
-  };
+  // const [sites, setSites] = useState(null);
 
   return (
     <div>

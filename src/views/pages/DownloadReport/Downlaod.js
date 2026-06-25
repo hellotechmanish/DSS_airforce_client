@@ -1,395 +1,212 @@
+"use client";
+
 import React, { useState, useEffect } from "react";
-import {
-  Grid,
-  Backdrop,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  Button,
-  Box,
-  IconButton,
-  Typography,
-  Tooltip,
-  Snackbar,
-  TextField,
-} from "@mui/material";
-import MuiAlert from "@mui/material/Alert";
-import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
-import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
-import { DesktopDatePicker } from "@mui/x-date-pickers/DesktopDatePicker";
-import PropTypes from "prop-types";
 import moment from "moment";
 import { HiOutlineDownload } from "react-icons/hi";
+import { POST, GET } from "../../../lib/request";
+import { API } from "../../../lib/endpoint";
+import toast from "react-hot-toast";
 
-import { styled } from "@mui/material/styles";
-import CloseIcon from "@mui/icons-material/Close";
-//React Icons
-import { RiDeleteBin6Line } from "react-icons/ri";
-import axios from "axios";
-import { FETCH_URL } from "../../../fetchIp";
-
-const BootstrapDialog = styled(Dialog)(({ theme }) => ({
-  "& .MuiDialogContent-root": {
-    padding: theme.spacing(2),
-  },
-  "& .MuiDialogActions-root": {
-    padding: theme.spacing(),
-  },
-}));
-
-const BootstrapDialogTitle = (props) => {
-  const { children, onClose, ...other } = props;
-
-  return (
-    <DialogTitle className="dialog-title-add" sx={{ m: 0, p: 1.2 }} {...other}>
-      {children}
-      <Typography className="white-typo">Download Report </Typography>
-      {onClose ? (
-        <IconButton
-          aria-label="close"
-          onClick={onClose}
-          className="dialogcrossicon-white "
-        >
-          <CloseIcon />
-        </IconButton>
-      ) : null}
-    </DialogTitle>
-  );
-};
-
-BootstrapDialogTitle.propTypes = {
-  children: PropTypes.node,
-  onClose: PropTypes.func.isRequired,
-};
-const Alert = React.forwardRef(function Alert(props, ref) {
-  return <MuiAlert elevation={6} ref={ref} variant="filled" {...props} />;
-});
-export default function MaxWidthDialog({
+export default function DownloadReportDialog({
   sensor,
   vmrSensors,
   device,
-  DataSets,
   GraphDate,
 }) {
-  const [open, setOpen] = React.useState(false);
-  const [fullWidth] = React.useState(true);
-  const [maxWidth] = React.useState("sm");
-  const handleClickOpen = () => {
-    setOpen(true);
-  };
-  const handleClose = () => {
-    setOpen(false);
-  };
+  const [open, setOpen] = useState(false);
+  const [deviceSensorNumber, setDeviceSensorNumber] = useState([]);
+  const [dataNumber, setDataNumber] = useState([]);
 
-  // SnackBar
-  const [snackopen, setSnackOpen] = useState(false);
-  const [snackmsg, setSnackMsg] = useState("");
-  const [snackErrMsg, setSnackErrMsg] = useState();
-  const [snackerropen, setSnackerropen] = useState(false);
-  const [deviceSensorNumber, setdeviceSensorNumber] = useState([]);
-  const [dataNumber, setdataNumber] = useState([]);
-
-  const SnanbarClose = (event, reason) => {
-    if (reason === "clickaway") {
-      return;
-    }
-    setSnackOpen(false);
-    setSnackMsg("");
-  };
-
-  const SnackbarErrorClose = (event, reason) => {
-    if (reason === "clickaway") {
-      return;
-    }
-    setSnackerropen(false);
-    setSnackErrMsg("");
-  };
-  const [startDate, setStartDate] = useState();
+  const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState(
-    moment(new Date()).format("YYYY-MM-DD")
+    moment(new Date()).format("YYYY-MM-DD"),
   );
-  const handleData = (data, datatype) => {
-    if (datatype == "startDate") {
-      setStartDate(moment(data).format("YYYY-MM-DD"));
-    } else if (datatype == "endDate") {
-      // console.log("endDate => ", moment(data).format("YYYY-MM-DD"));
-      setEndDate(moment(data).format("YYYY-MM-DD"));
-    }
-  };
+
   useEffect(() => {
     if (open) {
       setStartDate(GraphDate ?? moment(new Date()).format("YYYY-MM-DD"));
     }
-  }, [open]);
-  // ========================================= //
+  }, [open, GraphDate]);
 
+  // ================= SENSOR LOGIC =================
+  useEffect(() => {
+    if (!device) return;
+
+    const buildArray = (count, prefix, labelPrefix) => {
+      let arr = [];
+      let labelArr = [];
+      for (let i = 0; i < count; i++) {
+        arr.push(`${prefix}_${i}`);
+        labelArr.push(`${labelPrefix}${i + 1}`);
+      }
+      setDeviceSensorNumber(arr);
+      setDataNumber(labelArr);
+    };
+
+    if (sensor === "RES" && device?.resSensors)
+      buildArray(device.resSensors, "RES", "R");
+
+    if (sensor === "SPD" && device?.spdSensors)
+      buildArray(device.spdSensors, "SPD", "SPD");
+
+    if (sensor === "NER" && device?.nerSensors)
+      buildArray(device.nerSensors, "NER", "GN");
+
+    if (sensor === "VMR" && device?.vmrSensors)
+      buildArray(device.vmrSensors, "VMR", "PH");
+
+    if (sensor === "TEMP") buildArray(1, "Temp", "T");
+
+    if (sensor === "HUM") buildArray(1, "Hum", "H");
+  }, [sensor, device]);
+
+  // ================= GENERATE REPORT =================
   async function handleDownloadReport() {
-    // console.log("==== handleDownloadReport ====");
     try {
-      let body = {
+      const body = {
         deviceId: device?._id,
         sensorName: sensor,
         deviceNumber: deviceSensorNumber,
-        startDate: startDate,
-        endDate: endDate,
+        startDate,
+        endDate,
       };
-      // console.log("Body from handleDownloadReport ==>", body);
-      let resp = await axios.post(
-        `${FETCH_URL}/api/device/generateReport`,
-        body
-      );
 
-      // console.log("resp from handleDownloadReport ==>", resp);
-      if (resp.status === 200) {
-        DownloadCSV();
+      const resp = await POST(API.DEVICE.GENERATE_REPORT, body);
+
+      if (resp) {
+        await downloadCSV();
       }
     } catch (error) {
-      // console.log("error from handleDownloadReport  ==> ", error);
+      toast.error("Failed to generate report");
     }
   }
 
-  // ============ Download CSV =========== //
-  async function DownloadCSV() {
-    // console.log("============= DownloadCSV () ================");
-    fetch(`${FETCH_URL}/api/device/downloadcsv`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/csv",
-      },
-    })
-      .then((res) => res.blob())
-      .then((file) => {
-        // console.log("data after the =>>", file);
-        const url = window.URL.createObjectURL(
-          new Blob([file], {
-            type: "application/csv",
-          })
-        );
-        const link = document.createElement("a");
-        link.href = url;
-        link.setAttribute("download", "file.csv");
-        document.body.appendChild(link);
-        link.click();
-        link.parentNode.removeChild(link);
-      })
-      .catch((error) => {
-        // console.log(error);
+  // ================= DOWNLOAD CSV =================
+  const downloadCSV = async () => {
+    try {
+      const res = await GET(API.DEVICE.DOWNLOAD_CSV, {
+        responseType: "blob",
       });
-  }
-  React.useEffect(() => {
-    if (sensor === "RES" && device?.resSensors) {
-      let arr = [];
-      let dataArr = [];
-      for (let i = 0; i < new Array(device?.resSensors).length; i++) {
-        let str = `RES_${i}`;
-        arr.push(str);
-        let str2 = `R${i + 1}`;
-        dataArr.push(str2);
-      }
-      setdeviceSensorNumber(arr);
-      setdataNumber(dataArr);
-    }
 
-    if (sensor === "SPD" && device?.spdSensors) {
-      let arr = [];
-      let dataArr = [];
-      for (let i = 0; i < new Array(device?.spdSensors).length; i++) {
-        let str = `SPD_${i}`;
-        arr.push(str);
-        let str2 = `SPD${i + 1}`;
-        dataArr.push(str2);
-      }
-      setdeviceSensorNumber(arr);
-      setdataNumber(dataArr);
-    }
+      const url = window.URL.createObjectURL(
+        new Blob([res], { type: "application/csv" }),
+      );
 
-    if (sensor === "NER" && device?.nerSensors) {
-      let arr = [];
-      let dataArr = [];
-      for (let i = 0; i < new Array(device?.nerSensors).length; i++) {
-        let str = `NER_${i}`;
-        arr.push(str);
-        let str2 = `GN${i + 1}`;
-        dataArr.push(str2);
-      }
-      setdeviceSensorNumber(arr);
-      setdataNumber(dataArr);
-    }
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", "report.csv");
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
 
-    if (sensor === "VMR" && device?.vmrSensors) {
-      let arr = [];
-      let dataArr = [];
-      for (let i = 0; i < new Array(device?.vmrSensors).length; i++) {
-        let str = `${i}`;
-        arr.push(str);
-        let str2 = `PH${i + 1}`;
-        dataArr.push(str2);
-      }
-      setdeviceSensorNumber(arr);
-      setdataNumber(dataArr);
+      toast.success("Report downloaded successfully");
+    } catch (error) {
+      toast.error("Failed to download CSV");
     }
-    if (sensor === "TEMP" && device?.roundedTemperature) {
-      let arr = [];
-      let dataArr = [];
-      let roundedTemperature = 1;
-
-      for (let i = 0; i < new Array(roundedTemperature).length; i++) {
-        let str = `Temp`;
-        arr.push(str);
-        let str2 = `T${i + 1}`;
-        dataArr.push(str2);
-      }
-      setdeviceSensorNumber(arr);
-      setdataNumber(dataArr);
-    }
-    if (sensor === "HUM" && device?.roundedTemperature) {
-      let arr = [];
-      let dataArr = [];
-      let roundedTemperature = 1;
-
-      for (let i = 0; i < new Array(roundedTemperature).length; i++) {
-        let str = `Hum`;
-        arr.push(str);
-        let str2 = `H${i + 1}`;
-        dataArr.push(str2);
-      }
-      setdeviceSensorNumber(arr);
-      setdataNumber(dataArr);
-    }
-  }, [sensor]);
+  };
 
   return (
-    <React.Fragment>
-      <Snackbar open={snackopen} autoHideDuration={3000} onClose={SnanbarClose}>
-        <Alert onClose={SnanbarClose} severity={"success"}>
-          {snackmsg}
-        </Alert>
-      </Snackbar>
-      <Snackbar
-        open={snackerropen}
-        autoHideDuration={8000}
-        onClose={SnackbarErrorClose}
+    <>
+      {/* Download Button */}
+      <button
+        onClick={() => setOpen(true)}
+        className="flex items-center justify-center gap-2
+             px-5 py-2.5
+             text-white text-sm font-semibold
+             rounded-lg
+             shadow-md hover:shadow-lg
+             transition-all duration-200
+             hover:bg-blue-800 active:scale-95"
       >
-        <Alert onClose={SnackbarErrorClose} severity={"error"}>
-          {snackErrMsg}
-        </Alert>
-      </Snackbar>
-      <Button className="white-tr-button fs-16" onClick={handleClickOpen}>
-        <HiOutlineDownload className="fs-24 mr-10" /> Download
-      </Button>{" "}
-      <BootstrapDialog
-        fullWidth={fullWidth}
-        maxWidth={maxWidth}
-        open={open}
-        onClose={handleClose}
-        PaperProps={{
-          className: "SmallDialog",
-        }}
-      >
-        <BootstrapDialogTitle onClose={handleClose}> </BootstrapDialogTitle>
-        <DialogContent className="mt-16">
-          <Grid item>
-            <Typography className="input-style-typo ">
-              {sensor === "VMR"
-                ? `Phase Meter ${vmrSensors}`
-                : `${sensor} ${dataNumber}`}
-            </Typography>
-          </Grid>
-          <Grid container item>
-            <Grid item>
-              <Grid container className="mt-24">
-                <Grid item xs={3}>
-                  <Typography className="heading-black mt-6">
-                    Select Timeline
-                  </Typography>
-                </Grid>
+        <HiOutlineDownload size={18} />
+        Download
+      </button>
 
-                <Grid item xs={4}>
-                  <LocalizationProvider dateAdapter={AdapterDateFns}>
-                    <DesktopDatePicker
-                      className="rangepicker"
-                      InputProps={{
-                        disableUnderline: true,
-                      }}
-                      inputFormat="dd/MM/yyyy"
-                      value={startDate}
-                      onChange={(e) => {
-                        handleData(e, "startDate");
-                      }}
-                      renderInput={(params) => (
-                        <TextField
-                          variant="filled"
-                          className="width100 rangepicker"
-                          {...params}
-                          inputProps={{
-                            ...params.inputProps,
-                            placeholder: "Start date",
-                          }}
-                        />
-                      )}
-                    />
-                  </LocalizationProvider>
-                </Grid>
-                <Grid item md={1} xs={1} className="mt-6">
-                  <Typography align="center" className="heading-black ">
-                    to
-                  </Typography>
-                </Grid>
-                <Grid item xs={4}>
-                  <LocalizationProvider dateAdapter={AdapterDateFns}>
-                    <DesktopDatePicker
-                      className="rangepicker"
-                      inputFormat="dd/MM/yyyy"
-                      value={endDate}
-                      onChange={(e) => {
-                        handleData(e, "endDate");
-                      }}
-                      InputProps={{
-                        disableUnderline: true,
-                      }}
-                      renderInput={(params) => (
-                        <TextField
-                          variant="filled"
-                          className="width100 rangepicker"
-                          {...params}
-                          inputProps={{
-                            ...params.inputProps,
-                            placeholder: "End date",
-                          }}
-                        />
-                      )}
-                    />
-                  </LocalizationProvider>
-                </Grid>
-              </Grid>
-            </Grid>
-          </Grid>
-        </DialogContent>
-        <DialogActions
-          sx={{
-            height: "35px",
-          }}
+      {/* Modal */}
+      {open && (
+        <div
+          className="fixed inset-0 bg-black/40 backdrop-blur-sm 
+                        flex items-center justify-center z-50 p-4"
         >
-          <Button
-            sx={{ marginRight: "10px" }}
-            className="  grey-br-button width-100 hover "
-            onClick={handleClose}
+          <div
+            className="w-full max-w-md bg-white rounded-xl shadow-2xl 
+                          border border-gray-200 flex flex-col"
           >
-            Cancel
-          </Button>
-          <Button
-            sx={{ padding: "5.2px 0px" }}
-            className="skyblue-bg-button width-100 hover"
-            onClick={() => {
-              setOpen(false);
-              handleDownloadReport();
-            }}
-          >
-            Download
-          </Button>
-        </DialogActions>
-      </BootstrapDialog>
-    </React.Fragment>
+            {/* Header */}
+            <div
+              className="flex justify-between items-center 
+                            px-5 py-4 border-b bg-gray-50 rounded-t-xl"
+            >
+              <h2 className="text-base font-semibold text-gray-800">
+                Download Report
+              </h2>
+
+              <button
+                onClick={() => setOpen(false)}
+                className="w-8 h-8 flex items-center justify-center 
+                           rounded-full hover:bg-gray-200 transition"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-6 space-y-6 text-sm">
+              <div className="text-gray-700 font-medium">
+                {sensor === "VMR"
+                  ? `Phase Meter ${vmrSensors}`
+                  : `${sensor} ${dataNumber.join(", ")}`}
+              </div>
+
+              {/* Date Range */}
+              <div className="space-y-3">
+                <label className="block text-sm font-medium text-gray-600">
+                  Select Timeline
+                </label>
+
+                <div className="flex items-center gap-3">
+                  <input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    className="border rounded-lg px-3 py-2 w-full"
+                  />
+
+                  <span className="text-gray-500 text-sm">to</span>
+
+                  <input
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    className="border rounded-lg px-3 py-2 w-full"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="flex justify-end gap-3 px-5 py-4 border-t bg-gray-50 rounded-b-xl">
+              <button
+                onClick={() => setOpen(false)}
+                className="px-4 py-2 text-sm border rounded-lg hover:bg-gray-100 transition"
+              >
+                Cancel
+              </button>
+
+              <button
+                onClick={() => {
+                  setOpen(false);
+                  handleDownloadReport();
+                }}
+                className="px-5 py-2 text-sm bg-[#0f3057] text-white 
+                           rounded-lg hover:bg-[#163e6b] transition"
+              >
+                Download
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }

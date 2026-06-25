@@ -61,7 +61,7 @@ export default function MaxWidthDialog({
   alarmStatus,
   toggleAlarmStatus,
 }) {
-  console.log("Check open", alarmStatus);
+  // console.log("Check open", alarmStatus);
   const [fullWidth] = React.useState(true);
   const [maxWidth] = React.useState("xs");
   const handleClickOpen = () => {

@@ -1,11 +1,16 @@
 import React from "react";
-import ReactDOM from "react-dom";
+import { createRoot } from "react-dom/client";
+import { Toaster } from "react-hot-toast";
+import "./index.css";
 import "./assets/css/Master.css";
-import Routes from "./Routes";
+import AllRoutes from "./Routes";
 
-ReactDOM.render(
+const root = createRoot(document.getElementById("root"));
+
+root.render(
   <React.StrictMode>
-    <Routes />
+    {/* Explicitly designated alignment viewport profile set to bottom-right */}
+    <Toaster position="bottom-right" reverseOrder={false} />
+    <AllRoutes />
   </React.StrictMode>,
-  document.getElementById("root")
 );

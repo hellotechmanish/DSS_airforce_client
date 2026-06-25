@@ -1,143 +1,217 @@
-import React, { useState, useEffect } from "react";
-import { Typography, Breadcrumbs, Grid, Container } from "@mui/material";
-import Table from "@mui/material/Table";
-import TableBody from "@mui/material/TableBody";
-import TableCell from "@mui/material/TableCell";
-import TableContainer from "@mui/material/TableContainer";
-import TableHead from "@mui/material/TableHead";
-import TableRow from "@mui/material/TableRow";
-import Paper from "@mui/material/Paper";
-import dayjs from "dayjs";
+"use client";
 
+import React, { useState, useMemo, useEffect } from "react";
+import dayjs from "dayjs";
 import { Link } from "react-router-dom";
+
 import NodataFound from "../../../../../assets/img/nodatafound.png";
+
 import EditTechnician from "../ActionTechnician/EditTechnician";
 import DeleteDialog from "../ActionTechnician/DeleteTechnician";
 import PasswordReset from "../ActionTechnician/PasswordReset";
-export default function Sites({ technician, getnumberOftechnician }) {
+
+export default function Sites({ technician = [], getnumberOftechnician }) {
+  const [search, setSearch] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
+  // ================= FILTER =================
+  const filteredData = useMemo(() => {
+    return technician.filter((row) =>
+      `${row.uid} ${row.fullName}`.toLowerCase().includes(search.toLowerCase()),
+    );
+  }, [technician, search]);
+
+  // ================= PAGINATION =================
+  const totalPages = Math.ceil(filteredData.length / pageSize);
+
+  const paginatedData = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredData.slice(start, start + pageSize);
+  }, [filteredData, currentPage, pageSize]);
+
+  //    Fix page overflow
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(1);
+    }
+  }, [totalPages, currentPage]);
+
+  //    limit visible page buttons
+  const visiblePages = useMemo(() => {
+    const max = 5;
+    let start = Math.max(currentPage - 2, 1);
+    let end = Math.min(start + max - 1, totalPages);
+
+    if (end - start < max - 1) {
+      start = Math.max(end - max + 1, 1);
+    }
+
+    return Array.from({ length: end - start + 1 }, (_, i) => start + i);
+  }, [currentPage, totalPages]);
+
   return (
-    <>
-      <Grid container direction="row" className=" mt-24 width100  mb-40">
-        {technician?.length > 0 ? (
-          <TableContainer className="width100 table-container">
-            <Table aria-label="simple table">
-              <TableHead>
-                <TableRow>
-                  <TableCell
-                    align="center"
-                    className="subheading-grey600 fs-16"
-                  >
-                    UID
-                  </TableCell>
-                  <TableCell
-                    align="center"
-                    className="subheading-grey600 fs-16"
-                  >
-                    Technician Name
-                  </TableCell>
-                  <TableCell
-                    align="center"
-                    className="subheading-grey600 fs-16"
-                  >
-                    Password
-                  </TableCell>
-                  <TableCell
-                    align="center"
-                    className="subheading-grey600 fs-16"
-                  >
-                    Added on
-                  </TableCell>
-                  <TableCell
-                    align="center"
-                    className="subheading-grey600 fs-16"
-                  >
-                    Action
-                  </TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {technician?.map((row) => (
-                  <TableRow key={row.name}>
-                    <TableCell
-                      align="center"
-                      className="p-0"
-                      component="th"
-                      scope="row"
-                    >
-                      <Link
-                        to="/technician-profile"
-                        state={row}
-                        className="linkcolor sky-typo fw-600 hover"
-                      >
-                        {row.uid}{" "}
+    <div className="mt-10 mb-16 w-full">
+      {/* 🔍 SEARCH */}
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-lg font-semibold">Technicians</h2>
+
+        <input
+          type="text"
+          placeholder="Search technician..."
+          value={search}
+          onChange={(e) => {
+            setSearch(e.target.value);
+            setCurrentPage(1);
+          }}
+          className="border px-3 py-2 rounded-lg text-sm"
+        />
+      </div>
+
+      {filteredData.length > 0 ? (
+        <>
+          <div className="bg-white rounded-xl shadow-md border overflow-x-auto">
+            <table className="min-w-full text-sm text-center">
+              <thead className="bg-gray-100 text-gray-600 uppercase text-xs">
+                <tr>
+                  <th className="px-6 py-4">#</th>
+                  <th className="px-6 py-4">UID</th>
+                  <th className="px-6 py-4">Technician Name</th>
+                  <th className="px-6 py-4">Password</th>
+                  <th className="px-6 py-4">Added On</th>
+                  <th className="px-6 py-4">Action</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {paginatedData.map((row, index) => (
+                  <tr key={row._id} className="border-b hover:bg-gray-50">
+                    {/* SERIAL */}
+                    <td className="px-6 py-4">
+                      {(currentPage - 1) * pageSize + index + 1}
+                    </td>
+
+                    {/* UID */}
+                    <td className="px-6 py-4 font-semibold text-blue-600">
+                      <Link to="/technician-profile" state={row}>
+                        {row.uid}
                       </Link>
-                    </TableCell>
-                    <TableCell align="center">
-                      <Link
-                        to="/technician-profile"
-                        state={row}
-                        className="linkcolor sky-typo fw-600 hover"
-                      >
-                        {row.fullName}{" "}
+                    </td>
+
+                    {/* NAME */}
+                    <td className="px-6 py-4 font-medium">
+                      <Link to="/technician-profile" state={row}>
+                        {row.fullName}
                       </Link>
-                    </TableCell>
-                    <TableCell align="center" className="heading-black ">
-                      *********
-                    </TableCell>
-                    <TableCell align="center" className="heading-black ">
-                      {dayjs(row?.createdAt).format("DD-MM-YYYY")}
-                    </TableCell>
-                    <TableCell align="center">
-                      <Grid
-                        container
-                        justifyContent="space-evenly"
-                        direction="row"
-                      >
+                    </td>
+
+                    {/* PASSWORD */}
+                    <td className="px-6 py-4 text-gray-500">*********</td>
+
+                    {/* DATE */}
+                    <td className="px-6 py-4">
+                      {dayjs(row.createdAt).format("DD-MM-YYYY")}
+                    </td>
+
+                    {/* ACTION */}
+                    <td className="px-6 py-4">
+                      <div className="flex justify-center gap-4">
                         <EditTechnician
                           techID={row._id}
                           row={row}
                           getnumberOftechnician={getnumberOftechnician}
-                        />{" "}
+                        />
+
                         <PasswordReset
                           techID={row._id}
                           getnumberOftechnician={getnumberOftechnician}
                         />
+
                         <DeleteDialog
                           techID={row._id}
                           getnumberOftechnician={getnumberOftechnician}
                         />
-                        {/* <EditDialog
-                          row={row}
-                          sitesID={row._id}
-                          getnumberOfSite={getnumberOfSite}
-                        />
-                        <DeleteDialog
-                          sitesID={row._id}
-                          getnumberOfSite={getnumberOfSite}
-                        /> */}
-                      </Grid>
-                    </TableCell>
-                  </TableRow>
+                      </div>
+                    </td>
+                  </tr>
                 ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        ) : (
-          <Grid container>
-            <Grid item className="mt-32 width100">
-              <Typography align="center">
-                <img src={NodataFound} />{" "}
-              </Typography>
-            </Grid>
-            <Typography className="heading-black width100 mt-42" align="center">
-              No User Found!
-            </Typography>
-            <Typography className="heading-black width100 mt-24" align="center">
-              Click Add Button
-            </Typography>
-          </Grid>
-        )}
-      </Grid>
-    </>
+              </tbody>
+            </table>
+          </div>
+
+          {/* 🔢 PAGINATION */}
+          <div className="flex justify-between items-center mt-4 flex-wrap gap-3">
+            {/* LEFT */}
+            <div className="text-sm text-gray-600">
+              Showing {(currentPage - 1) * pageSize + 1} -
+              {Math.min(currentPage * pageSize, filteredData.length)} of{" "}
+              {filteredData.length}
+            </div>
+
+            {/* CENTER */}
+            <div className="flex gap-1">
+              <button
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage(currentPage - 1)}
+                className="px-3 py-1 border rounded disabled:opacity-40"
+              >
+                Prev
+              </button>
+
+              {visiblePages.map((p) => (
+                <button
+                  key={p}
+                  onClick={() => setCurrentPage(p)}
+                  className={`px-3 py-1 border rounded ${
+                    currentPage === p
+                      ? "bg-blue-600 text-white"
+                      : "hover:bg-gray-100"
+                  }`}
+                >
+                  {p}
+                </button>
+              ))}
+
+              <button
+                disabled={currentPage === totalPages}
+                onClick={() => setCurrentPage(currentPage + 1)}
+                className="px-3 py-1 border rounded disabled:opacity-40"
+              >
+                Next
+              </button>
+            </div>
+
+            {/* RIGHT */}
+            <div className="flex items-center gap-2 text-sm">
+              <span>Rows:</span>
+              <select
+                value={pageSize}
+                onChange={(e) => {
+                  setPageSize(Number(e.target.value));
+                  setCurrentPage(1);
+                }}
+                className="border rounded px-2 py-1"
+              >
+                <option value={5}>5</option>
+                <option value={10}>10</option>
+                <option value={20}>20</option>
+                <option value={50}>50</option>
+                <option value={100}>100</option>
+              </select>
+            </div>
+          </div>
+        </>
+      ) : (
+        <div className="flex flex-col items-center justify-center mt-16">
+          <img
+            alt="No data found"
+            src={NodataFound}
+            className="w-52 opacity-80"
+          />
+          <p className="mt-6 text-gray-700 font-semibold">No User Found!</p>
+          <p className="mt-2 text-gray-500">Click Add Button</p>
+        </div>
+      )}
+    </div>
   );
 }

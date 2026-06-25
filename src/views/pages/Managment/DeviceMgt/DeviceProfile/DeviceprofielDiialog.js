@@ -1,16 +1,13 @@
-import React, { useState, useEffect } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   Grid,
-  Backdrop,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
   Button,
-  Box,
   IconButton,
   Typography,
-  Tooltip,
   Snackbar,
   Input,
   TextField,
@@ -18,15 +15,13 @@ import {
 import MuiAlert from "@mui/material/Alert";
 
 import PropTypes from "prop-types";
-import { FETCH_URL } from "../../../../../fetchIp";
 import DeleteDevice from "../ActionButton/DeleteDevice";
 import { styled } from "@mui/material/styles";
 import CloseIcon from "@mui/icons-material/Close";
 //React Icons
-import { RiDeleteBin6Line } from "react-icons/ri";
 import { AuthContext } from "../../../../../context/AuthContext";
-import axiosInstance from "../../../../../api/axiosInstance";
-
+import { POST, GET } from "../../../../../lib/request";
+import { API } from "../../../../../lib/endpoint";
 const BootstrapDialog = styled(Dialog)(({ theme }) => ({
   "& .MuiDialogContent-root": {
     padding: theme.spacing(2),
@@ -133,61 +128,60 @@ export default function MaxWidthDialog({
     setSnackerropen(false);
     setSnackErrMsg("");
   };
-  const getSingleDeviceData = async () => {
+
+  const getSingleDeviceData = useCallback(async () => {
+    if (!deviceID2) return;
+
     try {
-      const response = await axiosInstance.get(
-        `/api/device/getDeviceDataById/${deviceID2}`
-      );
-      setSingleDeviceData(response.data.msg);
+      const res = await GET(API.DEVICE.GET_DATA_BY_ID(deviceID2));
+      setSingleDeviceData(res.msg);
     } catch (error) {
       console.error("Error fetching data:", error);
     }
-  };
-  const EditDeviceProfile = async () => {
-    let token = JSON.parse(localStorage.getItem("userData")).token;
+  }, [deviceID2]);
 
+  const EditDeviceProfile = async () => {
     try {
-      const response = await fetch(`${FETCH_URL}/api/device/editDevice`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          deviceID: sensorValue._id,
-          deviceName: deviceName,
-          nodeUid: nodeUid,
-          vmrSensors: +vmrSensors,
-          resSensors: +resSensors,
-          spdSensors: +spdSensors,
-          nerSensors: +nerSensors,
-          vmrSensorsThreshold: vmrSensorsThreshold,
-          resSensorsThreshold: +resSensorsThreshold,
-          spdSensorsThreshold: +spdSensorsThreshold,
-          nerSensorsThreshold: +nerSensorsThreshold,
-        }),
-      });
-      const res = await response.json();
-      if (response.ok) {
+      const body = {
+        deviceID: sensorValue?._id,
+        deviceName: deviceName,
+        nodeUid: nodeUid,
+        vmrSensors: +vmrSensors,
+        resSensors: +resSensors,
+        spdSensors: +spdSensors,
+        nerSensors: +nerSensors,
+        vmrSensorsThreshold: vmrSensorsThreshold,
+        resSensorsThreshold: +resSensorsThreshold,
+        spdSensorsThreshold: +spdSensorsThreshold,
+        nerSensorsThreshold: +nerSensorsThreshold,
+      };
+
+      const res = await POST(API.DEVICE.EDIT, body);
+
+      if (res) {
         setSnackOpen(true);
-        setSnackMsg(res.msg);
+        setSnackMsg(res?.msg || "Device updated successfully");
+
         getdeviceListbysite();
         getnumberOfDevice(deviceID2);
+
         setOpen(false);
         setInputState(true);
       } else {
         setSnackerropen(true);
-        setSnackErrMsg(res.err);
+        setSnackErrMsg(res?.err || "Failed to update device");
       }
     } catch (error) {
-      // console.log("Catch block ====>", error);
+      console.error("EditDeviceProfile error:", error);
+
+      setSnackerropen(true);
+      setSnackErrMsg(error?.msg || "Failed to update device");
     }
   };
+
   useEffect(() => {
-    if (deviceID2) {
-      getSingleDeviceData();
-    }
-  }, [deviceID2]);
+    getSingleDeviceData();
+  }, [getSingleDeviceData]);
   useEffect(() => {
     if (singledeviceData) {
       setDeviceName(singledeviceData?.deviceName);
@@ -455,7 +449,7 @@ export default function MaxWidthDialog({
           </Grid>
         </DialogContent>
 
-        {auth.user.role === 2 || auth.user.role === 1 ? null : (
+        {auth.user.role === "user" || auth.user.role === "technician" ? null : (
           <DialogActions sx={{ marginBottom: "10px" }}>
             <Grid
               container

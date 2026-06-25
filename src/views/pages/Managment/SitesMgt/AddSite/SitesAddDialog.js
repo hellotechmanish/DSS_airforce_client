@@ -1,391 +1,237 @@
-import React, { useState, useEffect } from "react";
-import {
-  Grid,
-  Backdrop,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  Button,
-  Box,
-  IconButton,
-  Typography,
-  Tooltip,
-  Snackbar,
-  Input,
-} from "@mui/material";
-import MuiAlert from "@mui/material/Alert";
+import React, { useCallback, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
-import { ErrorMessage } from "@hookform/error-message";
-import PropTypes from "prop-types";
-import { FETCH_URL } from "../../../../../fetchIp";
-import { styled } from "@mui/material/styles";
-import CloseIcon from "@mui/icons-material/Close";
+import { POST } from "../../../../../lib/request";
+import { API } from "../../../../../lib/endpoint";
+import toast from "react-hot-toast";
 
-const BootstrapDialog = styled(Dialog)(({ theme }) => ({
-  "& .MuiDialogContent-root": {
-    padding: theme.spacing(2),
-  },
-  "& .MuiDialogActions-root": {
-    padding: theme.spacing(),
-  },
-}));
+export default function AddSiteDialog({ getnumberOfSite, buttonClass = "" }) {
+  const [open, setOpen] = useState(false);
+  const [uidMatch, setUidMatch] = useState(true);
 
-const BootstrapDialogTitle = (props) => {
-  const { children, onClose, ...other } = props;
-
-  return (
-    <DialogTitle className="dialog-title-add" sx={{ m: 0, p: 1.2 }} {...other}>
-      {children}
-      <Typography className="white-typo">Add Site </Typography>{" "}
-      {onClose ? (
-        <IconButton
-          aria-label="close"
-          onClick={onClose}
-          className="dialogcrossicon-white"
-        >
-          <CloseIcon />
-        </IconButton>
-      ) : null}
-    </DialogTitle>
-  );
-};
-
-BootstrapDialogTitle.propTypes = {
-  children: PropTypes.node,
-  onClose: PropTypes.func.isRequired,
-};
-const Alert = React.forwardRef(function Alert(props, ref) {
-  return <MuiAlert elevation={6} ref={ref} variant="filled" {...props} />;
-});
-export default function MaxWidthDialog({ getnumberOfSite }) {
-  const [open, setOpen] = React.useState(false);
-  const [fullWidth] = React.useState(true);
-  const [maxWidth] = React.useState("md");
-  const handleClickOpen = () => {
-    setOpen(true);
-  };
-
-  const [siteName, setSiteName] = useState(null);
-  const [uid, setUid] = useState(null);
-  const [location, setLocation] = useState(null);
-  const [pincode, setPincode] = useState(null);
-  const [state, setState] = useState(null);
-  const [country, setCountry] = useState(null);
-  const res = {};
-  // SnackBar
-  const [snackopen, setSnackOpen] = useState(false);
-  const [snackmsg, setSnackMsg] = useState("");
-  const [snackErrMsg, setSnackErrMsg] = useState();
-  const [snackerropen, setSnackerropen] = useState(false);
   const {
     register,
-    formState: { errors },
     handleSubmit,
+    watch,
+    reset,
+    formState: { errors },
   } = useForm();
-  const SnanbarClose = (event, reason) => {
-    if (reason === "clickaway") {
-      return;
-    }
-    setSnackOpen(false);
-    setSnackMsg("");
-  };
 
-  const SnackbarErrorClose = (event, reason) => {
-    if (reason === "clickaway") {
-      return;
-    }
-    setSnackerropen(false);
-    setSnackErrMsg("");
-  };
+  const uid = watch("uid");
 
   const handleClose = () => {
     setOpen(false);
-    setSiteName("");
-    setUid("");
-    setLocation("");
-    setPincode("");
-    setCountry("");
-    register("");
+    reset();
+    setUidMatch(true);
   };
-  const CraeteSite = async () => {
-    let token = JSON.parse(localStorage.getItem("userData")).token;
 
+  const createSite = async (data) => {
     try {
-      const response = await fetch(`${FETCH_URL}/api/site/createSite`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          siteName: siteName,
-          uid: uid,
-          location: location,
-          pincode: pincode,
-          country: country,
-          state: state,
-        }),
-      });
-      const res = await response.json();
-      if (response.ok) {
-        setOpen(false);
-        setSnackOpen(true);
-        setSnackMsg(res.msg);
+      const res = await POST(API.SITE.CREATE, data);
+
+      if (res) {
+        toast.success("site created successfully");
         getnumberOfSite();
         handleClose();
-      } else {
-        setSnackerropen(true);
-        setOpen(false);
-        setSnackErrMsg(res.err);
       }
     } catch (error) {
-      // console.log("Catch block ====>", error);
+      console.error(error, "Failed to create site");
+      toast.error("Failed to create site");
     }
   };
-  const [uidMatch, setUidMatch] = useState(true);
-  const CheckSiteUid = async () => {
-    let token = JSON.parse(localStorage.getItem("userData")).token;
+
+  const checkUid = useCallback(async () => {
+    if (!uid) return;
 
     try {
-      const response = await fetch(`${FETCH_URL}/api/site/checkSiteUid`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          uid: uid,
-        }),
-      });
-      const res = await response.json();
-      if (response.ok) {
-        // // console.log("Check Uid Match Status", res.msg);
-        setUidMatch(res.status);
-      } else {
-      }
-    } catch (error) {
-      // console.log("Catch block ====>", error);
+      const res = await POST(API.SITE.CHECK_UID, { uid });
+      setUidMatch(res?.status ?? false);
+    } catch {
+      setUidMatch(false);
     }
-  };
-  useEffect(() => {
-    CheckSiteUid(uid);
   }, [uid]);
+
   useEffect(() => {
-    if (res) {
-      setSiteName("");
-      setUid("");
-      setLocation("");
-      setPincode("");
-      setCountry("");
-      register("");
-    }
-  }, []);
+    checkUid();
+  }, [checkUid]);
 
   return (
-    <React.Fragment>
-      <Snackbar open={snackopen} autoHideDuration={3000} onClose={SnanbarClose}>
-        <Alert onClose={SnanbarClose} severity={"success"}>
-          {snackmsg}
-        </Alert>
-      </Snackbar>
-      <Snackbar
-        open={snackerropen}
-        autoHideDuration={8000}
-        onClose={SnackbarErrorClose}
+    <>
+      {/* Add Site Button */}
+      <button
+        onClick={() => setOpen(true)}
+        className={`
+    px-5 py-2
+    rounded-lg
+    transition-all duration-200
+    ${buttonClass}
+  `}
       >
-        <Alert onClose={SnackbarErrorClose} severity={"error"}>
-          {snackErrMsg}
-        </Alert>
-      </Snackbar>
-      <Button
-        sx={{ width: "100px" }}
-        className=" skyblue-bg-button fs-16  hover"
-        onClick={handleClickOpen}
-      >
-        Add Site
-      </Button>
-      <BootstrapDialog
-        fullWidth={fullWidth}
-        maxWidth={maxWidth}
-        open={open}
-        onClose={handleClose}
-        PaperProps={{
-          className: "SmallDialog",
-        }}
-      >
-        <BootstrapDialogTitle
-          id="customized-dialog-title"
-          onClose={handleClose}
-        ></BootstrapDialogTitle>
-        <form onSubmit={handleSubmit(CraeteSite)}>
-          <DialogContent className="mt-16">
-            <Grid container justifyContent="space-between">
-              <Grid item md={5.8}>
-                <Typography className="heading-black mt-16">
-                  Site Name
-                </Typography>
-                <Input
-                  className=" input-style-1c mt-12 width100"
-                  disableUnderline
-                  value={siteName}
-                  {...register("Site-Name-ErrorInput", {
-                    required: "Site  Name is required.",
-                    onChange: (e) => {
-                      setSiteName(e.target.value);
-                    },
-                  })}
-                />
-                <ErrorMessage
-                  errors={errors}
-                  name="Site-Name-ErrorInput"
-                  render={({ message }) => (
-                    <Typography className="red-typo">{message}</Typography>
+        + Add Site
+      </button>
+
+      {/* Modal */}
+      {open && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white w-full max-w-2xl rounded-xl shadow-2xl">
+            {/* Header */}
+            <div className="flex justify-between items-center px-6 py-4 border-b">
+              <h2 className="text-lg font-semibold text-gray-800">Add Site</h2>
+              <button
+                onClick={handleClose}
+                className="text-gray-500 hover:text-red-500 text-xl"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Form */}
+            <form onSubmit={handleSubmit(createSite)}>
+              <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-5">
+                {/* Site Name */}
+                <div>
+                  <label className="text-sm font-medium text-gray-700">
+                    Site Name
+                  </label>
+                  <input
+                    {...register("siteName", {
+                      required: "Site Name is required",
+                    })}
+                    placeholder="e.g. Delhi Command Center"
+                    className="w-full mt-2 px-3 py-2 border rounded-md focus:ring-2 focus:ring-indigo-500"
+                  />
+                  {errors.siteName && (
+                    <p className="text-red-500 text-xs mt-1">
+                      {errors.siteName.message}
+                    </p>
                   )}
-                />
-              </Grid>
-              <Grid item md={5.8}>
-                <Typography className="heading-black mt-16">UID</Typography>
-                <Input
-                  className="input-style-1c mt-12 width100"
-                  disableUnderline
-                  value={uid}
-                  {...register("Uid-ErrorInput", {
-                    required: "UID  is required.",
-                    onChange: (e) => {
-                      setUid(e.target.value);
-                    },
-                  })}
-                />
-                <Typography>
-                  {uidMatch === false ? (
-                    <Typography className="red-typo">
-                      Uid Already Exist !
-                    </Typography>
-                  ) : null}
-                </Typography>
-                <ErrorMessage
-                  errors={errors}
-                  name="Uid-ErrorInput"
-                  render={({ message }) => (
-                    <Typography className="red-typo">{message}</Typography>
+                </div>
+
+                {/* UID */}
+                <div>
+                  <label className="text-sm font-medium text-gray-700">
+                    UID
+                  </label>
+                  <input
+                    {...register("uid", { required: "UID is required" })}
+                    placeholder="e.g. SITE-DEL-001"
+                    className="w-full mt-2 px-3 py-2 border rounded-md focus:ring-2 focus:ring-indigo-500"
+                  />
+                  {!uidMatch && (
+                    <p className="text-red-500 text-xs mt-1">
+                      UID already exists!
+                    </p>
                   )}
-                />
-              </Grid>
-              <Grid item md={5.8}>
-                <Typography className="heading-black mt-12">
-                  Location
-                </Typography>
-                <Input
-                  // required={true}
-                  className=" input-style-1c mt-12 width100"
-                  disableUnderline
-                  value={location}
-                  {...register("Location-ErrorInput", {
-                    required: "Location  is required.",
-                    onChange: (e) => {
-                      setLocation(e.target.value);
-                    },
-                  })}
-                />
-                <ErrorMessage
-                  errors={errors}
-                  name="Location-ErrorInput"
-                  render={({ message }) => (
-                    <Typography className="red-typo">{message}</Typography>
+                  {errors.uid && (
+                    <p className="text-red-500 text-xs mt-1">
+                      {errors.uid.message}
+                    </p>
                   )}
-                />
-              </Grid>
-              <Grid item md={5.8}>
-                <Typography className="heading-black mt-12">Pincode</Typography>
-                <Input
-                  className="input-style-1c mt-12 width100"
-                  disableUnderline
-                  value={pincode}
-                  minlength="4"
-                  maxlength="8"
-                  type="number"
-                  {...register("Pincode-ErrorInput", {
-                    required: "Pincode  is required.",
-                    onChange: (e) => {
-                      setPincode(e.target.value);
-                    },
-                  })}
-                />
-                <ErrorMessage
-                  errors={errors}
-                  name="Pincode-ErrorInput"
-                  render={({ message }) => (
-                    <Typography className="red-typo">{message}</Typography>
+                </div>
+
+                {/* Location */}
+                <div>
+                  <label className="text-sm font-medium text-gray-700">
+                    Location
+                  </label>
+                  <input
+                    {...register("location", {
+                      required: "Location is required",
+                    })}
+                    placeholder="e.g. New Delhi"
+                    className="w-full mt-2 px-3 py-2 border rounded-md focus:ring-2 focus:ring-indigo-500"
+                  />
+                  {errors.location && (
+                    <p className="text-red-500 text-xs mt-1">
+                      {errors.location.message}
+                    </p>
                   )}
-                />
-              </Grid>
-              <Grid item md={5.8}>
-                <Typography className="heading-black mt-12">State</Typography>
-                <Input
-                  className=" input-style-1c mt-12 width100"
-                  disableUnderline
-                  value={state}
-                  {...register("State-ErrorInput", {
-                    required: "State  is required.",
-                    onChange: (e) => {
-                      setState(e.target.value);
-                    },
-                  })}
-                />
-                <ErrorMessage
-                  errors={errors}
-                  name="State-ErrorInput"
-                  render={({ message }) => (
-                    <Typography className="red-typo">{message}</Typography>
+                </div>
+
+                {/* Pincode */}
+                <div>
+                  <label className="text-sm font-medium text-gray-700">
+                    Pincode
+                  </label>
+                  <input
+                    type="number"
+                    {...register("pincode", {
+                      required: "Pincode is required",
+                    })}
+                    placeholder="e.g. 110001"
+                    className="w-full mt-2 px-3 py-2 border rounded-md focus:ring-2 focus:ring-indigo-500"
+                  />
+                  {errors.pincode && (
+                    <p className="text-red-500 text-xs mt-1">
+                      {errors.pincode.message}
+                    </p>
                   )}
-                />
-              </Grid>
-              <Grid item md={5.8}>
-                <Typography className="heading-black mt-12">Country</Typography>
-                <Input
-                  className="input-style-1c mt-12 width100"
-                  disableUnderline
-                  value={country}
-                  {...register("Country-ErrorInput", {
-                    required: "Country  is required.",
-                    onChange: (e) => {
-                      setCountry(e.target.value);
-                    },
-                  })}
-                />
-                <ErrorMessage
-                  errors={errors}
-                  name="Country-ErrorInput"
-                  render={({ message }) => (
-                    <Typography className="red-typo">{message}</Typography>
+                </div>
+
+                {/* State */}
+                <div>
+                  <label className="text-sm font-medium text-gray-700">
+                    State
+                  </label>
+                  <input
+                    {...register("state", { required: "State is required" })}
+                    placeholder="e.g. Delhi"
+                    className="w-full mt-2 px-3 py-2 border rounded-md focus:ring-2 focus:ring-indigo-500"
+                  />
+                  {errors.state && (
+                    <p className="text-red-500 text-xs mt-1">
+                      {errors.state.message}
+                    </p>
                   )}
-                />
-              </Grid>
-            </Grid>
-          </DialogContent>
-          <DialogActions sx={{ marginBottom: "10px" }}>
-            <Button
-              sx={{ marginRight: "10px" }}
-              className="  grey-br-button width-100 "
-              onClick={handleClose}
-            >
-              Cancel
-            </Button>
-            <Button
-              sx={{ padding: "3px 0px" }}
-              className="skyblue-br-button width-100"
-              type="submit"
-              // onClick={() => {
-              //   CraeteSite();
-              //   setOpen(false);
-              // }}
-            >
-              Submit
-            </Button>
-          </DialogActions>{" "}
-        </form>
-      </BootstrapDialog>
-    </React.Fragment>
+                </div>
+
+                {/* Country */}
+                <div>
+                  <label className="text-sm font-medium text-gray-700">
+                    Country
+                  </label>
+                  <input
+                    {...register("country", {
+                      required: "Country is required",
+                    })}
+                    placeholder="e.g. India"
+                    className="w-full mt-2 px-3 py-2 border rounded-md focus:ring-2 focus:ring-indigo-500"
+                  />
+                  {errors.country && (
+                    <p className="text-red-500 text-xs mt-1">
+                      {errors.country.message}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="flex justify-end gap-3 px-6 py-4 border-t bg-gray-50 rounded-b-xl">
+                <button
+                  type="button"
+                  onClick={handleClose}
+                  className="px-4 py-2 text-sm bg-gray-200 rounded-md hover:bg-gray-300"
+                >
+                  Cancel
+                </button>
+
+                <button
+                  type="submit"
+                  disabled={!uidMatch}
+                  className="px-5 py-2 
+             bg-transparent
+             border border-blue-900
+             text-blue-900 text-sm font-semibold
+             rounded-lg
+             transition-all duration-200
+             hover:bg-blue-900 hover:text-white"
+                >
+                  Submit
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </>
   );
 }

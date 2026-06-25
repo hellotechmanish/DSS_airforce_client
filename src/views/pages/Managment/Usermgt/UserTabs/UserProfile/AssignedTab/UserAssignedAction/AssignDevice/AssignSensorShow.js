@@ -1,322 +1,121 @@
-import React, { useState, useEffect } from "react";
-import {
-  Grid,
-  Dialog,
-  DialogContent,
-  DialogTitle,
-  IconButton,
-  Typography,
-  Input,
-  TextField,
-  FormLabel,
-  Box,
-  Tabs,
-  Tab,
-  Checkbox,
-  FormControlLabel,
-} from "@mui/material";
-import MuiAlert from "@mui/material/Alert";
+"use client";
 
-import PropTypes from "prop-types";
-import { styled } from "@mui/material/styles";
-import CloseIcon from "@mui/icons-material/Close";
-import { FETCH_URL } from "../../../../../../../../../fetchIp";
-//React Icons
+import React, { useCallback, useEffect, useState } from "react";
+import { POST } from "../../../../../../../../../lib/request";
+import { API } from "../../../../../../../../../lib/endpoint";
 
-const BootstrapDialog = styled(Dialog)(({ theme }) => ({
-  "& .MuiDialogContent-root": {
-    padding: theme.spacing(2),
-  },
-  "& .MuiDialogActions-root": {
-    padding: theme.spacing(),
-  },
-}));
+export default function SensorDialog({ user, sensorValue }) {
+  const [open, setOpen] = useState(false);
+  const [tab, setTab] = useState(0);
+  const [getSelectSensor, setGetSelectSensor] = useState(null);
 
-const BootstrapDialogTitle = (props) => {
-  const { children, onClose, ...other } = props;
+  const tabs = ["Resistance", "GN", "Phase", "SPD"];
+
+  // ================= API =================
+  const getAssignSensorData = useCallback(async () => {
+    try {
+      if (!user?._id || !sensorValue?._id) return;
+
+      const res = await POST(API.USERS.GET_ASSIGNED_SENSOR, {
+        userId: user?._id,
+        deviceId: sensorValue?._id,
+      });
+
+      setGetSelectSensor(res.msg?.[0]);
+    } catch (err) {
+      console.error("Error fetching assigned sensor data", err);
+    }
+  }, [sensorValue?._id, user?._id]);
+
+  useEffect(() => {
+    if (open) getAssignSensorData();
+  }, [open, getAssignSensorData]);
 
   return (
-    <DialogTitle className="dialog-title-add" sx={{ m: 0, p: 1.2 }} {...other}>
-      <Typography className="white-typo">Assigned Sensors </Typography>{" "}
-      {children}
-      {children}
-      {onClose ? (
-        <IconButton
-          aria-label="close"
-          onClick={onClose}
-          className="dialogcrossicon-white"
-        >
-          <CloseIcon />
-        </IconButton>
-      ) : null}
-    </DialogTitle>
-  );
-};
+    <>
+      {/* Trigger */}
+      <span
+        className="text-sky-600 hover:underline cursor-pointer"
+        onClick={() => setOpen(true)}
+      >
+        view
+      </span>
 
-BootstrapDialogTitle.propTypes = {
-  children: PropTypes.node,
-  onClose: PropTypes.func.isRequired,
-};
-const Alert = React.forwardRef(function Alert(props, ref) {
-  return <MuiAlert elevation={6} ref={ref} variant="filled" {...props} />;
-});
+      {/* Modal */}
+      {open && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4">
+          <div className="w-full max-w-3xl bg-white rounded-xl shadow-2xl overflow-hidden">
+            {/* Header */}
+            <div className="flex justify-between items-center px-6 py-4 bg-gradient-to-r from-[#0a192f] to-[#0f3057]">
+              <h2 className="text-white text-sm font-semibold uppercase">
+                Assigned Sensors
+              </h2>
 
-function TabPanel(props) {
-  const { children, value, index, ...other } = props;
+              <button
+                onClick={() => setOpen(false)}
+                className="text-white text-lg"
+              >
+                ✕
+              </button>
+            </div>
 
-  return (
-    <div
-      role="tabpanel"
-      hidden={value !== index}
-      id={`simple-tabpanel-${index}`}
-      aria-labelledby={`simple-tab-${index}`}
-      {...other}
-    >
-      {value === index && <Typography>{children}</Typography>}
-    </div>
+            {/* Tabs */}
+            <div className="flex border-b bg-gray-50">
+              {tabs.map((t, i) => (
+                <button
+                  key={i}
+                  onClick={() => setTab(i)}
+                  className={`px-4 py-2 text-sm font-medium ${
+                    tab === i
+                      ? "border-b-2 border-blue-600 text-blue-600"
+                      : "text-gray-500"
+                  }`}
+                >
+                  {t}
+                </button>
+              ))}
+            </div>
+
+            {/* Body */}
+            <div className="p-6 min-h-[200px]">
+              {/* RES */}
+              {tab === 0 && (
+                <SensorList data={getSelectSensor?.resistanceNumber} />
+              )}
+
+              {/* GN */}
+              {tab === 1 && <SensorList data={getSelectSensor?.gnNumber} />}
+
+              {/* PHASE */}
+              {tab === 2 && <SensorList data={getSelectSensor?.phaseNumber} />}
+
+              {/* SPD */}
+              {tab === 3 && <SensorList data={getSelectSensor?.spdNumber} />}
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 
-TabPanel.propTypes = {
-  children: PropTypes.node,
-  index: PropTypes.number.isRequired,
-  value: PropTypes.number.isRequired,
-};
-export default function MaxWidthDialog({ user, sensorValue }) {
-  const [open, setOpen] = React.useState(false);
-  const [fullWidth] = React.useState(true);
-  const [maxWidth] = React.useState("md");
-  const handleClickOpen = () => {
-    setOpen(true);
-  };
-  const handleCloseProfile = () => {
-    setOpen(false);
-  };
-  const [value, setValue] = React.useState(0);
-  const TabChange = (event, newValue) => {
-    setValue(newValue);
-  };
-
-  const [getSelectSensor, setGetSelectSensor] = useState(null);
-
-  // ========================== Get Assign sensor ================================ //
-  const getAssignSensorData = async () => {
-    let token = JSON.parse(localStorage.getItem("userData")).token;
-    try {
-      const response = await fetch(`${FETCH_URL}/api/user/getassignSensor`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          userId: user?._id,
-          deviceId: sensorValue?._id,
-        }),
-      });
-      const res = await response.json();
-      if (response.ok) {
-        console.log(
-          "Check Res EditDevice Data from assignSensorSHow",
-          res.msg[0]
-        );
-        setGetSelectSensor(res.msg[0]);
-      }
-    } catch (error) {
-      // console.log("Catch block ====>", error);
-    }
-  };
-
-  React.useEffect(() => {
-    getAssignSensorData();
-  }, []);
+/* Reusable Sensor List */
+function SensorList({ data }) {
+  if (!data || data.length === 0) {
+    return <p className="text-gray-500 text-sm">No assigned sensor</p>;
+  }
 
   return (
-    <React.Fragment>
-      <span className="sky-typo hover" onClick={handleClickOpen}>
-        view
-      </span>
-      <BootstrapDialog
-        fullWidth={fullWidth}
-        maxWidth={maxWidth}
-        open={open}
-        onClose={handleCloseProfile}
-        PaperProps={{
-          className: "SmallDialog",
-        }}
-      >
-        <BootstrapDialogTitle
-          id="customized-dialog-title"
-          onClose={handleCloseProfile}
-        ></BootstrapDialogTitle>
-        <DialogContent className="mt-16">
-          <Box className="tab-user-box mt-24">
-            <Tabs
-              value={value}
-              onChange={TabChange}
-              className="Tabs-dashboard2"
-              style={{ padding: "0px 10px" }}
-            >
-              <Tab
-                className="Tab-dashboardlabel-sensor fs-16"
-                label="Resistance "
-              />
-              <Tab className="Tab-dashboardlabel-sensor fs-16" label="GN " />
-              <Tab
-                className="Tab-dashboardlabel-sensor fs-16"
-                label="Phase  "
-              />
-              <Tab className="Tab-dashboardlabel-sensor fs-16" label="SPD " />
-            </Tabs>
-          </Box>
-          <TabPanel value={value} index={0}>
-            <Grid container direction="row">
-              <Grid container className="widthLR-90 ">
-                {getSelectSensor?.resistanceNumber?.length > 0 ? (
-                  getSelectSensor?.resistanceNumber?.map((item, i) => {
-                    return (
-                      <>
-                        <FormControlLabel
-                          style={{
-                            width: "90px",
-                          }}
-                          className="billboard-screencheckbox  mt-16"
-                          value={item?.deviceNumber}
-                          control={
-                            <Checkbox className="icons-blue" checked={true} />
-                          }
-                          label={
-                            <React.Fragment>
-                              <Typography className=" mt-8 fw-500">
-                                {item}
-                              </Typography>
-                            </React.Fragment>
-                          }
-                        />
-                      </>
-                    );
-                  })
-                ) : (
-                  <Typography className="mt-16 subheading-grey600">
-                    No assigned sensor
-                  </Typography>
-                )}
-              </Grid>
-            </Grid>{" "}
-          </TabPanel>
-          <TabPanel value={value} index={1}>
-            <Grid container direction="row">
-              <Grid container className="widthLR-90 ">
-                {getSelectSensor?.gnNumber?.length > 0 ? (
-                  getSelectSensor?.gnNumber?.map((item, i) => {
-                    return (
-                      <>
-                        <Grid>
-                          <FormControlLabel
-                            style={{
-                              width: "90px",
-                            }}
-                            className="billboard-screencheckbox  mt-16"
-                            control={
-                              <Checkbox className="icons-blue" checked={true} />
-                            }
-                            label={
-                              <React.Fragment>
-                                <Typography className=" mt-8 fw-500">
-                                  {item}
-                                </Typography>
-                              </React.Fragment>
-                            }
-                          />
-                        </Grid>
-                      </>
-                    );
-                  })
-                ) : (
-                  <Typography className="mt-16 subheading-grey600">
-                    No assigned sensor
-                  </Typography>
-                )}
-              </Grid>
-            </Grid>
-          </TabPanel>
-          <TabPanel value={value} index={2}>
-            <Grid container direction="row">
-              <Grid container className="widthLR-90 ">
-                {getSelectSensor?.phaseNumber?.length > 0 ? (
-                  getSelectSensor?.phaseNumber?.map((item, i) => {
-                    return (
-                      <>
-                        <Grid>
-                          <FormControlLabel
-                            style={{
-                              width: "160px",
-                            }}
-                            className="billboard-screencheckbox  mt-16"
-                            control={
-                              <Checkbox className="icons-blue" checked={true} />
-                            }
-                            label={
-                              <React.Fragment>
-                                <Typography className=" mt-8 fw-500">
-                                  {item}
-                                </Typography>
-                              </React.Fragment>
-                            }
-                          />
-                        </Grid>
-                      </>
-                    );
-                  })
-                ) : (
-                  <Typography className="mt-16">No assigned sensor</Typography>
-                )}
-              </Grid>
-            </Grid>
-          </TabPanel>
-          <TabPanel value={value} index={3}>
-            <Grid container direction="row">
-              <Grid container className="widthLR-90 ">
-                <Grid item>
-                  {getSelectSensor?.spdNumber?.length > 0 ? (
-                    getSelectSensor?.spdNumber?.map((item, i) => {
-                      return (
-                        <>
-                          <Grid>
-                            <FormControlLabel
-                              style={{
-                                width: "160px",
-                              }}
-                              className="billboard-screencheckbox  mt-16"
-                              control={
-                                <Checkbox
-                                  className="icons-blue"
-                                  checked={true}
-                                />
-                              }
-                              label={
-                                <React.Fragment>
-                                  <Typography className=" mt-8 fw-500">
-                                    {item}
-                                  </Typography>
-                                </React.Fragment>
-                              }
-                            />
-                          </Grid>
-                        </>
-                      );
-                    })
-                  ) : (
-                    <Typography className="mt-16">
-                      No assigned sensor
-                    </Typography>
-                  )}
-                </Grid>
-              </Grid>
-            </Grid>{" "}
-          </TabPanel>
-        </DialogContent>
-      </BootstrapDialog>
-    </React.Fragment>
+    <div className="flex flex-wrap gap-3">
+      {data.map((item, i) => (
+        <div
+          key={i}
+          className="flex items-center gap-2 px-3 py-2 border rounded-lg bg-gray-50"
+        >
+          <input type="checkbox" checked readOnly className="accent-blue-600" />
+          <span className="text-sm font-medium">{item}</span>
+        </div>
+      ))}
+    </div>
   );
 }
