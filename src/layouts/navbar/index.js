@@ -91,7 +91,8 @@ export default function Navbar() {
   // ================= REBOOT =================
   const handleReboot = async () => {
     try {
-      await POST(API.DEVICE.REBOOT);
+      const res = await POST(API.DEVICE.REBOOT);
+      console.log("hey this to cchek if rebooot fun is work", res);
     } catch (error) {
       console.error("Reboot failed", error);
     }
