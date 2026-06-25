@@ -44,6 +44,8 @@ export default function AddDeviceDialog({
 
   // ================= SUBMIT =================
   const onSubmit = async (data) => {
+    // console.log("temp test", data);
+
     try {
       if (!uidMatch) {
         toast.error("Node UID already exists");
@@ -60,6 +62,8 @@ export default function AddDeviceDialog({
         resSensors: Number(data.resSensors),
         spdSensors: Number(data.spdSensors),
         nerSensors: Number(data.nerSensors),
+        temp: Number(data.temp),
+        humidity: Number(data.humidity),
         vmrSensorsThreshold: {
           r: Number(data.r),
           y: Number(data.y),
@@ -72,6 +76,8 @@ export default function AddDeviceDialog({
         spdSensorsThreshold: Number(data.spdSensorsThreshold),
         nerSensorsThreshold: Number(data.nerSensorsThreshold),
       };
+
+      console.log("body", body);
 
       const response = await POST(API.DEVICE.CREATE, body);
 
@@ -157,7 +163,15 @@ export default function AddDeviceDialog({
             {/* Scrollable Body */}
             <div className="overflow-y-auto flex-1">
               <form
-                onSubmit={handleSubmit(onSubmit)}
+                onSubmit={handleSubmit((data) => {
+                  // ⚡ Convert boolean true/false from checkboxes to 1/0 integers for the backend schema
+                  const formattedData = {
+                    ...data,
+                    temp: data.temp ? 1 : 0,
+                    humidity: data.humidity ? 1 : 0,
+                  };
+                  onSubmit(formattedData);
+                })}
                 className="p-6 space-y-8 bg-gray-50"
               >
                 {/* ===== BASIC INFO ===== */}
@@ -217,6 +231,85 @@ export default function AddDeviceDialog({
                   <h3 className="text-md font-semibold text-[#0f3057]">
                     Sensor Configuration
                   </h3>
+
+                  {/* 🌡️ NEW SECTION: Environment Monitoring Checkboxes */}
+                  <div className="bg-gray-50 p-5 rounded-xl border border-gray-200 shadow-inner">
+                    <label className="block text-sm font-bold text-[#0f3057] uppercase tracking-wider mb-4">
+                      Environment Parameters Activation
+                    </label>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {/* 🌡️ Temperature Card Toggle SLOT (Left Side) */}
+                      <label className="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-xl cursor-pointer select-none hover:border-[#0f3057] hover:bg-slate-50/50 transition-all duration-200 shadow-sm group">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 rounded-lg bg-red-50 text-red-500 group-hover:scale-110 transition-transform">
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              strokeWidth={2}
+                              stroke="currentColor"
+                              className="w-5 h-5"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M12 3v18m0-18a3.5 3.5 0 0 1 3.5 3.5V15a3.5 3.5 0 1 1-7 0V6.5A3.5 3.5 0 0 1 12 3z"
+                              />
+                            </svg>
+                          </div>
+                          <div className="flex flex-col">
+                            <span className="text-sm font-bold text-gray-900">
+                              Temperature
+                            </span>
+                            <span className="text-xs text-gray-500">
+                              Enable thermal tracking logs
+                            </span>
+                          </div>
+                        </div>
+                        <input
+                          type="checkbox"
+                          {...register("temp")}
+                          className="w-5 h-5 text-[#0f3057] border-gray-300 rounded focus:ring-[#0f3057] checked:bg-[#0f3057] cursor-pointer"
+                        />
+                      </label>
+
+                      {/* 💧 Humidity Card Toggle SLOT (Right Side) */}
+                      <label className="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-xl cursor-pointer select-none hover:border-[#0f3057] hover:bg-slate-50/50 transition-all duration-200 shadow-sm group">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 rounded-lg bg-blue-50 text-blue-500 group-hover:scale-110 transition-transform">
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              strokeWidth={2}
+                              stroke="currentColor"
+                              className="w-5 h-5"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25zM12 6a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3zm0 10.5a3 3 0 1 1 0-6 3 3 0 0 1 0 6z"
+                              />
+                            </svg>
+                          </div>
+                          <div className="flex flex-col">
+                            <span className="text-sm font-bold text-gray-900">
+                              Humidity
+                            </span>
+                            <span className="text-xs text-gray-500">
+                              Enable moisture tracking logs
+                            </span>
+                          </div>
+                        </div>
+                        <input
+                          type="checkbox"
+                          {...register("humidity")}
+                          className="w-5 h-5 text-[#0f3057] border-gray-300 rounded focus:ring-[#0f3057] checked:bg-[#0f3057] cursor-pointer"
+                        />
+                      </label>
+                    </div>
+                  </div>
 
                   {/* Phase Sensors */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

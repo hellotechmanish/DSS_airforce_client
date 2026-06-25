@@ -2,20 +2,16 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
-  Box,
   CircularProgress,
-  Grid,
-  Typography,
   FormControl,
   MenuItem,
   TextField,
 } from "@mui/material";
-import dayjs from "dayjs";
 import Chart from "react-apexcharts";
 import ApexCharts from "apexcharts";
-import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
-import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
-import { DesktopDatePicker } from "@mui/x-date-pickers/DesktopDatePicker";
+// import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
+// import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
+// import { DesktopDatePicker } from "@mui/x-date-pickers/DesktopDatePicker";
 import moment from "moment";
 import DewnloadReport from "../../DownloadReport/Downlaod";
 import hondaGif from "../../../../assets/img/hondagif.gif";
@@ -60,7 +56,9 @@ export default function Graph({
   intervalId,
 }) {
   const user = useAuth((state) => state.user);
-  const currentDate = dayjs().toDate();
+  // const currentDate = dayjs().toDate();
+
+  // console.log("this is imp data ", device);
 
   const [startDate, setStartDate] = useState(
     moment(new Date()).format("YYYY-MM-DD"),
@@ -71,10 +69,10 @@ export default function Graph({
   const [loading, setLoading] = useState(false);
   const [userDevice, setUserDevice] = useState([]);
 
-  const handleData = (data, datatype) => {
-    if (datatype === "startDate")
-      setStartDate(moment(data).format("YYYY-MM-DD"));
-  };
+  // const handleData = (data, datatype) => {
+  //   if (datatype === "startDate")
+  //     setStartDate(moment(data).format("YYYY-MM-DD"));
+  // };
 
   const PhaseValueChange = (newValue) => setPhaseValue(Number(newValue));
 
@@ -91,7 +89,7 @@ export default function Graph({
   }, [user, device?._id]);
 
   // ====================================================
-  // 📊 1. DATASETS SERIES GENERATION ENGINE (Shifted Up)
+  //  1. DATASETS SERIES GENERATION ENGINE (Shifted Up)
   // ====================================================
   const chartSeries = useMemo(() => {
     if (!Array.isArray(graphData) || graphData.length === 0) return [];
@@ -178,7 +176,7 @@ export default function Graph({
   }, [user?.role, device, graphData, sensor, userDevice]);
 
   // ====================================================
-  // ⚡ 2. APEXCHARTS CONFIGURATION (Safe Placement)
+  //  2. APEXCHARTS CONFIGURATION (Safe Placement)
   // ====================================================
   const chartOptions = useMemo(
     () => ({
@@ -207,7 +205,13 @@ export default function Graph({
       yaxis: {
         labels: {
           style: { colors: "#64748b" },
-          formatter: (val) => val.toFixed(2),
+          // formatter: (val) => val.toFixed(2),
+          formatter: (val) => {
+            if (val === null || val === undefined || isNaN(val)) {
+              return "0.00";
+            }
+            return Number(val).toFixed(2);
+          },
         },
       },
       stroke: {
@@ -250,8 +254,9 @@ export default function Graph({
   }, [chartSeries]);
 
   // ====================================================
-  // 🔄 SILENT REFRESH DATA HANDLER
+  //  SILENT REFRESH DATA HANDLER
   // ====================================================
+
   const fetchdevidata = useCallback(
     async (isSilent = false) => {
       if (!device?._id) return;
@@ -266,7 +271,9 @@ export default function Graph({
           endDate: startDate,
         });
 
-        console.log(resp.msg);
+        // console.log("resp", resp);
+
+        // console.log(resp.msg);
 
         const data = Array.isArray(resp?.msg) ? resp.msg : [];
         const sortedData = [...data].sort(
@@ -312,62 +319,38 @@ export default function Graph({
 
   return (
     <>
-      <Grid container className="graph-container mt-32 mb-40">
-        <Grid
-          container
-          direction="row"
-          justifyContent="space-between"
-          alignItems="center"
-          className="grapgh-head"
-        >
-          <Grid item md={6}>
-            <Grid
-              container
-              direction="row"
-              justifyContent="space-between"
-              alignItems="center"
-            >
-              <Grid item>
-                <Typography
-                  align="center"
-                  className="width100 white-typo ml-12"
-                >
-                  Device UID :{" "}
-                  <span className="white-typo"> #{device?.nodeUid} </span>
-                </Typography>
-              </Grid>
-              <Grid item>
-                <Typography className="white-typo">
-                  Device Name :{" "}
-                  <span className="white-typo"> {device?.deviceName} </span>
-                </Typography>
-              </Grid>
-            </Grid>
-          </Grid>
-          <Grid item md={6}>
-            <Grid container justifyContent="space-between">
-              <Typography></Typography>
-              <Typography className="white-typo mt-8">
-                Temperature :{" "}
-                <span
-                  className="red-typo"
-                  style={{
-                    backgroundColor: "#f7f8fd",
-                    border: "2px solid #ffffff",
-                    borderRadius: "6px",
-                    padding: "1px",
-                  }}
-                >
-                  {getTempValue({ msg: device }).toFixed(2)} °C
-                </span>
-              </Typography>
-              <Typography className="white-typo mt-8 ">
-                Humidity :{" "}
-                <span className="white-typo">
-                  {" "}
-                  {getHumValue({ msg: device }).toFixed(2)} %{" "}
-                </span>
-              </Typography>
+      <div className="w-full flex flex-col my-8">
+        {/*  1. GRAPH TOP BAR / HEADER CONTAINER */}
+        <div className="bg-[#044a70] rounded-t-lg p-3 sm:p-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 md:gap-0">
+          {/* Left Side: Identification Information Section */}
+          <div className="flex flex-col sm:flex-row justify-start items-start sm:items-center gap-2 sm:gap-6 text-white">
+            <p className="text-sm font-medium">
+              Device UID :{" "}
+              <span className="font-bold">#{device?.nodeUid || "N/A"}</span>
+            </p>
+            <p className="text-sm font-medium">
+              Device Name :{" "}
+              <span className="font-bold">{device?.deviceName || "N/A"}</span>
+            </p>
+          </div>
+
+          {/* Right Side: Environment Metrics & Reporting Actions Section */}
+          <div className="flex flex-col sm:flex-row justify-start md:justify-end items-start sm:items-center gap-3 sm:gap-6 w-full md:w-auto">
+            <p className="text-sm text-white flex items-center gap-2">
+              Temperature :
+              <span className="bg-[#f7f8fd] border-2 border-white rounded-md px-2 py-0.5 text-[#ef4444] font-bold text-xs">
+                {getTempValue({ msg: device }).toFixed(2)} °C
+              </span>
+            </p>
+
+            <p className="text-sm text-white flex items-center gap-2">
+              Humidity :
+              <span className="font-bold text-sm">
+                {getHumValue({ msg: device }).toFixed(2)} %
+              </span>
+            </p>
+
+            <div className="w-full sm:w-auto mt-1 sm:mt-0 inline-block">
               <DewnloadReport
                 GraphDate={startDate}
                 sensor={sensor}
@@ -375,76 +358,65 @@ export default function Graph({
                 device={device}
                 DataSets={downloadDataSets}
               />
-            </Grid>
-          </Grid>
-        </Grid>
+            </div>
+          </div>
+        </div>
 
-        <Grid
-          container
-          direction="row"
-          justifyContent="space-between"
-          className="mt-16 width100"
-        >
-          <Grid item md={2} sx={{ marginLeft: "10px" }}>
-            <FormControl size="small">
+        {/*  2. FILTER CONTROLS & LIVE STAT BADGES */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 p-4 bg-gray-50 border-x border-gray-200">
+          {/* Dropdowns controls segment */}
+          <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+            <FormControl size="small" className="min-w-[180px]">
               <TextField
                 select
                 variant="outlined"
-                defaultValue="RES"
+                value={sensor}
                 onChange={(e) => SensorTypeChange(e.target.value)}
-                sx={{
-                  backgroundColor: "#fff",
-                  borderRadius: "6px",
-                  minWidth: 180,
-                  "& .MuiSelect-select": { color: "#000" },
-                }}
-                SelectProps={{
-                  MenuProps: {
-                    PaperProps: {
-                      sx: {
-                        backgroundColor: "#fff",
-                        "& .MuiMenuItem-root": { color: "#000" },
-                      },
-                    },
-                  },
+                size="small"
+                InputProps={{
+                  className: "bg-white text-black text-sm rounded-md",
                 }}
               >
-                <MenuItem value="RES">Resistance</MenuItem>
-                <MenuItem value="VMR">Phase Meter</MenuItem>
-                <MenuItem value="NER">GN</MenuItem>
-                <MenuItem value="SPD">SPD</MenuItem>
-                <MenuItem value="TEMP">Temperature</MenuItem>
-                <MenuItem value="HUM">Humidity</MenuItem>
+                {/* Dynamic checks to prevent mismatching with backend properties */}
+                {Number(device?.resSensors || 0) > 0 && (
+                  <MenuItem value="RES">Resistance</MenuItem>
+                )}
+                {Number(device?.vmrSensors || 0) > 0 && (
+                  <MenuItem value="VMR">Phase Meter</MenuItem>
+                )}
+                {Number(device?.nerSensors || 0) > 0 && (
+                  <MenuItem value="NER">GN</MenuItem>
+                )}
+                {Number(device?.spdSensors || 0) > 0 && (
+                  <MenuItem value="SPD">SPD</MenuItem>
+                )}
+                {(Number(device?.temp || 0) > 0 ||
+                  (device?.TempValues?.DATASTREAMS &&
+                    device.TempValues.DATASTREAMS.length > 0)) && (
+                  <MenuItem value="TEMP">Temperature</MenuItem>
+                )}
+                {(Number(device?.humidity || 0) > 0 ||
+                  (device?.HumValues?.DATASTREAMS &&
+                    device.HumValues.DATASTREAMS.length > 0)) && (
+                  <MenuItem value="HUM">Humidity</MenuItem>
+                )}
               </TextField>
             </FormControl>
-          </Grid>
 
-          <Grid item md={3}>
-            {sensor === "VMR" && (
-              <FormControl size="small">
+            {/* Only show Phase picker if VMR is selected and has active channels */}
+            {sensor === "VMR" && Number(device?.vmrSensors || 0) > 0 && (
+              <FormControl size="small" className="min-w-[120px]">
                 <TextField
                   select
                   variant="outlined"
-                  defaultValue="1"
+                  value={String(phasevalue)}
                   onChange={(e) => PhaseValueChange(e.target.value)}
-                  sx={{
-                    backgroundColor: "#fff",
-                    borderRadius: "6px",
-                    minWidth: 120,
-                    "& .MuiSelect-select": { color: "#000" },
-                  }}
-                  SelectProps={{
-                    MenuProps: {
-                      PaperProps: {
-                        sx: {
-                          backgroundColor: "#fff",
-                          "& .MuiMenuItem-root": { color: "#000" },
-                        },
-                      },
-                    },
+                  size="small"
+                  InputProps={{
+                    className: "bg-white text-black text-sm rounded-md",
                   }}
                 >
-                  {Array.from({ length: Number(device?.vmrSensor || 0) }).map(
+                  {Array.from({ length: Number(device?.vmrSensors || 0) }).map(
                     (_, i) => (
                       <MenuItem key={i} value={String(i + 1)}>
                         PH{i + 1}
@@ -454,105 +426,90 @@ export default function Graph({
                 </TextField>
               </FormControl>
             )}
-          </Grid>
+          </div>
 
-          <Grid
-            item
-            md={5}
-            display="flex"
-            justifyContent="flex-end"
-            alignItems="flex-end"
-          >
-            <Box sx={{ width: "100%", textAlign: "right" }} className="mr-10">
-              <LocalizationProvider dateAdapter={AdapterDateFns}>
-                <DesktopDatePicker
-                  className="rangepicker width-150"
-                  InputProps={{ disableUnderline: true }}
-                  inputFormat="dd/MM/yyyy"
-                  value={startDate}
-                  maxDate={currentDate}
-                  onChange={(e) => handleData(e, "startDate")}
-                  renderInput={(params) => (
-                    <TextField
-                      variant="filled"
-                      className="width-100 rangepicker"
-                      {...params}
-                      inputProps={{
-                        ...params.inputProps,
-                        placeholder: "Start date",
-                      }}
-                    />
-                  )}
-                />
-              </LocalizationProvider>
-            </Box>
-          </Grid>
-          <Grid item xs={12}>
-            <Box
-              sx={{
-                position: "relative",
-                minHeight: 320,
-                borderRadius: "0 0 8px 8px",
-                overflow: "hidden",
-                backgroundColor: "#fff",
-                padding: "10px",
-              }}
-            >
-              {chartSeries.length > 0 ? (
-                <Chart
-                  options={chartOptions}
-                  series={chartSeries}
-                  type="line"
-                  height={320}
-                />
-              ) : !loading ? (
-                <Grid
-                  container
-                  justifyContent="center"
-                  alignItems="center"
-                  sx={{ minHeight: 320 }}
-                >
-                  <img src={hondaGif} alt="No graph data available" />
-                </Grid>
-              ) : null}
+          {/* Live Telemetry Badges with Pulse Animation */}
+          <div className="w-full md:w-auto text-left md:text-right">
+            {graphData && graphData.length > 0 ? (
+              <div className="inline-block text-left bg-white p-2 px-3.5 rounded-lg border border-gray-200 shadow-sm">
+                <div className="flex items-center gap-2">
+                  {/* Tailwind Pulse Dot */}
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                  </span>
+                  <span className="text-xs text-gray-500 font-bold uppercase tracking-wider">
+                    Live: {graphData[graphData.length - 1]?.date}{" "}
+                    {graphData[graphData.length - 1]?.time}
+                  </span>
+                </div>
 
-              {loading && (
-                <Box
-                  sx={{
-                    position: "absolute",
-                    inset: 0,
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: 1.5,
-                    background:
-                      "linear-gradient(180deg, rgba(247, 248, 253, 0.55) 0%, rgba(247, 248, 253, 0.82) 100%)",
-                    backdropFilter: "blur(3px)",
-                    zIndex: 2,
-                  }}
-                >
-                  <CircularProgress
-                    size={34}
-                    thickness={4.5}
-                    sx={{ color: "#044a70" }}
-                  />
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      color: "#044a70",
-                      fontWeight: 600,
-                      letterSpacing: "0.02em",
-                    }}
-                  >
-                    Loading graph data...
-                  </Typography>
-                </Box>
-              )}
-            </Box>
-          </Grid>
-        </Grid>
-      </Grid>
+                {/* Styled Border Pill Badges */}
+                <div className="flex flex-wrap gap-1.5 mt-1.5">
+                  {chartSeries.map((series, index) => {
+                    const lastValue = series.data[series.data.length - 1];
+                    const color = BORDER_COLORS[index % BORDER_COLORS.length];
+                    return (
+                      <div
+                        key={index}
+                        style={{
+                          borderColor: color,
+                          backgroundColor: `${color}0d`,
+                        }}
+                        className="border rounded px-2 py-0.5 flex items-center"
+                      >
+                        <span
+                          style={{ color: color }}
+                          className="text-xs font-bold"
+                        >
+                          {series.name}:{" "}
+                          {lastValue !== undefined && lastValue !== null
+                            ? lastValue.toFixed(2)
+                            : "0.00"}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : (
+              <p className="text-sm text-gray-400 italic">
+                No telemetry data received
+              </p>
+            )}
+          </div>
+        </div>
+
+        {/*  3. CHART SURFACE PANEL */}
+        <div className="relative min-h-[320px] rounded-b-lg overflow-hidden bg-white border border-gray-200 p-2.5">
+          {chartSeries.length > 0 ? (
+            <Chart
+              options={chartOptions}
+              series={chartSeries}
+              type="line"
+              height={320}
+            />
+          ) : !loading ? (
+            <div className="min-h-[320px] flex items-center justify-center">
+              <img src={hondaGif} alt="No graph data available" />
+            </div>
+          ) : null}
+
+          {/* Absolute Loading overlay spinner screen */}
+          {loading && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-gradient-to-b from-slate-50/55 to-slate-50/80 backdrop-blur-[3px] z-10">
+              <CircularProgress
+                size={34}
+                thickness={4.5}
+                className="text-[#044a70]"
+              />
+              <span className="text-sm font-semibold tracking-wide text-[#044a70]">
+                Loading graph data...
+              </span>
+            </div>
+          )}
+        </div>
+      </div>
     </>
   );
 }

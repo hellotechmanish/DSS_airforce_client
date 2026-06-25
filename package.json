@@ -51,6 +51,7 @@
     "zustand": "^5.0.11"
   },
   "scripts": {
+    "dev": "node ./app.js",
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
