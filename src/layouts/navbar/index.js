@@ -39,7 +39,7 @@ export default function Navbar() {
   const logout = async () => {
     try {
       // 1.    Using explicit endpoint matrix path from endpoints configuration
-      await GET(API.AUTH.LOGOUT);
+      await POST(API.AUTH.LOGOUT);
     } catch (err) {
       console.error("Backend token invalidation failed:", err.message);
     } finally {
