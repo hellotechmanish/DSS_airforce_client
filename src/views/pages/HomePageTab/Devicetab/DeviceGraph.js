@@ -534,7 +534,7 @@ export default function Graph({
                   </span>
                 </div>
                 <p className="text-[10px] text-gray-700/90 font-medium mt-0.5">
-                  Waiting for incoming hardware packets...
+                  Waiting for incoming hardware packets.
                 </p>
               </div>
             )}
