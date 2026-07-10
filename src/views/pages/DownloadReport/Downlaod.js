@@ -32,17 +32,28 @@ export default function DownloadReportDialog({
   useEffect(() => {
     if (!device) return;
 
-    const buildArray = (count, prefix, labelPrefix) => {
+    // 💡 isSingleSensor flag lagaya jo suffix (_0) ko control karega
+    const buildArray = (count, prefix, labelPrefix, isSingleSensor = false) => {
       let arr = [];
       let labelArr = [];
+
       for (let i = 0; i < count; i++) {
-        arr.push(`${prefix}_${i}`);
-        labelArr.push(`${labelPrefix}${i + 1}`);
+        if (isSingleSensor) {
+          // 🎯 Single sensor ke liye flat key banegi: "Temp" ya "Hum"
+          arr.push(prefix);
+          labelArr.push(labelPrefix); // "T" ya "H"
+        } else {
+          // 🔄 Multi-sensors ke liye standard array format: "RES_0", "RES_1"
+          arr.push(`${prefix}_${i}`);
+          labelArr.push(`${labelPrefix}${i + 1}`); // "R1", "R2"
+        }
       }
+
       setDeviceSensorNumber(arr);
       setDataNumber(labelArr);
     };
 
+    // Multi-Sensor Configs (Baaki sab normal chalega suffix ke sath)
     if (sensor === "RES" && device?.resSensors)
       buildArray(device.resSensors, "RES", "R");
 
@@ -55,13 +66,16 @@ export default function DownloadReportDialog({
     if (sensor === "VMR" && device?.vmrSensors)
       buildArray(device.vmrSensors, "VMR", "PH");
 
-    if (sensor === "TEMP") buildArray(1, "Temp", "T");
+    // 💡 TEMP & HUM FIX: Inme flag 'true' pass kiya hai taaki flat keys banein
+    if (sensor === "TEMP") buildArray(1, "Temp", "T", true);
 
-    if (sensor === "HUM") buildArray(1, "Hum", "H");
+    if (sensor === "HUM") buildArray(1, "Hum", "H", true);
   }, [sensor, device]);
 
   // ================= GENERATE REPORT =================
   async function handleDownloadReport() {
+    console.log("hello yaha tak pahuch gya ho ");
+
     try {
       const body = {
         deviceId: device?._id,
@@ -70,8 +84,10 @@ export default function DownloadReportDialog({
         startDate,
         endDate,
       };
+      console.log("body", body);
 
       const resp = await POST(API.DEVICE.GENERATE_REPORT, body);
+      console.log("resp", resp);
 
       if (resp) {
         await downloadCSV();
@@ -87,6 +103,8 @@ export default function DownloadReportDialog({
       const res = await GET(API.DEVICE.DOWNLOAD_CSV, {
         responseType: "blob",
       });
+
+      console.log("res---->", res);
 
       const url = window.URL.createObjectURL(
         new Blob([res], { type: "application/csv" }),

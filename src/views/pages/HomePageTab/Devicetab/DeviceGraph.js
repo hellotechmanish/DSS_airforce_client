@@ -9,9 +9,6 @@ import {
 } from "@mui/material";
 import Chart from "react-apexcharts";
 import ApexCharts from "apexcharts";
-// import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
-// import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
-// import { DesktopDatePicker } from "@mui/x-date-pickers/DesktopDatePicker";
 import moment from "moment";
 import DewnloadReport from "../../DownloadReport/Downlaod";
 import hondaGif from "../../../../assets/img/hondagif.gif";
@@ -56,9 +53,6 @@ export default function Graph({
   intervalId,
 }) {
   const user = useAuth((state) => state.user);
-  // const currentDate = dayjs().toDate();
-
-  // console.log("this is imp data ", device);
 
   const [startDate, setStartDate] = useState(
     moment(new Date()).format("YYYY-MM-DD"),
@@ -68,11 +62,6 @@ export default function Graph({
   const [graphData, setGraphData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [userDevice, setUserDevice] = useState([]);
-
-  // const handleData = (data, datatype) => {
-  //   if (datatype === "startDate")
-  //     setStartDate(moment(data).format("YYYY-MM-DD"));
-  // };
 
   const PhaseValueChange = (newValue) => setPhaseValue(Number(newValue));
 
@@ -88,8 +77,70 @@ export default function Graph({
     setUserDevice(found || null);
   }, [user, device?._id]);
 
+  /* ========================================================================
+     🚀 AUTO-SELECT DROPDOWN INITIAL VALUE MATRIX
+     ======================================================================== */
+  const currentSensorCounts = useMemo(
+    () => ({
+      temperature: Number(device?.temp || 0),
+      humidity: Number(device?.humidity || 0),
+      res: Number(device?.resSensors || 0),
+      vmr: Number(device?.vmrSensors || 0),
+      spd: Number(device?.spdSensors || 0),
+      ner: Number(device?.nerSensors || 0),
+    }),
+    [device],
+  );
+
+  const sensorInventory = useMemo(
+    () => [
+      { id: "RES", count: currentSensorCounts.res },
+      { id: "VMR", count: currentSensorCounts.vmr },
+      { id: "NER", count: currentSensorCounts.ner },
+      { id: "SPD", count: currentSensorCounts.spd },
+      {
+        id: "TEMP",
+        count:
+          currentSensorCounts.temperature ||
+          device?.TempValues?.DATASTREAMS?.length ||
+          0,
+      },
+      {
+        id: "HUM",
+        count:
+          currentSensorCounts.humidity ||
+          device?.HumValues?.DATASTREAMS?.length ||
+          0,
+      },
+    ],
+    [currentSensorCounts, device],
+  );
+
+  useEffect(() => {
+    if (!device) return;
+
+    const isValidCurrent =
+      sensor &&
+      sensorInventory.some((s) => s.id === sensor && Number(s.count) > 0);
+    if (isValidCurrent) return;
+
+    const automaticFallbackSensor =
+      sensorInventory.find((s) => Number(s.count) > 0)?.id ?? null;
+    if (automaticFallbackSensor && typeof SensorTypeChange === "function") {
+      SensorTypeChange(automaticFallbackSensor);
+    }
+  }, [device, sensor, sensorInventory, SensorTypeChange]);
+
+  useEffect(() => {
+    if (sensor === "VMR" && Number(device?.vmrSensors || 0) > 0) {
+      if (!phasevalue || Number(phasevalue) > Number(device.vmrSensors)) {
+        setPhaseValue(1);
+      }
+    }
+  }, [sensor, device, phasevalue]);
+
   // ====================================================
-  //  1. DATASETS SERIES GENERATION ENGINE (Shifted Up)
+  //  1. DATASETS SERIES GENERATION ENGINE
   // ====================================================
   const chartSeries = useMemo(() => {
     if (!Array.isArray(graphData) || graphData.length === 0) return [];
@@ -176,7 +227,7 @@ export default function Graph({
   }, [user?.role, device, graphData, sensor, userDevice]);
 
   // ====================================================
-  //  2. APEXCHARTS CONFIGURATION (Safe Placement)
+  //  2. APEXCHARTS CONFIGURATION
   // ====================================================
   const chartOptions = useMemo(
     () => ({
@@ -205,7 +256,6 @@ export default function Graph({
       yaxis: {
         labels: {
           style: { colors: "#64748b" },
-          // formatter: (val) => val.toFixed(2),
           formatter: (val) => {
             if (val === null || val === undefined || isNaN(val)) {
               return "0.00";
@@ -256,10 +306,9 @@ export default function Graph({
   // ====================================================
   //  SILENT REFRESH DATA HANDLER
   // ====================================================
-
   const fetchdevidata = useCallback(
     async (isSilent = false) => {
-      if (!device?._id) return;
+      if (!device?._id || !sensor) return;
       if (!isSilent) setLoading(true);
 
       try {
@@ -270,10 +319,6 @@ export default function Graph({
           startDate,
           endDate: startDate,
         });
-
-        // console.log("resp", resp);
-
-        // console.log(resp.msg);
 
         const data = Array.isArray(resp?.msg) ? resp.msg : [];
         const sortedData = [...data].sort(
@@ -320,9 +365,8 @@ export default function Graph({
   return (
     <>
       <div className="w-full flex flex-col my-8">
-        {/*  1. GRAPH TOP BAR / HEADER CONTAINER */}
+        {/* 1. GRAPH TOP BAR / HEADER CONTAINER */}
         <div className="bg-[#044a70] rounded-t-lg p-3 sm:p-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 md:gap-0">
-          {/* Left Side: Identification Information Section */}
           <div className="flex flex-col sm:flex-row justify-start items-start sm:items-center gap-2 sm:gap-6 text-white">
             <p className="text-sm font-medium">
               Device UID :{" "}
@@ -334,7 +378,6 @@ export default function Graph({
             </p>
           </div>
 
-          {/* Right Side: Environment Metrics & Reporting Actions Section */}
           <div className="flex flex-col sm:flex-row justify-start md:justify-end items-start sm:items-center gap-3 sm:gap-6 w-full md:w-auto">
             <p className="text-sm text-white flex items-center gap-2">
               Temperature :
@@ -362,22 +405,20 @@ export default function Graph({
           </div>
         </div>
 
-        {/*  2. FILTER CONTROLS & LIVE STAT BADGES */}
+        {/* 2. FILTER CONTROLS & LIVE STAT BADGES */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 p-4 bg-gray-50 border-x border-gray-200">
-          {/* Dropdowns controls segment */}
           <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
             <FormControl size="small" className="min-w-[180px]">
               <TextField
                 select
                 variant="outlined"
-                value={sensor}
+                value={sensor || ""}
                 onChange={(e) => SensorTypeChange(e.target.value)}
                 size="small"
                 InputProps={{
                   className: "bg-white text-black text-sm rounded-md",
                 }}
               >
-                {/* Dynamic checks to prevent mismatching with backend properties */}
                 {Number(device?.resSensors || 0) > 0 && (
                   <MenuItem value="RES">Resistance</MenuItem>
                 )}
@@ -403,13 +444,12 @@ export default function Graph({
               </TextField>
             </FormControl>
 
-            {/* Only show Phase picker if VMR is selected and has active channels */}
             {sensor === "VMR" && Number(device?.vmrSensors || 0) > 0 && (
               <FormControl size="small" className="min-w-[120px]">
                 <TextField
                   select
                   variant="outlined"
-                  value={String(phasevalue)}
+                  value={String(phasevalue || "1")}
                   onChange={(e) => PhaseValueChange(e.target.value)}
                   size="small"
                   InputProps={{
@@ -428,7 +468,6 @@ export default function Graph({
             )}
           </div>
 
-          {/* Live Telemetry Badges with Pulse Animation */}
           <div className="w-full md:w-auto text-left md:text-right">
             {graphData && graphData.length > 0 ? (
               <div className="inline-block text-left bg-white p-2 px-3.5 rounded-lg border border-gray-200 shadow-sm">
@@ -447,8 +486,16 @@ export default function Graph({
                 {/* Styled Border Pill Badges */}
                 <div className="flex flex-wrap gap-1.5 mt-1.5">
                   {chartSeries.map((series, index) => {
-                    const lastValue = series.data[series.data.length - 1];
-                    const color = BORDER_COLORS[index % BORDER_COLORS.length];
+                    const lastValue = series.data
+                      ? series.data[series.data.length - 1]
+                      : null;
+                    const parsedValue =
+                      lastValue && typeof lastValue === "object"
+                        ? lastValue.y
+                        : lastValue;
+                    const color =
+                      BORDER_COLORS[index % BORDER_COLORS.length] || "#3b82f6";
+
                     return (
                       <div
                         key={index}
@@ -463,8 +510,10 @@ export default function Graph({
                           className="text-xs font-bold"
                         >
                           {series.name}:{" "}
-                          {lastValue !== undefined && lastValue !== null
-                            ? lastValue.toFixed(2)
+                          {parsedValue !== undefined &&
+                          parsedValue !== null &&
+                          !isNaN(Number(parsedValue))
+                            ? Number(parsedValue).toFixed(2)
                             : "0.00"}
                         </span>
                       </div>
@@ -473,14 +522,26 @@ export default function Graph({
                 </div>
               </div>
             ) : (
-              <p className="text-sm text-gray-400 italic">
-                No telemetry data received
-              </p>
+              /* Premium Minimalist Placeholder Card */
+              <div className="w-full sm:min-w-[240px] min-h-[64px] flex flex-col justify-center items-center bg-gray-200/50 rounded-xl border border-dashed border-gray-200 p-3 transition-all duration-300">
+                <div className="flex items-center gap-2 text-gray-600">
+                  <span className="relative flex h-1.5 w-1.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-gray-300 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-gray-600"></span>
+                  </span>
+                  <span className="text-[10px] font-black uppercase tracking-widest font-mono text-gray-800">
+                    Standby
+                  </span>
+                </div>
+                <p className="text-[10px] text-gray-700/90 font-medium mt-0.5">
+                  Waiting for incoming hardware packets...
+                </p>
+              </div>
             )}
           </div>
         </div>
 
-        {/*  3. CHART SURFACE PANEL */}
+        {/* 3. CHART SURFACE PANEL */}
         <div className="relative min-h-[320px] rounded-b-lg overflow-hidden bg-white border border-gray-200 p-2.5">
           {chartSeries.length > 0 ? (
             <Chart
@@ -495,7 +556,6 @@ export default function Graph({
             </div>
           ) : null}
 
-          {/* Absolute Loading overlay spinner screen */}
           {loading && (
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-gradient-to-b from-slate-50/55 to-slate-50/80 backdrop-blur-[3px] z-10">
               <CircularProgress
