@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useContext, useState, useEffect } from "react";
+import React, { useContext, useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { FiMenu } from "react-icons/fi";
 import { VscUnmute, VscMute } from "react-icons/vsc";
@@ -10,6 +10,7 @@ import { GET, POST } from "../../lib/request";
 import { API } from "../../lib/endpoint";
 
 import LeftLogo from "../../assets/img/Left-logo.png";
+import alertSoundFile from "../../assets/sounds/alertsound.mp3";
 
 import RebootDialog from "./RebootDialog";
 import LogoutDialog from "./LogoutDialog";
@@ -22,12 +23,46 @@ export default function Navbar() {
   const [alarmStatus, setAlarmStatus] = useState(null);
   const [, setNotificationCount] = useState(0);
 
+  // HTML5 Audio Controller Ref
+  const audioRef = useRef(null);
+
   const loadSavedData = () => {
     const savedData = localStorage.getItem("inputValues");
     return savedData ? JSON.parse(savedData) : { word1: "INDIAN AIRFORCE" };
   };
 
   const [inputValues] = useState(loadSavedData());
+
+  // Initialize Audio instance once
+  useEffect(() => {
+    audioRef.current = new Audio(alertSoundFile);
+    audioRef.current.loop = true;
+
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+    };
+  }, []);
+
+  // Alarm Sound Sync Effect
+  useEffect(() => {
+    if (!audioRef.current) return;
+
+    const isAlarmActive = Boolean(
+      alarmStatus?.status && (alarmStatus?.sound ?? true),
+    );
+
+    if (isAlarmActive) {
+      audioRef.current.play().catch((err) => {
+        console.warn("Autoplay policy blocked audio playback:", err);
+      });
+    } else {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
+  }, [alarmStatus]);
 
   // ================= LOGOUT =================
   const logout = () => {
@@ -46,17 +81,28 @@ export default function Navbar() {
   };
 
   const toggleAlarmStatus = async (status) => {
+    // Optimistic UI state update for instant audio response
+    setAlarmStatus((prev) => ({
+      ...prev,
+      status: status,
+    }));
+
     try {
       await POST(API.ALARM.UPDATE_STATUS, { status });
       getGlobalAlarmStatus();
     } catch (err) {
       console.log("Error updating alarm status", err);
+      getGlobalAlarmStatus(); // Rollback if backend request fails
     }
   };
 
   const getNotificationCount = async () => {
-    const resp = await GET(API.ALARM.GET_NOTIFICATION_COUNT);
-    setNotificationCount(resp?.count || 0);
+    try {
+      const resp = await GET(API.ALARM.GET_NOTIFICATION_COUNT);
+      setNotificationCount(resp?.count || 0);
+    } catch (err) {
+      console.log("Error fetching notification count", err);
+    }
   };
 
   useEffect(() => {
@@ -121,7 +167,7 @@ export default function Navbar() {
               {user?.role}
             </span>
 
-            {/* Alarm */}
+            {/* Alarm Button */}
             {alarmStatus?.status ? (
               <button
                 onClick={() => toggleAlarmStatus(false)}
@@ -192,7 +238,7 @@ export default function Navbar() {
                 .filter((r) => {
                   if (r.invisible) return false;
 
-                  // user role ko user-management hide
+                  // Hide user-management for basic user role
                   if (r.id === "user-management" && user?.role === "user") {
                     return false;
                   }
