@@ -38,6 +38,14 @@ const routes = [
 
   // ================= MONITORING =================
   {
+    id: "resistance-Centralized-monitoring",
+    invisible: false,
+    link: "/resistance-Centralized-monitoring", // ⚠️ router file me bhi same hona chahiye
+    name: "Resistance Centralized",
+    icon: RLogo,
+  },
+  // ================= MONITORING =================
+  {
     id: "resistance-monitoring",
     invisible: false,
     link: "/resistance-monitoring", // ⚠️ router file me bhi same hona chahiye

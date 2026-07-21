@@ -111,15 +111,6 @@ function App() {
     setValue1(0);
   }, [value, deviceID]);
 
-  const scrollTabs = (dir) => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollBy({
-        left: dir === "left" ? -500 : 500,
-        behavior: "smooth",
-      });
-    }
-  };
-
   // ================= TAB CHANGE =================
 
   const TabChange = (index) => {

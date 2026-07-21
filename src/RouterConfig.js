@@ -16,13 +16,14 @@ import Alarm from "./views/pages/Alarm/Alarm";
 import Setting from "./views/pages/Setting/Setting";
 import UserMgt from "./views/pages/Managment/Usermgt/UserManagement";
 import SitesMgt from "./views/pages/Managment/SitesMgt/SitesManagment";
+import Resistencecentralized from "./views/pages/Resistence-centralized/ResistanceData";
 import Resistence from "./views/pages/ResisteanceMonitoring/ResistanceTable";
 import Temperature from "./views/pages/TemperatureMonitoring/TemperatureTable";
 import SitesProfile from "./views/pages/Managment/SitesMgt/SitesProfile/sites-profile";
 import TechnicianProfile from "./views/pages/Managment/Usermgt/UserTabs/TechProfile/TechnicianProfile";
 import UserProfile from "./views/pages/Managment/Usermgt/UserTabs/UserProfile/UserProfile";
 import TestHomepage from "../src/views/component/test-homepage";
-// 🔥 Import ProtectedRoute
+// Import ProtectedRoute
 import ProtectedRoute from "./lib/ProtectedRoute";
 
 // const RootErrorBoundary = () => {
@@ -67,6 +68,10 @@ export const routes = [
           {
             path: "/dashboard",
             element: <HomePage />,
+          },
+          {
+            path: "/resistance-Centralized-monitoring",
+            element: <Resistencecentralized />,
           },
           {
             path: "/resistance-monitoring",

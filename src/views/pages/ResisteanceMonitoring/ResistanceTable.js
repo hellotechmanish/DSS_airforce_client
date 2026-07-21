@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useContext } from "react";
+import React, { useEffect, useState, useContext, useCallback } from "react";
 
 import { API } from "../../../lib/endpoint";
 import { GET } from "../../../lib/request";
@@ -24,7 +24,7 @@ export default function Resistance() {
   // const [openModal, setOpenModal] = useState(false);
 
   // ================= FETCH =================
-  const getAllSiteResistance = async () => {
+  const getAllSiteResistance = useCallback(async () => {
     try {
       const res = await GET(
         `${API.SITE.ALL_RESISTANCE}?page=${page}&limit=${limit}&search=${search}`,
@@ -37,14 +37,14 @@ export default function Resistance() {
       console.error(err);
       setResistance([]);
     }
-  };
+  }, [page, limit, search]);
 
   useEffect(() => {
     getAllSiteResistance();
 
     const interval = setInterval(getAllSiteResistance, 20000);
     return () => clearInterval(interval);
-  }, [page, limit, search]);
+  }, [getAllSiteResistance]);
 
   // ================= DOWNLOAD =================
   const downloadCSV = () => {
