@@ -7,7 +7,6 @@ import NodataFound from "../../../assets/img/nodatafound.png";
 import { AuthContext } from "../../../context/AuthContext";
 import toast from "react-hot-toast";
 import { HiOutlineDownload } from "react-icons/hi";
-import { FiBell, FiCheckCircle } from "react-icons/fi";
 
 export default function Resistencecentralized() {
   const [resistance, setResistance] = useState([]);
@@ -39,12 +38,12 @@ export default function Resistencecentralized() {
     }
 
     const headers = [
-      "siteUid",
-      "siteName",
-      "nodeUid",
-      "deviceName",
-      "resistanceNumber",
-      "resistanceValue",
+      "Site UID",
+      "Site Name",
+      "Device UID",
+      "Device Name",
+      "Resistance Number",
+      "Resistance Value (Ω)",
     ];
 
     const rows = resistance.map((item) =>
@@ -65,16 +64,15 @@ export default function Resistencecentralized() {
 
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", "resistance_report.csv");
+    link.setAttribute("download", "Resistance_Monitoring_Report.csv");
     document.body.appendChild(link);
     link.click();
     link.remove();
 
-    toast.success("Downloaded");
+    toast.success("Downloaded CSV Report");
   };
 
   // ================= DYNAMIC 5-SENSOR CHUNKING =================
-  // Har array / list ko 5-5 ke groups me divide karne ka chunking function
   const chunkSize = 5;
   const sensorGroups = [];
 
@@ -84,144 +82,161 @@ export default function Resistencecentralized() {
     const endNum = i + chunk.length;
 
     sensorGroups.push({
-      title: `Group ${Math.floor(i / chunkSize) + 1} (${startNum} - ${endNum})`,
+      title: `Group ${Math.floor(i / chunkSize) + 1} • Sensors (${startNum} - ${endNum})`,
       sensors: chunk,
     });
   }
 
   return (
-    <div className="p-6 bg-slate-100 min-h-screen">
-      {/* HEADER */}
-      <div className="bg-gradient-to-br from-[#0a192f] to-[#0f3057] rounded-xl p-5 mb-5 flex justify-between items-center shadow-lg">
-        <h2 className="text-white text-xl font-semibold tracking-wide">
-          RESISTANCE MONITORING
+    <div className="p-3 bg-slate-100 min-h-screen text-slate-800 text-[11px] font-sans">
+      {/* COMPACT TOP HEADER */}
+      <div className="bg-[#0a192f] rounded-lg px-4 py-2 mb-3 flex justify-between items-center shadow-md">
+        <h2 className="text-white text-xs font-bold tracking-wider uppercase">
+          Centralized Resistance Monitoring
         </h2>
-        <span className="text-white font-medium bg-[#1f4068] px-4 py-1 rounded-full text-sm">
-          {resistance.length} Active Sensors
-        </span>
+        <div className="flex items-center gap-3">
+          <span className="text-emerald-400 font-mono font-bold bg-[#1f4068] px-2.5 py-0.5 rounded text-[10px] tracking-wide border border-[#2d5d8f]">
+            {resistance.length} Active Sensors
+          </span>
+          <button
+            onClick={downloadCSV}
+            className="flex items-center gap-1.5 px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-[10px] font-medium transition shadow-xs"
+          >
+            <HiOutlineDownload size={13} /> Export CSV
+          </button>
+        </div>
       </div>
 
-      {/* DOWNLOAD BUTTON */}
-      <div className="mb-6 flex justify-end items-center">
-        <button
-          onClick={downloadCSV}
-          className="flex items-center gap-2 px-4 py-2 bg-[#0f3057] hover:bg-[#1f4068] text-white rounded-lg transition shadow-md"
-        >
-          <HiOutlineDownload size={18} /> Download CSV
-        </button>
-      </div>
-
-      {/* DYNAMIC SENSOR GROUPS CONTAINER */}
-      <div className="space-y-8">
+      {/* DYNAMIC HIGHLIGHTED SENSOR GROUPS */}
+      <div className="space-y-3">
         {sensorGroups.map((group, groupIdx) => (
           <div
             key={groupIdx}
-            className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200"
+            className="bg-white rounded-lg shadow-sm border-2 border-slate-300 overflow-hidden"
           >
-            {/* GROUP TITLE */}
-            <h3 className="text-lg font-bold text-[#0f3057] mb-4 pb-2 border-b border-slate-200">
-              {group.title}
-            </h3>
+            {/* HIGHLIGHTED GROUP HEADER BAR */}
+            <div className="bg-gradient-to-r from-[#0f3057] to-[#1f4068] text-white px-3 py-1.5 flex justify-between items-center border-b border-slate-300">
+              <div className="text-[11px] font-bold tracking-wide flex items-center gap-2">
+                <span className="w-2 h-2 bg-blue-400 rounded-full inline-block animate-pulse"></span>
+                {group.title}
+              </div>
+              <span className="text-[9px] bg-blue-900/60 text-blue-200 px-2 py-0.5 rounded border border-blue-400/30 font-mono">
+                {group.sensors.length} Nodes
+              </span>
+            </div>
 
-            {/* CARDS GRID (5 CARDS PER ROW) */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-              {group.sensors.map((item, itemIdx) => {
-                const globalIndex = groupIdx * chunkSize + itemIdx + 1;
-                const value = item?.resistanceValue || 0;
-                const threshold = item?.resSensorsThreshold || 0;
-                const isAlert = value > threshold;
+            {/* CARDS GRID CONTAINER */}
+            <div className="p-2 bg-slate-50/70">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2">
+                {group.sensors.map((item, itemIdx) => {
+                  const globalIndex = groupIdx * chunkSize + itemIdx + 1;
+                  const value = item?.resistanceValue || 0;
+                  const threshold = item?.resSensorsThreshold || 0;
+                  const isAlert = value > threshold && threshold > 0;
 
-                return (
-                  <div
-                    key={item?._id || itemIdx}
-                    className={`rounded-xl border p-4 flex flex-col justify-between transition-all duration-200 shadow-sm hover:shadow-md ${
-                      isAlert
-                        ? "bg-red-50 border-red-300"
-                        : "bg-slate-50 border-slate-200"
-                    }`}
-                  >
-                    {/* CARD HEADER */}
-                    <div className="flex justify-between items-center mb-3">
-                      <span className="font-bold text-slate-800 text-base">
-                        #{item?.resistanceNumber || globalIndex}
-                      </span>
-                      {isAlert ? (
-                        <div className="flex items-center gap-1 text-red-600 font-semibold text-xs bg-red-100 px-2 py-1 rounded-full">
-                          <FiBell className="animate-pulse" /> Alert
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-1 text-green-600 font-semibold text-xs bg-green-100 px-2 py-1 rounded-full">
-                          <FiCheckCircle /> Normal
-                        </div>
-                      )}
-                    </div>
-
-                    {/* CARD BODY DETAILS */}
-                    <div className="space-y-1.5 text-xs text-slate-600 mb-4">
-                      <div className="flex justify-between">
-                        <span className="font-medium">Site Name:</span>
-                        <span className="text-slate-800 font-semibold truncate max-w-[100px]">
-                          {item?.siteName || "N/A"}
+                  return (
+                    <div
+                      key={item?._id || itemIdx}
+                      className={`rounded-md border p-2 flex flex-col justify-between transition shadow-2xs ${
+                        isAlert
+                          ? "bg-red-50/90 border-red-400 ring-1 ring-red-400/50"
+                          : "bg-white border-slate-200 hover:border-slate-300"
+                      }`}
+                    >
+                      {/* CARD HEADER */}
+                      <div className="flex justify-between items-center pb-1 mb-1 border-b border-slate-100">
+                        <span className="font-bold text-slate-900 text-[11px] font-mono">
+                          Sensor #{item?.resistanceNumber || globalIndex}
                         </span>
-                      </div>
-
-                      {auth?.user?.role !== "user" && (
-                        <div className="flex justify-between">
-                          <span className="font-medium">Site UID:</span>
-                          <span className="text-slate-800">
-                            {item?.siteUid || "N/A"}
+                        <div className="flex items-center gap-1">
+                          <span
+                            className={`w-2 h-2 rounded-full ${
+                              isAlert
+                                ? "bg-red-500 animate-ping"
+                                : "bg-emerald-500"
+                            }`}
+                          />
+                          <span
+                            className={`text-[9px] font-bold uppercase ${
+                              isAlert ? "text-red-600" : "text-emerald-600"
+                            }`}
+                          >
+                            {isAlert ? "Alert" : "OK"}
                           </span>
                         </div>
-                      )}
-
-                      <div className="flex justify-between">
-                        <span className="font-medium">Device UID:</span>
-                        <span className="text-slate-800">
-                          {item?.nodeUid || "N/A"}
-                        </span>
                       </div>
 
-                      <div className="flex justify-between">
-                        <span className="font-medium">Device Name:</span>
-                        <span className="text-slate-800 truncate max-w-[100px]">
-                          {item?.deviceName || "N/A"}
-                        </span>
+                      {/* CLEAR FULL METRIC LABELS */}
+                      <div className="space-y-1 text-[10px] text-slate-600 my-1">
+                        <div className="flex justify-between items-center">
+                          <span className="text-slate-500 font-medium">
+                            Site Name:
+                          </span>
+                          <span
+                            className="text-slate-900 font-bold truncate max-w-[85px] text-right"
+                            title={item?.siteName}
+                          >
+                            {item?.siteName || "N/A"}
+                          </span>
+                        </div>
+
+                        {/* <div className="flex justify-between items-center">
+                          <span className="text-slate-500 font-medium">
+                            Device Name:
+                          </span>
+                          <span
+                            className="text-slate-800 font-medium truncate max-w-[85px] text-right"
+                            title={item?.deviceName}
+                          >
+                            {item?.deviceName || "N/A"}
+                          </span>
+                        </div> */}
+
+                        <div className="flex justify-between items-center">
+                          <span className="text-slate-500 font-medium">
+                            Device UID:
+                          </span>
+                          <span className="text-slate-800 font-mono text-[9.5px]">
+                            {item?.nodeUid || "N/A"}
+                          </span>
+                        </div>
                       </div>
 
-                      <div className="flex justify-between">
-                        <span className="font-medium">Res. UID:</span>
-                        <span className="text-slate-800">
-                          {item?.resistanceNumber || globalIndex}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* CARD FOOTER VALUE */}
-                    <div className="pt-2 border-t border-slate-200 flex justify-between items-center">
-                      <span className="text-xs text-slate-500 font-medium">
-                        Value:
-                      </span>
-                      <span
-                        className={`text-base font-bold ${
-                          isAlert ? "text-red-600" : "text-slate-900"
+                      {/* HIGH-VISIBILITY VALUE ROW */}
+                      <div
+                        className={`pt-1 border-t flex justify-between items-center ${
+                          isAlert ? "border-red-200" : "border-slate-200"
                         }`}
                       >
-                        {value} Ω
-                      </span>
+                        <span className="text-[9.5px] text-slate-500 font-semibold uppercase">
+                          Res. Value:
+                        </span>
+                        <span
+                          className={`font-bold font-mono text-[11px] ${
+                            isAlert
+                              ? "text-red-600 font-extrabold"
+                              : "text-slate-900"
+                          }`}
+                        >
+                          {Number(value).toFixed(2)} Ω
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
           </div>
         ))}
       </div>
 
-      {/* NO DATA STATE */}
+      {/* EMPTY STATE */}
       {resistance.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-12 bg-white rounded-2xl mt-6">
-          <img alt="no data found" src={NodataFound} className="w-36 mb-3" />
-          <p className="text-slate-500 font-medium">No Sensor Data Available</p>
+        <div className="flex flex-col items-center justify-center py-10 bg-white rounded-lg border border-slate-200 mt-3 shadow-xs">
+          <img alt="no data found" src={NodataFound} className="w-20 mb-2" />
+          <p className="text-slate-500 font-medium text-[11px]">
+            No Live Sensor Data Available
+          </p>
         </div>
       )}
     </div>
