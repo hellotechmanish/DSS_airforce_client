@@ -1,24 +1,23 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom"; //  Added useNavigate
+import React, { useState, useEffect, useRef } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { FiMenu } from "react-icons/fi";
 import { VscUnmute, VscMute } from "react-icons/vsc";
 import routes from "../../routes/AdminRoutes";
 
-//  FIXED: Context ko hatakar Zustand store import kiya
 import { useAuth } from "../../context/useAuth";
 import { GET, POST } from "../../lib/request";
 import { API } from "../../lib/endpoint";
 
 import LeftLogo from "../../assets/img/Left-logo.png";
+import alertSoundFile from "../../assets/sounds/alertsound.mp3"; // Audio file imported
 
 import RebootDialog from "./RebootDialog";
 import LogoutDialog from "./LogoutDialog";
 import ShutDonwDialog from "./ShutDonwDialog";
 
 export default function Navbar() {
-  //   FIXED: Context consumption ko Zustand select queries me badla
   const user = useAuth((state) => state.user);
   const clearSessionMemory = useAuth((state) => state.logout);
 
@@ -28,6 +27,11 @@ export default function Navbar() {
   const [alarmStatus, setAlarmStatus] = useState(null);
   const [, setNotificationCount] = useState(0);
 
+  // Audio Object Ref for handling HTML5 Audio Playback
+  const audioRef = useRef(null);
+  // Prevent an older poll response from overwriting a newer mute/unmute action.
+  const alarmStatusRequestRef = useRef(0);
+
   const loadSavedData = () => {
     const savedData = localStorage.getItem("inputValues");
     return savedData ? JSON.parse(savedData) : { word1: "INDIAN AIRFORCE" };
@@ -35,18 +39,51 @@ export default function Navbar() {
 
   const [inputValues] = useState(loadSavedData());
 
-  // =================     FIXED LOGOUT PIPELINE =================
+  // Initialize Audio instance once
+  useEffect(() => {
+    audioRef.current = new Audio(alertSoundFile);
+    audioRef.current.loop = true;
+
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+    };
+  }, []);
+
+  // Keep playback tied to the server-calculated threshold state. This ensures a
+  // muted alarm is silent immediately and an alarm stops as soon as all values
+  // return below their thresholds.
+  useEffect(() => {
+    if (!audioRef.current) return;
+
+    // Check if alarm status is Active, not muted and `sound` is truthy
+    const isAlarmActive = Boolean(
+      alarmStatus?.status &&
+      !alarmStatus?.muted &&
+      (alarmStatus?.sound ?? false),
+    );
+
+    if (isAlarmActive) {
+      audioRef.current.play().catch((err) => {
+        // Handle modern browser autoplay block policy gracefully
+        console.warn("Autoplay prevented by browser interaction policy:", err);
+      });
+    } else {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
+  }, [alarmStatus]);
+
+  // ================= FIXED LOGOUT PIPELINE =================
   const logout = async () => {
     try {
-      // 1.    Using explicit endpoint matrix path from endpoints configuration
       await POST(API.AUTH.LOGOUT);
     } catch (err) {
       console.error("Backend token invalidation failed:", err.message);
     } finally {
-      // 2. Zustand ki RAM memory ko clear karo (isLoggedIn false ho jayega)
       clearSessionMemory();
-
-      // 3. Drawer band karo aur safety se clean transition ke sath /signIn portal par bhej do
       setDrawerOpen(false);
       navigate("/signIn", { replace: true });
     }
@@ -54,26 +91,48 @@ export default function Navbar() {
 
   // ================= ALARM =================
   const getGlobalAlarmStatus = async () => {
+    const requestId = ++alarmStatusRequestRef.current;
+
     try {
       const res = await GET(API.ALARM.STATUS);
-      setAlarmStatus(res.data);
+      if (requestId === alarmStatusRequestRef.current) {
+        setAlarmStatus(res?.data ?? res);
+      }
     } catch (err) {
       console.error("Error fetching alarm status", err);
     }
   };
 
-  const toggleAlarmStatus = async (status) => {
+  const toggleAlarmMuted = async (muted) => {
+    // Preserve the latest `sound` value so the sync effect can immediately
+    // start/stop playback. The next status request confirms the current
+    // threshold state from the server.
+    // Invalidate any in-flight poll before applying the user's newer choice.
+    ++alarmStatusRequestRef.current;
+    setAlarmStatus((prev) => ({ ...prev, muted }));
+
     try {
-      await POST(API.ALARM.UPDATE_STATUS, { status });
+      // This navbar now exposes mute/unmute (not a separate system on/off
+      // control), so unmuting must also re-enable alarms if an older status
+      // record was previously disabled.
+      await POST(
+        API.ALARM.UPDATE_STATUS,
+        muted ? { muted } : { muted, status: true },
+      );
       getGlobalAlarmStatus();
     } catch (err) {
-      console.error("Error updating alarm status", err);
+      console.error("Error updating alarm mute", err);
+      getGlobalAlarmStatus();
     }
   };
 
   const getNotificationCount = async () => {
-    const resp = await GET(API.ALARM.GET_NOTIFICATION_COUNT);
-    setNotificationCount(resp?.count || 0);
+    try {
+      const resp = await GET(API.ALARM.GET_NOTIFICATION_COUNT);
+      setNotificationCount(resp?.count || 0);
+    } catch (err) {
+      console.error("Error fetching notification count", err);
+    }
   };
 
   useEffect(() => {
@@ -83,7 +142,7 @@ export default function Navbar() {
     const interval = setInterval(() => {
       getGlobalAlarmStatus();
       getNotificationCount();
-    }, 10000);
+    }, 5000);
 
     return () => clearInterval(interval);
   }, []);
@@ -92,7 +151,7 @@ export default function Navbar() {
   const handleReboot = async () => {
     try {
       const res = await POST(API.DEVICE.REBOOT);
-      console.log("hey this to cchek if rebooot fun is work", res);
+      console.log("Reboot triggered:", res);
     } catch (error) {
       console.error("Reboot failed", error);
     }
@@ -139,22 +198,24 @@ export default function Navbar() {
               {user?.role}
             </span>
 
-            {/* Alarm */}
-            {alarmStatus?.status ? (
+            {/* Alarm Mute/Unmute Button (toggles muted flag) */}
+            {alarmStatus?.muted ? (
               <button
-                onClick={() => toggleAlarmStatus(false)}
+                onClick={() => toggleAlarmMuted(false)}
                 className="text-red-500 hover:scale-110 transition"
-                title="Mute Alarm"
+                title="Alarm muted — click to unmute"
+                aria-label="Alarm muted — click to unmute"
               >
-                <VscUnmute size={22} />
+                <VscMute size={22} />
               </button>
             ) : (
               <button
-                onClick={() => toggleAlarmStatus(true)}
+                onClick={() => toggleAlarmMuted(true)}
                 className="text-white hover:scale-110 transition"
-                title="Unmute Alarm"
+                title="Alarm audible — click to mute"
+                aria-label="Alarm audible — click to mute"
               >
-                <VscMute size={22} />
+                <VscUnmute size={22} />
               </button>
             )}
 
@@ -210,7 +271,6 @@ export default function Navbar() {
                 .filter((r) => {
                   if (r.invisible) return false;
 
-                  // user role ko user-management hide
                   if (r.id === "user-management" && user?.role === "user") {
                     return false;
                   }
