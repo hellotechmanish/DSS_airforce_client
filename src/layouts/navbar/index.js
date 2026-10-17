@@ -8,8 +8,9 @@ import routes from "../../routes/AdminRoutes";
 import { AuthContext } from "../../context/AuthContext";
 import { GET, POST } from "../../lib/request";
 import { API } from "../../lib/endpoint";
+import { navbarLogo, navbarSubtitle, navbarTitle } from "../../lib/branding";
 
-import LeftLogo from "../../assets/img/Left-logo.png";
+// import LeftLogo from "../../assets/img/Left-logo.png";
 import alertSoundFile from "../../assets/sounds/alertsound.mp3";
 
 import RebootDialog from "./RebootDialog";
@@ -25,13 +26,6 @@ export default function Navbar() {
 
   // HTML5 Audio Controller Ref
   const audioRef = useRef(null);
-
-  const loadSavedData = () => {
-    const savedData = localStorage.getItem("inputValues");
-    return savedData ? JSON.parse(savedData) : { word1: "INDIAN AIRFORCE" };
-  };
-
-  const [inputValues] = useState(loadSavedData());
 
   // Initialize Audio instance once
   useEffect(() => {
@@ -147,17 +141,15 @@ export default function Navbar() {
         <div className="w-full px-6 flex items-center justify-between">
           {/* LEFT LOGO */}
           <div className="w-1/4">
-            <img src={LeftLogo} alt="logo" className="h-12 ml-2" />
+            <img src={navbarLogo} alt="logo" className="h-12 ml-2" />
           </div>
 
           {/* CENTER TITLE */}
           <div className="w-1/2 text-center">
             <h1 className="text-white font-bold text-xl tracking-widest">
-              {inputValues.word1}
+              {navbarTitle}
             </h1>
-            <p className="text-white text-xs tracking-wide">
-              ONLINE RESISTANCE MONITORING SYSTEM
-            </p>
+            <p className="text-white text-xs tracking-wide">{navbarSubtitle}</p>
           </div>
 
           {/* RIGHT CONTROLS */}

@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import { Typography, Grid, Input, Button, Snackbar } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import MuiAlert from "@mui/material/Alert";
-import LeftLogo from "../../assets/img/Left-logo.png";
+// import LeftLogo from "../../assets/img/Left-logo.png";
 import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
 import { useForm } from "react-hook-form";
 import { POST } from "../../lib/request.js";
@@ -13,6 +13,8 @@ import { Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext.js";
 import { toast } from "react-hot-toast";
 import { AiOutlineLoading3Quarters } from "react-icons/ai";
+import { navbarLogo, navbarSubtitle, navbarTitle } from "../../lib/branding";
+
 const Alert = React.forwardRef(function Alert(props, ref) {
   return <MuiAlert elevation={6} ref={ref} variant="filled" {...props} />;
 });
@@ -91,21 +93,11 @@ function App() {
     }
   };
 
-  // code for title change start here
-  const loadSavedData = () => {
-    const savedData = localStorage.getItem("inputValues");
-    return savedData
-      ? JSON.parse(savedData)
-      : { word1: "Indian Airforce", word2: "", word3: "" };
-  };
-  const [inputValues] = useState(loadSavedData());
-  // code for title change end here
-
   return (
     <>
       {/* ================= Snackbar ================= */}
       <Snackbar open={snackopen} autoHideDuration={6000} onClose={SnanbarClose}>
-        <Alert onClose={SnanbarClose} severity={"success"}>
+        <Alert onClose={SnanbarClose} severity="success">
           {snackmsg}
         </Alert>
       </Snackbar>
@@ -115,7 +107,7 @@ function App() {
         autoHideDuration={3000}
         onClose={SnackbarErrorClose}
       >
-        <Alert onClose={SnackbarErrorClose} severity={"error"}>
+        <Alert onClose={SnackbarErrorClose} severity="error">
           {snackErrMsg}
         </Alert>
       </Snackbar>
@@ -127,52 +119,72 @@ function App() {
         alignItems="center"
         sx={{
           minHeight: "100vh",
+          width: "100%",
           background: "linear-gradient(to bottom, #001f3f, #003366)",
           px: { xs: 2, sm: 3, md: 4 },
           pb: 4,
+          boxSizing: "border-box",
         }}
       >
-        {/* ================= Header Section ================= */}
+        {/* ================= Responsive Header ================= */}
         <Grid
           container
           alignItems="center"
-          justifyContent="space-between"
+          justifyContent="flex-start"
           sx={{
             width: "100%",
             maxWidth: "1200px",
             pt: { xs: 2, sm: 3, md: 4 },
+            gap: { xs: 1.5, sm: 3 },
           }}
         >
-          {/* Left Logo */}
-          <Grid item xs={3} sm={2}>
+          {/* Left Logo Only */}
+          <Grid
+            item
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              flexShrink: 0,
+            }}
+          >
             <img
-              src={LeftLogo}
-              alt="LeftLogo"
+              src={navbarLogo}
+              alt="Logo"
               style={{
+                display: "block",
+                width: "clamp(55px, 10vw, 100px)",
                 height: "auto",
-                width: "100%",
                 maxHeight: "100px",
                 objectFit: "contain",
               }}
             />
           </Grid>
 
-          {/* Title */}
-          <Grid item xs={6} sm={8} textAlign="center">
+          {/* Responsive Title */}
+          <Grid
+            item
+            xs
+            sx={{
+              minWidth: 0,
+              textAlign: { xs: "left", sm: "center" },
+            }}
+          >
             <Typography
               sx={{
                 color: "white",
                 fontWeight: 700,
-                letterSpacing: "1px",
+                letterSpacing: { xs: "0.3px", sm: "1px" },
                 fontSize: {
-                  xs: "20px",
+                  xs: "clamp(16px, 4vw, 20px)",
                   sm: "26px",
                   md: "34px",
                   lg: "40px",
                 },
+                lineHeight: 1.25,
+                overflowWrap: "break-word",
               }}
             >
-              {inputValues.word1}
+              {navbarTitle}
             </Typography>
 
             <Typography
@@ -180,29 +192,17 @@ function App() {
                 color: "#d9d9d9",
                 fontWeight: 500,
                 fontSize: {
-                  xs: "12px",
+                  xs: "11px",
                   sm: "15px",
                   md: "18px",
                   lg: "22px",
                 },
+                lineHeight: 1.4,
+                mt: 0.5,
               }}
             >
-              Online Resistance Monitoring System
+              {navbarSubtitle}
             </Typography>
-          </Grid>
-
-          {/* Right Logo */}
-          <Grid item xs={3} sm={2} textAlign="right">
-            <img
-              src={LeftLogo}
-              alt="RightLogo"
-              style={{
-                height: "auto",
-                width: "100%",
-                maxHeight: "100px",
-                objectFit: "contain",
-              }}
-            />
           </Grid>
         </Grid>
 
@@ -214,6 +214,7 @@ function App() {
           sx={{
             mt: { xs: 4, sm: 6, md: 8 },
             width: "100%",
+            px: { xs: 0, sm: 2 },
           }}
         >
           <form
@@ -221,14 +222,16 @@ function App() {
             style={{
               width: "100%",
               maxWidth: "420px",
+              minWidth: 0,
             }}
           >
             <Grid
               item
               sx={{
                 background: "white",
-                p: { xs: 3, sm: 4, md: 5 },
+                p: { xs: 2.5, sm: 4, md: 5 },
                 width: "100%",
+                boxSizing: "border-box",
                 borderRadius: "8px",
                 boxShadow: "0 10px 30px rgba(0,0,0,0.4)",
                 borderTop: "6px solid #ff9933",
@@ -263,6 +266,7 @@ function App() {
                   borderRadius: "4px",
                   padding: "10px",
                   marginTop: "8px",
+                  boxSizing: "border-box",
                 }}
                 {...register("Uid", {
                   required: "Uid is required",
@@ -286,7 +290,13 @@ function App() {
                 Enter Password
               </Typography>
 
-              <Grid container sx={{ position: "relative" }}>
+              <Grid
+                container
+                sx={{
+                  position: "relative",
+                  width: "100%",
+                }}
+              >
                 <Input
                   fullWidth
                   disableUnderline
@@ -296,7 +306,9 @@ function App() {
                     border: "1px solid #ccc",
                     borderRadius: "4px",
                     padding: "10px",
+                    paddingRight: "38px",
                     marginTop: "8px",
+                    boxSizing: "border-box",
                   }}
                   {...register("Password", {
                     required: "Password is required.",
@@ -304,17 +316,26 @@ function App() {
                   })}
                 />
 
+                {/* Password Visibility Toggle */}
                 <Grid
+                  onClick={() => setShow(!show)}
                   sx={{
                     position: "absolute",
                     right: "10px",
-                    top: "18px",
+                    top: "50%",
+                    transform: "translateY(-35%)",
                     cursor: "pointer",
                     color: "#003366",
+                    display: "flex",
+                    alignItems: "center",
+                    zIndex: 1,
                   }}
-                  onClick={() => setShow(!show)}
                 >
-                  {show ? <AiOutlineEye /> : <AiOutlineEyeInvisible />}
+                  {show ? (
+                    <AiOutlineEye size={20} />
+                  ) : (
+                    <AiOutlineEyeInvisible size={20} />
+                  )}
                 </Grid>
               </Grid>
 
